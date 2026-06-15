@@ -15,12 +15,13 @@ jobs:
       id-token: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Run Claude Code Review
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           # Claude 구독(OAuth) 토큰. `claude setup-token` 으로 발급 후
           # 저장소 Settings > Secrets > Actions 에 CLAUDE_CODE_OAUTH_TOKEN 으로 등록.
