@@ -12,7 +12,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 pnpm workspace이지만 `pnpm-workspace.yaml` 에는 `frontend` 만 포함된다. `backend` 는 별도 Python 프로젝트(`backend/.venv`)로 독립 관리한다. Husky + lint-staged 는 루트에서 동작하며 커밋 시 변경 파일에 backend(ruff) / frontend(eslint·prettier) lint 를 자동 적용한다.
 
-```
+```text
 frontend/   React 19 + Vite + TS + Tailwind 4 + Supabase Auth (pnpm workspace)
 backend/    Flask(flask-openapi3) + Pydantic + Supabase/pgvector (독립 Python)
 supabase/migrations/   도메인별 SQL 마이그레이션 (도메인 소유자 단독 변경)
