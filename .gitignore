@@ -1,0 +1,40 @@
+# ─────────────── Secrets / Env ───────────────
+.env
+.env.*
+!.env.example
+
+# ─────────────── Python (backend) ───────────────
+**/.venv/
+**/venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# ─────────────── Node / Frontend ───────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# ─────────────── Data (원본/대용량 산출물) ───────────────
+# 원본 약관 PDF 및 파싱 산출물은 커밋하지 않음 (README 정책)
+data/policies/
+data/parsed/
+# 검수 완료/샘플은 필요 시 화이트리스트로 추적
+# !data/verified/
+# !data/samples/
+
+# ─────────────── Logs / OS / Editor ───────────────
+*.log
+logs/
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

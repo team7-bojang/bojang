@@ -1,0 +1,36 @@
+{
+  "id": "golden-0001",
+  "description": "예시 케이스 — 실제 검수 데이터로 교체 필요 (DB 3대질병 주인공 시나리오)",
+  "case": {
+    "disease": "뇌경색",
+    "disease_kcd": "I63",
+    "surgery": false,
+    "diag_days": 7,
+    "current_days": 3,
+    "policy_elapsed_days": 800,
+    "claimed": ["현대 실손"]
+  },
+  "expected": [
+    {
+      "policy": "DB 3대질병",
+      "rider": "질병입원일당(1일이상180일한도)",
+      "status": "eligible",
+      "missed": true
+    },
+    {
+      "policy": "DB 3대질병",
+      "rider": "뇌혈관질환입원일당(4일이상120일한도)",
+      "status": "boundary_not_met",
+      "gap_days": 1
+    },
+    {
+      "policy": "현대 실손",
+      "rider": "질병급여실손의료비(입원)",
+      "status": "claimed"
+    }
+  ],
+  "must_not_match": [
+    { "policy": "한화 e암보험", "rider": "암진단자금" },
+    { "policy": "메리츠 상해안심", "rider": "골절진단비Ⅱ" }
+  ]
+}

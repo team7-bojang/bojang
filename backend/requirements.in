@@ -1,0 +1,58 @@
+# ──────────────────────────────────────────────────────────────
+# 직접(top-level) 의존성만 선언합니다.
+# 잠금파일(전이 의존성 포함)은 아래 명령으로 생성:
+#   pip install pip-tools  (또는 uv 사용)
+#   pip-compile requirements.in -o requirements.txt
+# ──────────────────────────────────────────────────────────────
+
+# ── Web framework ──
+Flask
+flask-cors
+flask-openapi3        # OpenAPI/Swagger 자동 문서 + 라우팅 (factory.py에서 사용)
+
+# ── 설정 / 검증 ──
+pydantic
+pydantic-settings
+python-dotenv
+
+# ── DB / Supabase / Vector ──
+supabase
+psycopg[binary]
+SQLAlchemy
+pgvector
+
+# ── LLM / RAG ──
+openai
+anthropic
+tiktoken
+langchain
+langchain-core
+langchain-openai
+langchain-anthropic
+langchain-community
+langgraph
+
+# ── PDF 파싱 ──
+pdfplumber
+pypdf
+lxml
+
+# ── 데이터 처리 ──
+pandas
+numpy
+
+# ── 개발 / 테스트 ──
+pytest
+pytest-cov
+ruff
+black
+
+# ──────────────────────────────────────────────────────────────
+# ⚠️ 확인 필요: 기존 freeze에 있었으나 직접 사용 여부가 불분명한 대형 패키지.
+#    실제로 쓰면 위로 옮기고, 아니면 잠금 재생성 시 자연히 빠집니다.
+# torch                 # ~수 GB. 로컬 임베딩/모델 미사용이면 불필요
+# transformers
+# datasets
+# sentence 관련, playwright, yfinance, wikipedia, ollama,
+# langchain-tavily, mcp, kubernetes, Flask-SocketIO ...
+# ──────────────────────────────────────────────────────────────

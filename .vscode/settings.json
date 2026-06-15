@@ -1,0 +1,71 @@
+{
+  // 저장 시 자동 포맷팅 실행
+  "editor.formatOnSave": true,
+
+  // 기본 포맷터: Prettier 사용 (JS/TS/JSON 등)
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // 저장 시 자동 실행할 코드 정리 작업
+  "editor.codeActionsOnSave": {
+    // ESLint 규칙 위반 자동 수정
+    "source.fixAll.eslint": "always",
+
+    // 사용하지 않는 import 제거 및 import 정렬
+    "source.organizeImports": "always"
+  },
+
+  // 들여쓰기 2칸 고정
+  "editor.tabSize": 2,
+
+  // Tab 입력 시 공백 사용
+  "editor.insertSpaces": true,
+
+  // 파일마다 들여쓰기 자동 감지 비활성화
+  "editor.detectIndentation": false,
+
+  // 1초 후 자동 저장
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+
+  // 줄바꿈 문자 (auto: OS에 따라 자동 감지)
+  "files.eol": "auto",
+
+  // 줄 끝 공백 제거
+  "files.trimTrailingWhitespace": true,
+
+  // 파일 마지막 줄 개행 추가
+  // Git diff 품질 향상
+  "files.insertFinalNewline": true,
+
+  // JS/TS 자동 import 추천 활성화
+  "js/ts.suggest.autoImports": true,
+
+  // ESLint 검사 대상 파일
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+
+  // .prettierrc 파일이 있을 때만 Prettier 동작
+  // 팀 규칙 강제
+  "prettier.requireConfig": true,
+
+  // Python 파일은 Ruff Formatter 사용
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+
+  // Python 자동 import 추천 활성화
+  // 예: Flask 입력 → from flask import Flask 추천
+  "python.analysis.autoImportCompletions": true,
+
+  // GitHub Actions YAML 자동 검증
+  "yaml.validate": true,
+
+  // Python 타입 검사
+  "python.analysis.typeCheckingMode": "basic",
+  "python-envs.defaultEnvManager": "ms-python.python:conda",
+  "python-envs.defaultPackageManager": "ms-python.python:conda"
+}
