@@ -7,8 +7,8 @@ Swagger UI 가 같은 앱에서 서빙된다 (배포 시 백엔드와 함께 자
 """
 
 from flask_cors import CORS
-from flask_openapi3.openapi import OpenAPI
 from flask_openapi3.models.info import Info
+from flask_openapi3.openapi import OpenAPI
 
 from app.api.v1 import register_v1
 from app.config import settings

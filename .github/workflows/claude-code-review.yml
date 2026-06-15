@@ -1,0 +1,62 @@
+name: Claude Code Review
+
+# PR이 열리거나 새 커밋이 푸시될 때 Claude가 자동으로 코드리뷰를 남긴다.
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run Claude Code Review
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
+        with:
+          # Claude 구독(OAuth) 토큰. `claude setup-token` 으로 발급 후
+          # 저장소 Settings > Secrets > Actions 에 CLAUDE_CODE_OAUTH_TOKEN 으로 등록.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # 리뷰 실행 비용 제어용 (필요 시 조정)
+          claude_args: "--max-turns 15"
+          prompt: |
+            이 저장소의 한국어 시니어 코드리뷰어로서 이번 PR의 변경분(diff)만 리뷰해 주세요.
+            먼저 루트의 CLAUDE.md 와 docs/ 의 규칙을 읽고, 그 계약을 판단 기준으로 삼으세요.
+
+            [검토 항목 — 해당 영역을 실제로 건드린 변경에만 적용]
+            백엔드:
+            - 응답 봉투(ok()/fail())·AppError 에러 계약을 깨지 않는가
+            - judge() 가 순수 함수로 유지되고 판정 우선순위(waiting_period→boundary→eligible)를 지키는가
+            - 실손 claim_rule 이중차감 금지 규칙을 위반하지 않는가
+            - 프롬프트 하드코딩 금지, 마이그레이션은 기존 파일 수정이 아닌 신규 파일인가
+            프론트엔드:
+            - frontend/src/types 와 백엔드 Pydantic 스키마 계약이 어긋나지 않는가
+            공통:
+            - 버그·보안 문제·명백한 성능 이슈
+
+            [우선순위 — 모든 지적에 하나씩, 수정 시급순]
+            P1 머지 차단/즉시 수정: 보안, 데이터 손상, 도메인 계약 위반, 스키마 불일치로 인한 런타임 깨짐
+            P2 머지 전 반드시 수정: 명백한 버그, 잘못된 로직, judge 순수성 훼손, 프롬프트 하드코딩, 기존 마이그레이션 수정
+            P3 수정 권장: 미처리 엣지케이스, 잠재 성능 이슈, 누락된 에러 처리
+            P4 개선 제안: 가독성·구조·네이밍 (머지 무관)
+            P5 사소/옵션: 취향 수준 (대부분 생략, 한 줄 가치 있을 때만)
+
+            [리뷰 원칙]
+            - 변경된 라인에만 집중하고, 가능하면 해당 라인에 인라인 코멘트를 남기세요.
+            - 지적의 근거는 반드시 diff에 실제로 존재하는 코드여야 합니다. diff 밖 동작을 추측해 단정하지 말고, 불확실하면 단정 대신 질문으로 남기세요.
+            - 변경분에 P1~P3 문제가 없으면 억지로 지적을 만들지 말고 "통과(LGTM)"로 처리하세요. 거짓 양성은 피해야 할 비용입니다.
+            - 모든 코멘트는 한국어로 작성하세요.
+
+            [출력 형식]
+            1) 종합 평가: 변경 요약 1~2줄 + 머지 가능 여부(승인 / 수정 요청) + P1·P2 개수
+            2) 주요 지적: 우선순위 높은 순(P1→P5)으로 정렬한 목록. 각 항목에 [P?] 라벨, 파일·라인, 문제, 수정 방향
+            3) 인라인 코멘트: 파일·라인 기준
