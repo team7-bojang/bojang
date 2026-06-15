@@ -46,3 +46,25 @@ jobs:
       - run: pip install -r requirements.txt
       - run: ruff check .
       - run: pytest
+
+      # 배포 사전 검증: 실제 EC2처럼 gunicorn 으로 앱을 띄워 /health 응답을 확인한다.
+      # 배포가 깨지는 주요 원인(의존성 누락, import 에러로 앱이 안 뜸)을 PR 단계에서 잡는다.
+      # - name: Gunicorn 부팅 스모크 테스트
+      #   run: |
+      #     gunicorn -w 1 -b 127.0.0.1:5000 app.main:app \
+      #       --daemon --pid /tmp/g.pid --error-logfile /tmp/g.err
+      #     ok=0
+      #     for i in $(seq 1 10); do
+      #       if curl -fsS http://127.0.0.1:5000/health > /dev/null; then
+      #         echo "✅ gunicorn 부팅 OK"
+      #         ok=1
+      #         break
+      #       fi
+      #       sleep 1
+      #     done
+      #     [ -f /tmp/g.pid ] && kill "$(cat /tmp/g.pid)" 2>/dev/null || true
+      #     if [ "$ok" != "1" ]; then
+      #       echo "❌ gunicorn 부팅 실패 — 에러 로그:"
+      #       cat /tmp/g.err || true
+      #       exit 1
+      #     fi

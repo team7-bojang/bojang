@@ -1,0 +1,29 @@
+; ──────────────────────────────────────────────────────────────
+; Bojang 백엔드 gunicorn systemd 유닛
+;
+; 무중단 배포의 핵심: ExecReload 가 마스터에 HUP 시그널을 보내면
+; gunicorn 은 리스닝 소켓을 유지한 채 워커만 graceful 하게 교체한다
+; (기존 요청은 끝까지 처리, 새 워커는 git pull 로 갱신된 새 코드를 로드).
+; → 다운타임 없이 새 버전으로 전환됨.
+;
+; 설치 방법은 deploy/SETUP.md 참고. 아래 __PLACEHOLDER__ 3곳을 실제 값으로 교체할 것.
+; ──────────────────────────────────────────────────────────────
+[Unit]
+Description=Bojang backend (gunicorn)
+After=network.target
+
+[Service]
+; 배포 SSH 유저 (예: ubuntu)
+User=__DEPLOY_USER__
+; 레포 안의 backend 디렉터리 절대경로 (예: /home/ubuntu/bojang/backend)
+WorkingDirectory=__APP_DIR__/backend
+; gunicorn 은 외부에 직접 노출하지 않고 127.0.0.1 로만 바인딩 → 앞단 nginx 가 프록시
+ExecStart=__APP_DIR__/backend/.venv/bin/gunicorn -w 2 -b 127.0.0.1:5000 app.main:app
+; systemctl reload → 워커 graceful 재기동 (무중단)
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
