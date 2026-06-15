@@ -27,8 +27,9 @@
   "files.autoSave": "afterDelay",
   "files.autoSaveDelay": 1000,
 
+  // LF 줄바꿈 고정
   // 줄바꿈 문자 (auto: OS에 따라 자동 감지)
-  "files.eol": "auto",
+  "files.eol": "\n",
 
   // 줄 끝 공백 제거
   "files.trimTrailingWhitespace": true,
