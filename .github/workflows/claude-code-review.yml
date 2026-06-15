@@ -1,0 +1,45 @@
+name: Claude Code Review
+
+# PR이 열리거나 새 커밋이 푸시될 때 Claude가 자동으로 코드리뷰를 남긴다.
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Claude 구독(OAuth) 토큰. `claude setup-token` 으로 발급 후
+          # 저장소 Settings > Secrets > Actions 에 CLAUDE_CODE_OAUTH_TOKEN 으로 등록.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # 리뷰 실행 비용 제어용 (필요 시 조정)
+          claude_args: "--max-turns 15"
+          prompt: |
+            이 저장소의 한국어 코드리뷰어로서 이번 PR의 변경분(diff)을 리뷰해 주세요.
+            루트의 CLAUDE.md 와 docs/ 의 규칙을 먼저 읽고, 그 계약을 기준으로 판단하세요.
+
+            중점 검토 항목:
+            - 응답 봉투(ok()/fail())·AppError 에러 계약을 깨지 않는가
+            - judge() 가 순수 함수로 유지되고 판정 우선순위(waiting_period→boundary→eligible)를 지키는가
+            - 실손 claim_rule 이중차감 금지 규칙을 위반하지 않는가
+            - 프론트 타입(frontend/src/types)과 백엔드 Pydantic 스키마 계약이 어긋나지 않는가
+            - 프롬프트 하드코딩 금지, 마이그레이션은 기존 파일 수정이 아닌 신규 파일인가
+            - 버그·보안 문제·명백한 성능 이슈
+
+            리뷰 규칙:
+            - 변경된 부분에만 집중하고, 가능한 경우 해당 라인에 인라인 코멘트를 남기세요.
+            - 사소한 취향 차이는 생략하고 실제로 중요한 지적 위주로 간결하게 작성하세요.
+            - 모든 코멘트는 한국어로 작성하세요.
