@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 > 이 저장소와 코드 주석은 한국어로 작성됩니다. 응답·주석·커밋 메시지도 한국어를 기본으로 합니다.
 
