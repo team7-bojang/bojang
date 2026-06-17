@@ -1,0 +1,49 @@
+{
+  "meta": {
+    "id": "golden_06",
+    "title": "시나리오 E — 허리디스크 14일 입원, 3대질병 특약 오탐 검증",
+    "covers_ac": [
+      "AC-02",
+      "AC-04"
+    ],
+    "verified": false,
+    "notes": "질병입원일당은 질병 전반 커버(p.60 '진단확정된 질병'), 뇌혈관·허혈심장은 질병코드 한정 — KCD 매칭 정확도 검증"
+  },
+  "case": {
+    "disease_kcd": "M51",
+    "disease_name": "추간판장애(허리디스크)",
+    "surgery": true,
+    "diag_days": 21,
+    "current_days": 14,
+    "policy_elapsed_days": 900,
+    "registered_policies": [
+      "db_3대질병"
+    ],
+    "claimed_policy_keys": []
+  },
+  "expected": [
+    {
+      "policy": "db_3대질병",
+      "rider": "질병입원일당(1일이상180일한도)",
+      "status": "eligible",
+      "missed": true,
+      "calc_struct": "가입금액(1일당) × 14일",
+      "evidence": {
+        "article_no": "질병입원일당 특별약관 1.(보험금의 지급사유)",
+        "page": 60
+      }
+    }
+  ],
+  "must_not_match": [
+    {
+      "policy": "db_3대질병",
+      "rider": "뇌혈관질환입원일당(4일이상120일한도)",
+      "why": "M51은 뇌혈관질환 분류(별표13) 밖 — 원래 핵심 오탐 케이스"
+    },
+    {
+      "policy": "db_3대질병",
+      "rider": "허혈심장질환입원일당(4일이상120일한도)",
+      "why": "동일"
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "meta": {
+    "id": "golden_01",
+    "title": "시나리오 A — 뇌경색 3일차, 경계 1일 미달 (메인 데모)",
+    "covers_ac": [
+      "AC-02",
+      "AC-03",
+      "AC-04",
+      "AC-05"
+    ],
+    "verified": false,
+    "notes": "원문 검증 완료(DB p.60·p.97 정의조항). 현대 실손 rider명 파싱본 일치 확정: 질병급여실손의료비(갱신형) - 입원. gap_days = condition_days − current_days (4−3=1)"
+  },
+  "case": {
+    "disease_kcd": "I63",
+    "disease_name": "뇌경색증",
+    "surgery": false,
+    "diag_days": 7,
+    "current_days": 3,
+    "policy_elapsed_days": 800,
+    "registered_policies": [
+      "db_3대질병",
+      "hyundai_실손",
+      "hanwha_e암"
+    ],
+    "claimed_policy_keys": [
+      "hyundai_실손"
+    ]
+  },
+  "expected": [
+    {
+      "policy": "db_3대질병",
+      "rider": "질병입원일당(1일이상180일한도)",
+      "status": "eligible",
+      "missed": true,
+      "gap_days": null,
+      "calc_struct": "가입금액(1일당) × 3일",
+      "limit_note": "1회 입원당 180일 한도",
+      "evidence": {
+        "article_no": "질병입원일당 특별약관 1.(보험금의 지급사유)",
+        "page": 60
+      }
+    },
+    {
+      "policy": "db_3대질병",
+      "rider": "뇌혈관질환입원일당(4일이상120일한도)",
+      "status": "boundary_not_met",
+      "missed": false,
+      "gap_days": 1,
+      "evidence": {
+        "article_no": "뇌혈관질환입원일당 특별약관 1.(보험금의 지급사유)",
+        "page": 97
+      }
+    },
+    {
+      "policy": "hyundai_실손",
+      "rider": "질병급여실손의료비(갱신형) - 입원",
+      "status": "claimed",
+      "missed": false
+    }
+  ],
+  "must_not_match": [
+    {
+      "policy": "hanwha_e암",
+      "rider": "암진단자금",
+      "why": "암 미진단 — 보종 오탐 검증"
+    },
+    {
+      "policy": "db_3대질병",
+      "rider": "허혈심장질환입원일당(4일이상120일한도)",
+      "why": "뇌경색≠허혈심장 — 유사 특약명 오탐 검증(핵심)"
+    }
+  ]
+}
