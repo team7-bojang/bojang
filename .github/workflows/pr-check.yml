@@ -4,26 +4,52 @@ on:
   pull_request:
     branches:
       - develop
-      - main
 
 permissions:
   contents: read
 
 jobs:
-  frontend-check:
+  changes:
     runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            backend:
+              - 'backend/**'
+              - 'ruff.toml'
+              - 'tests/**'
+
+  frontend-check:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
@@ -33,43 +59,43 @@ jobs:
       - run: pnpm build
 
   backend-check:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: backend
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - run: python -m pip install --upgrade pip
       - run: pip install -r requirements.txt
       - run: ruff check .
       - run: pytest
 
-      # 배포 사전 검증: 실제 EC2처럼 gunicorn 으로 앱을 띄워 /health 응답을 확인한다.
-      # 배포가 깨지는 주요 원인(의존성 누락, import 에러로 앱이 안 뜸)을 PR 단계에서 잡는다.
-      # - name: Gunicorn 부팅 스모크 테스트
-      #   run: |
-      #     gunicorn -w 1 -b 127.0.0.1:5000 app.main:app \
-      #       --daemon --pid /tmp/g.pid --error-logfile /tmp/g.err
-      #     ok=0
-      #     for i in $(seq 1 10); do
-      #       if curl -fsS http://127.0.0.1:5000/health > /dev/null; then
-      #         echo "✅ gunicorn 부팅 OK"
-      #         ok=1
-      #         break
-      #       fi
-      #       sleep 1
-      #     done
-      #     [ -f /tmp/g.pid ] && kill "$(cat /tmp/g.pid)" 2>/dev/null || true
-      #     if [ "$ok" != "1" ]; then
-      #       echo "❌ gunicorn 부팅 실패 — 에러 로그:"
-      #       cat /tmp/g.err || true
-      #       exit 1
-      #     fi
+      - name: Gunicorn boot smoke test
+        run: |
+          gunicorn -w 1 -b 127.0.0.1:5000 app.main:app \
+            --daemon --pid /tmp/g.pid --error-logfile /tmp/g.err
+          ok=0
+          for i in $(seq 1 10); do
+            if curl -fsS http://127.0.0.1:5000/health > /dev/null; then
+              echo "✅ gunicorn boot OK"
+              ok=1
+              break
+            fi
+            sleep 1
+          done
+          [ -f /tmp/g.pid ] && kill "$(cat /tmp/g.pid)" 2>/dev/null || true
+          if [ "$ok" != "1" ]; then
+            echo "❌ gunicorn boot failed — error log:"
+            cat /tmp/g.err || true
+            exit 1
+          fi
