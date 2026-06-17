@@ -1,0 +1,34 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy backend to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /developers/bojang
+            git pull origin develop
+
+            cd backend
+            source /developers/envs/bojang-backend/bin/activate
+            pip install -r requirements.txt
+
+            sudo systemctl restart bojang-backend
+            sleep 3
+
+            curl -fsS http://localhost:8000/health
+            sudo systemctl status bojang-backend --no-pager
