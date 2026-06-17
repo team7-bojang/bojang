@@ -1,0 +1,11 @@
+addAssignees: author
+
+addReviewers: true
+reviewers:
+  - reviewer1
+  - reviewer2
+
+numberOfReviewers: 3
+skipKeywords:
+  - wip
+  - draft
