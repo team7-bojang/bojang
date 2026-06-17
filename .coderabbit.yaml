@@ -3,8 +3,11 @@ reviews:
   suggested_reviewers: false
   auto_assign_reviewers: false
   poem: false
+  # 상세 코드리뷰는 Claude Code Review 워크플로(.github/workflows/claude-code-review.yml)가
+  # P1~P5 한국어 리뷰로 담당한다. CodeRabbit은 자동 리뷰를 끄고, 요약이 필요하면
+  # PR에서 `@coderabbitai summary` 로 수동 호출한다.
   auto_review:
-    enabled: true
+    enabled: false
     drafts: false
     auto_incremental_review: true
     base_branches:
