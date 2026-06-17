@@ -212,22 +212,30 @@ data/samples/
 
 ## 약관 파싱
 
+파싱 스크립트는 `scripts/parsing/` 에 있고, 출력은 `data/parsed/`, 프롬프트는 `prompts/parsing/` 를 사용합니다. (저장소 루트에서 실행)
+
 전체 파싱
 
 ```bash
-python parse_policy.py <약관.pdf> --full
+python scripts/parsing/parse_policy.py <약관.pdf> --full
 ```
 
 일부 구간 테스트
 
 ```bash
-python parse_policy.py <약관.pdf> --full --max-ranges 5
+python scripts/parsing/parse_policy.py <약관.pdf> --full --max-ranges 5
 ```
 
 특정 페이지 재추출
 
 ```bash
-python parse_rider.py <약관.pdf> --pages 60-63
+python scripts/parsing/parse_rider.py <약관.pdf> --pages 60-63
+```
+
+파싱 결과 검수 리포트
+
+```bash
+python scripts/parsing/verify_json.py <약관.pdf> data/parsed/<약관>_전체.json
 ```
 
 ---

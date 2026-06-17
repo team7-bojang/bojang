@@ -1,0 +1,14 @@
+{
+  // 이 워크스페이스 권장 확장 — 팀원이 폴더를 열면 설치 안내가 뜬다.
+  // settings.json이 이 확장들의 기능(포맷·lint·자동수정)을 전제로 동작한다.
+  "recommendations": [
+    // 파이썬: 타입 검사(Pylance) + lint·포맷(Ruff)
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "charliermarsh.ruff",
+
+    // 프론트엔드(JS/TS): 포맷(Prettier) + lint(ESLint)
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint"
+  ]
+}
