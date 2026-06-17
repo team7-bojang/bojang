@@ -177,7 +177,7 @@ multidict==6.7.1
     #   yarl
 mypy-extensions==1.1.0
     # via black
-numpy==2.4.6
+numpy
     # via
     #   -r requirements.in
     #   langchain-community
@@ -373,3 +373,5 @@ yarl==1.24.2
     #   supabase-functions
 zstandard==0.25.0
     # via langsmith
+
+

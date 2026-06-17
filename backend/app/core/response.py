@@ -1,14 +1,14 @@
 """공통 응답 봉투 (설계서 §4): {success, data|error, timestamp, request_id}."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from flask import jsonify
 
 
 def _now_iso() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _request_id() -> str:

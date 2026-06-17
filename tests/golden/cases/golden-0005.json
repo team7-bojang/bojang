@@ -1,0 +1,17 @@
+{
+  "id": "golden-0005",
+  "description": "낙상 치아 파절, 제외조항 쌍 검증 (검수 대기)",
+  "case": {
+    "disease": "치아 파절",
+    "disease_kcd": "S02.5",
+    "surgery": false,
+    "diag_days": 0,
+    "current_days": 0,
+    "policy_elapsed_days": 100,
+    "claimed": []
+  },
+  "expected": [],
+  "must_not_match": [
+    { "policy": "한화 e암보험", "rider": "암진단비(유사암제외)(감액없음)" }
+  ]
+}

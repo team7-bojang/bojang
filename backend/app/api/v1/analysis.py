@@ -7,17 +7,41 @@
   나머지 라우트도 동일 패턴으로 service 연결 시 채운다.
 """
 
+from flask import g
 from flask_openapi3.blueprint import APIBlueprint
 from flask_openapi3.models.tag import Tag
+from pydantic import BaseModel
 
-from app.core.response import fail
-from app.schemas.analysis import SearchRequest, SearchResponse
+from app.auth import require_auth
+from app.core import response
+from app.services import analysis_service
 
 bp = APIBlueprint("analysis", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="analysis")])
 
+# 요청용 Pydantic 모델
+class SearchRequest(BaseModel):
+    case_id: str
 
-@bp.post("/analysis/search", responses={200: SearchResponse})
-def search(body: SearchRequest):
-    # TODO(조윤): analysis_service.search(body.case_id)
-    #   retrieve(rag) → judge(룰엔진) → explain(rag) → 인용검증(rag.citation)
-    return fail("not_implemented", "탐색 미구현", 501)
+class CompareRequest(BaseModel):
+    case_id: str
+    scenarios: list[dict]
+
+@bp.post("/analysis/search")
+@require_auth
+def search_analysis(body: SearchRequest):
+    """상황 기준 보장 교차 검색 (RAG + 룰 엔진 연동) (SCR-04)."""
+    try:
+        data = analysis_service.search_analysis(g.user_id, body.case_id)
+        return response.ok(data)
+    except Exception as e:
+        return response.fail("server_error", str(e), 500)
+
+@bp.post("/analysis/compare")
+@require_auth
+def compare_scenarios(body: CompareRequest):
+    """조건별 비교 분석 (SCR-05)."""
+    try:
+        data = analysis_service.compare_scenarios(g.user_id, body.case_id, body.scenarios)
+        return response.ok(data)
+    except Exception as e:
+        return response.fail("server_error", str(e), 500)
