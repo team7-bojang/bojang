@@ -15,6 +15,7 @@ gunicorn
 # ── 설정 / 검증 ──
 pydantic
 pydantic-settings
+pyjwt
 python-dotenv
 
 # ── DB / Supabase / Vector ──

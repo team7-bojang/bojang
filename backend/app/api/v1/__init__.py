@@ -13,6 +13,7 @@ from app.api.v1.diseases import bp as diseases_bp
 from app.api.v1.health import bp as health_bp
 from app.api.v1.policies import bp as policies_bp
 from app.api.v1.reports import bp as reports_bp
+from app.api.v1.test_ui import bp as test_ui_bp
 
 _DOMAIN_BLUEPRINTS = (
     policies_bp,
@@ -20,6 +21,7 @@ _DOMAIN_BLUEPRINTS = (
     cases_bp,
     analysis_bp,
     reports_bp,
+    test_ui_bp,
 )
 
 

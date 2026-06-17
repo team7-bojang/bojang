@@ -1,0 +1,19 @@
+{
+  "id": "golden-0007",
+  "description": "통원만 한 비염, 결과 0건",
+  "case": {
+    "disease": "알레르기성 비염",
+    "disease_kcd": "J30",
+    "surgery": false,
+    "diag_days": 0,
+    "current_days": 0,
+    "policy_elapsed_days": 800,
+    "claimed": []
+  },
+  "expected": [],
+  "must_not_match": [
+    { "policy": "DB 3대질병", "rider": "질병입원일당(1일이상180일한도)" },
+    { "policy": "DB 3대질병", "rider": "뇌혈관질환입원일당(4일이상120일한도)" },
+    { "policy": "한화 e암보험", "rider": "암진단비(유사암제외)(감액없음)" }
+  ]
+}
