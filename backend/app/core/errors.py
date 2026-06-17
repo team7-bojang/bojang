@@ -14,31 +14,31 @@ class AppError(Exception):
             self.code = code
 
 
-class ValidationError(AppError):       # 400
+class ValidationError(AppError):  # 400
     http_status = 400
     code = "validation_error"
 
 
-class AuthError(AppError):             # 401
+class AuthError(AppError):  # 401
     http_status = 401
     code = "unauthorized"
 
 
-class ForbiddenError(AppError):        # 403
+class ForbiddenError(AppError):  # 403
     http_status = 403
     code = "forbidden"
 
 
-class NotFoundError(AppError):         # 404
+class NotFoundError(AppError):  # 404
     http_status = 404
     code = "not_found"
 
 
-class ParseError(AppError):            # 422
+class ParseError(AppError):  # 422
     http_status = 422
     code = "parse_failed"
 
 
-class LLMUnavailableError(AppError):   # 503
+class LLMUnavailableError(AppError):  # 503
     http_status = 503
     code = "llm_unavailable"

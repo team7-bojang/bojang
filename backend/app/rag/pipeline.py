@@ -1,8 +1,8 @@
 from openai import OpenAI
+
 from app.config import settings
 
 client = OpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
-
 
 
 class RAGPipeline:
@@ -19,7 +19,7 @@ class RAGPipeline:
             messages=[
                 {
                     "role": "system",
-                    "content": "너는 보험 약관을 분석하는 전문가야. 반드시 주어진 문맥 기반으로만 답해."
+                    "content": "너는 보험 약관을 분석하는 전문가야. 반드시 주어진 문맥 기반으로만 답해.",
                 },
                 {
                     "role": "user",
@@ -29,9 +29,9 @@ class RAGPipeline:
 
 [질문]
 {query}
-"""
-                }
-            ]
+""",
+                },
+            ],
         )
 
         return response.choices[0].message.content

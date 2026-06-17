@@ -18,13 +18,16 @@ from app.services import analysis_service
 
 bp = APIBlueprint("analysis", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="analysis")])
 
+
 # 요청용 Pydantic 모델
 class SearchRequest(BaseModel):
     case_id: str
 
+
 class CompareRequest(BaseModel):
     case_id: str
     scenarios: list[dict]
+
 
 @bp.post("/analysis/search")
 @require_auth
@@ -35,6 +38,7 @@ def search_analysis(body: SearchRequest):
         return response.ok(data)
     except Exception as e:
         return response.fail("server_error", str(e), 500)
+
 
 @bp.post("/analysis/compare")
 @require_auth

@@ -1,7 +1,7 @@
 """리포트 라우트 (SCR-06, F-04).
 
-  POST /reports         리포트 생성
-  GET  /reports/<id>    리포트 조회
+POST /reports         리포트 생성
+GET  /reports/<id>    리포트 조회
 """
 
 from flask import g, request
@@ -15,8 +15,10 @@ from app.services import report_service
 
 bp = APIBlueprint("reports", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="reports")])
 
+
 class ReportCreateRequest(BaseModel):
     case_id: str
+
 
 @bp.post("/reports")
 @require_auth
@@ -27,6 +29,7 @@ def create_report(body: ReportCreateRequest):
         return response.ok(data, 201)
     except Exception as e:
         return response.fail("server_error", str(e), 500)
+
 
 @bp.get("/reports/<string:id>")
 @require_auth

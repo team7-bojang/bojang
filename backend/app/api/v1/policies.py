@@ -9,15 +9,19 @@ from app.services import policy_service
 
 bp = APIBlueprint("policies", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="policies")])
 
+
 # 요청/응답용 임시 Pydantic 모델 정의 (flask-openapi3 자동 문서화용)
 class SelectPresetRequest(BaseModel):
     preset_ids: list[str]
 
+
 class PolicyPath(BaseModel):
     id: str = Field(..., description="보험 상품 ID (UUID)")
 
+
 class SourceQuery(BaseModel):
     page: int = Field(default=1, description="약관 원문 페이지 번호")
+
 
 @bp.get("/policies/presets")
 def get_presets():
@@ -27,6 +31,7 @@ def get_presets():
         return response.ok(data)
     except Exception as e:
         return response.fail("server_error", str(e), 500)
+
 
 @bp.post("/policies/select")
 @require_auth
@@ -38,6 +43,7 @@ def select_presets(body: SelectPresetRequest):
     except Exception as e:
         return response.fail("server_error", str(e), 500)
 
+
 @bp.post("/policies/upload")
 @require_auth
 def upload_policy():
@@ -45,15 +51,16 @@ def upload_policy():
     try:
         if "file" not in request.files:
             return response.fail("validation_error", "파일이 첨부되지 않았습니다.", 400)
-            
+
         file = request.files["file"]
         if file.filename == "":
             return response.fail("validation_error", "파일명이 유효하지 않습니다.", 400)
-            
+
         data = policy_service.upload_pdf(g.user_id, file.filename)
         return response.ok(data, 201)
     except Exception as e:
         return response.fail("server_error", str(e), 500)
+
 
 @bp.get("/policies/my")
 @require_auth
@@ -65,6 +72,7 @@ def get_my_policies():
     except Exception as e:
         return response.fail("server_error", str(e), 500)
 
+
 @bp.get("/policies/<string:id>/source")
 def get_policy_source(path: PolicyPath, query: SourceQuery):
     """약관 원문 조회 (SCR-02)."""
@@ -74,5 +82,3 @@ def get_policy_source(path: PolicyPath, query: SourceQuery):
         return response.ok(data)
     except Exception as e:
         return response.fail("not_found", str(e), 404)
-
-
