@@ -10,10 +10,61 @@ interface Message {
   actions?: React.ReactNode;
 }
 
+interface Preset {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+interface ExtractedInfo {
+  disease_name: string;
+  disease_kcd: string;
+  surgery: boolean;
+  diag_days: number;
+  current_days: number;
+  policy_elapsed_days: number;
+}
+
+interface Scenario {
+  name: string;
+}
+
+interface Outcome {
+  status: string;
+  calc?: string;
+  gap_days?: number;
+}
+
+interface Comparison {
+  policy: string;
+  rider: string;
+  outcomes: Outcome[];
+}
+
+interface CompareData {
+  scenarios: Scenario[];
+  comparisons: Comparison[];
+}
+
+interface ChecklistItem {
+  task: string;
+}
+
+interface Report {
+  checklist: ChecklistItem[];
+  [key: string]: unknown;
+}
+
+let msgCounter = 0;
+function generateId(): string {
+  msgCounter += 1;
+  return `${Date.now()}-${msgCounter}`;
+}
+
 export default function App() {
   // ── States ──
   const [step, setStep] = useState<number>(0); // 0: 보험선택, 1: 챗봇진행, 2: 분석완료
-  const [presets, setPresets] = useState<any[]>([]);
+  const [presets, setPresets] = useState<Preset[]>([]);
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -21,10 +72,12 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState<string>('');
   const [currentCaseId, setCurrentCaseId] = useState<string | null>(null);
-  const [inputMethod, setInputMethod] = useState<'PAYMENT' | 'MEDICAL_DETAIL_STATEMENT' | null>(null);
-  
+  const [inputMethod, setInputMethod] = useState<'PAYMENT' | 'MEDICAL_DETAIL_STATEMENT' | null>(
+    null
+  );
+
   // Extracted Info for verification
-  const [extractedInfo, setExtractedInfo] = useState<any>({
+  const [extractedInfo, setExtractedInfo] = useState<ExtractedInfo>({
     disease_name: '',
     disease_kcd: '',
     surgery: false,
@@ -34,12 +87,20 @@ export default function App() {
   });
 
   // Report States
-  const [report, setReport] = useState<any>(null);
-  const [analysisResults, setAnalysisResults] = useState<any[]>([]);
-  const [analysisSummary, setAnalysisSummary] = useState<any>({ eligible_count: 0, missed_count: 0 });
-  const [activeTab, setActiveTab] = useState<'eligible' | 'missed' | 'compare' | 'checklist'>('eligible');
-  const [selectedCover, setSelectedCover] = useState<any>(null);
-  const [compareData, setCompareData] = useState<any>(null);
+  const [report, setReport] = useState<Report | null>(null);
+  const [analysisResults, setAnalysisResults] = useState<unknown[]>([]);
+  const [analysisSummary, setAnalysisSummary] = useState<{
+    eligible_count: number;
+    missed_count: number;
+  }>({
+    eligible_count: 0,
+    missed_count: 0,
+  });
+  const [activeTab, setActiveTab] = useState<'eligible' | 'missed' | 'compare' | 'checklist'>(
+    'eligible'
+  );
+  const [selectedCover, setSelectedCover] = useState<unknown>(null);
+  const [compareData, setCompareData] = useState<CompareData | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -52,23 +113,23 @@ export default function App() {
     scrollToBottom();
   }, [chatMessages]);
 
-  const scrollToBottom = () => {
+  function scrollToBottom() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }
 
-  const fetchPresets = async () => {
+  async function fetchPresets() {
     setLoading(true);
     try {
       const res = await api.get('/api/v1/policies/presets');
       if (res.data.success) {
         setPresets(res.data.data);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('보험 프리셋 목록을 불러오지 못했습니다.', err);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   // ── Step 0: 가입할 보험 선택 ──
   const handleTogglePreset = (id: string) => {
@@ -101,7 +162,8 @@ export default function App() {
           },
         ]);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      console.error(err);
       alert('보험 등록에 실패했습니다.');
     } finally {
       setLoading(false);
@@ -110,11 +172,13 @@ export default function App() {
 
   // ── Step 1: 상황 텍스트 전송 및 추천 ──
   const handleSendSituation = async (text: string) => {
-    if (!text.trim()) return;
-    
+    if (!text.trim()) {
+      return;
+    }
+
     // 유저 메시지 버블 추가
     const userMsg: Message = {
-      id: Math.random().toString(),
+      id: generateId(),
       sender: 'user',
       text: text,
       timestamp: new Date(),
@@ -128,26 +192,32 @@ export default function App() {
       const res = await api.post('/api/v1/cases', { initial_situation: text });
       if (res.data.success) {
         const data = res.data.data;
-        
+
         // 지원 범위 밖 질문 감지 처리 (FR-10b)
         if (data.out_of_scope) {
           setCurrentCaseId(null);
           const botMsg: Message = {
-            id: Math.random().toString(),
+            id: generateId(),
             sender: 'bot',
             text: data.message,
             timestamp: new Date(),
             actions: (
               <div className="flex gap-2 mt-3 flex-wrap">
                 <button
-                  onClick={() => alert('저희 서비스는 실손의료비, 암 진단/수술/입원, 뇌혈관/심장질환 진단/입원/수술, 일반 질병 입원/수술 등 질병·암·실손·상해 약관을 지원 범위로 합니다.')}
+                  onClick={() =>
+                    alert(
+                      '저희 서비스는 실손의료비, 암 진단/수술/입원, 뇌혈관/심장질환 진단/입원/수술, 일반 질병 입원/수술 등 질병·암·실손·상해 약관을 지원 범위로 합니다.'
+                    )
+                  }
                   className="bg-gray-800 text-gray-200 border border-gray-700 px-4 py-2 rounded-xl text-xs font-semibold hover:bg-gray-700 shadow-md cursor-pointer"
                 >
                   ℹ️ 지원 범위 다시 보기
                 </button>
                 <button
                   onClick={() => {
-                    addBotMessage('질병·암·실손·상해와 관련된 치료 상황을 새로 설명해 주세요.\n\n(예: "허리디스크 14일 입원했어요", "뇌경색 3일 입원했어요")');
+                    addBotMessage(
+                      '질병·암·실손·상해와 관련된 치료 상황을 새로 설명해 주세요.\n\n(예: "허리디스크 14일 입원했어요", "뇌경색 3일 입원했어요")'
+                    );
                   }}
                   className="bg-accent text-white px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-90 shadow-md cursor-pointer"
                 >
@@ -161,21 +231,40 @@ export default function App() {
         }
 
         setCurrentCaseId(data.case_id);
-        
+
         // 질환 정보 임시 업데이트
-        setExtractedInfo((prev: any) => ({
+        setExtractedInfo(prev => ({
           ...prev,
-          disease_name: text.includes('뇌경색') ? '뇌경색증' : text.includes('위암') ? '위암' : '기타 추간판 장애 (허리디스크)',
+          disease_name: text.includes('뇌경색')
+            ? '뇌경색증'
+            : text.includes('위암')
+              ? '위암'
+              : '기타 추간판 장애 (허리디스크)',
           disease_kcd: text.includes('뇌경색') ? 'I63' : text.includes('위암') ? 'C16' : 'M51',
           surgery: text.includes('수술'),
-          current_days: text.includes('30일') ? 30 : text.includes('14일') ? 14 : text.includes('5일') ? 5 : 3,
-          diag_days: text.includes('30일') ? 30 : text.includes('14일') ? 14 : text.includes('5일') ? 5 : 3,
+          current_days: text.includes('30일')
+            ? 30
+            : text.includes('14일')
+              ? 14
+              : text.includes('5일')
+                ? 5
+                : 3,
+          diag_days: text.includes('30일')
+            ? 30
+            : text.includes('14일')
+              ? 14
+              : text.includes('5일')
+                ? 5
+                : 3,
         }));
 
         // 챗봇 분석 결과 추천 버블 추가
-        const statusText = data.claim_status === 'BEFORE_CLAIM' ? '아직 청구하지 않으신 상태' : '이미 청구해 보신 상태';
+        const statusText =
+          data.claim_status === 'BEFORE_CLAIM'
+            ? '아직 청구하지 않으신 상태'
+            : '이미 청구해 보신 상태';
         const botMsg: Message = {
-          id: Math.random().toString(),
+          id: generateId(),
           sender: 'bot',
           text: `상황을 확인했어요. 의도 분석 결과, 고객님은 [${statusText}]로 판별됩니다.\n\n${data.message}\n\n분석을 진행할 자료의 입력 방식을 아래에서 골라주세요.`,
           timestamp: new Date(),
@@ -198,7 +287,8 @@ export default function App() {
         };
         setChatMessages(prev => [...prev, botMsg]);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      console.error(err);
       addBotMessage('상황 분석 중 오류가 발생했습니다. 다시 입력해 주세요.');
     } finally {
       setLoading(false);
@@ -209,7 +299,7 @@ export default function App() {
     setChatMessages(prev => [
       ...prev,
       {
-        id: Math.random().toString(),
+        id: generateId(),
         sender: 'bot',
         text,
         timestamp: new Date(),
@@ -219,12 +309,17 @@ export default function App() {
   };
 
   // 입력 방식 선택 시 흐름
-  const handleSelectInputMethod = (caseId: string, method: 'PAYMENT' | 'MEDICAL_DETAIL_STATEMENT') => {
+  const handleSelectInputMethod = (
+    caseId: string,
+    method: 'PAYMENT' | 'MEDICAL_DETAIL_STATEMENT'
+  ) => {
     setInputMethod(method);
     if (method === 'PAYMENT') {
       addBotMessage(
         '병원 결제 내역(문자 내용이나 복사한 결제 텍스트)을 아래에 입력해 주세요.\n\n(예: "OO정형외과 2026.06.10 결제금액 80,000원")',
-        <div className="mt-2 text-xs text-gray-500 italic">결제 텍스트를 입력창에 적고 전송을 눌러주세요.</div>
+        <div className="mt-2 text-xs text-gray-500 italic">
+          결제 텍스트를 입력창에 적고 전송을 눌러주세요.
+        </div>
       );
     } else {
       addBotMessage(
@@ -249,7 +344,9 @@ export default function App() {
 
   // 결제내역 전송 처리
   const handleSendPaymentText = async (text: string) => {
-    if (!currentCaseId) return;
+    if (!currentCaseId) {
+      return;
+    }
     setLoading(true);
     try {
       const res = await api.post(`/api/v1/cases/${currentCaseId}/payment`, { payment_text: text });
@@ -259,7 +356,8 @@ export default function App() {
           renderVerificationForm()
         );
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      console.error(err);
       alert('결제 내역 처리 실패');
     } finally {
       setLoading(false);
@@ -268,7 +366,9 @@ export default function App() {
 
   // 세부산정내역서 업로드 처리
   const handleUploadStatement = async (caseId: string, file?: File) => {
-    if (!file) return;
+    if (!file) {
+      return;
+    }
     setLoading(true);
     try {
       const formData = new FormData();
@@ -278,7 +378,7 @@ export default function App() {
       });
       if (res.data.success) {
         // Mock 데이터로 세부산정내역서 추출 결과 폼 띄우기
-        setExtractedInfo((prev: any) => ({
+        setExtractedInfo(prev => ({
           ...prev,
           diag_days: 14,
           current_days: 14,
@@ -289,7 +389,8 @@ export default function App() {
           renderVerificationForm()
         );
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      console.error(err);
       alert('파일 업로드 분석 실패');
     } finally {
       setLoading(false);
@@ -317,7 +418,12 @@ export default function App() {
               <input
                 type="number"
                 value={extractedInfo.current_days}
-                onChange={e => setExtractedInfo({ ...extractedInfo, current_days: parseInt(e.target.value) || 0 })}
+                onChange={e =>
+                  setExtractedInfo({
+                    ...extractedInfo,
+                    current_days: parseInt(e.target.value) || 0,
+                  })
+                }
                 className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-gray-300 focus:border-accent outline-none"
               />
             </div>
@@ -326,7 +432,12 @@ export default function App() {
               <input
                 type="number"
                 value={extractedInfo.policy_elapsed_days}
-                onChange={e => setExtractedInfo({ ...extractedInfo, policy_elapsed_days: parseInt(e.target.value) || 0 })}
+                onChange={e =>
+                  setExtractedInfo({
+                    ...extractedInfo,
+                    policy_elapsed_days: parseInt(e.target.value) || 0,
+                  })
+                }
                 className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-gray-300 focus:border-accent outline-none"
               />
             </div>
@@ -365,7 +476,9 @@ export default function App() {
   };
 
   const handleConfirmVerification = async () => {
-    if (!currentCaseId) return;
+    if (!currentCaseId) {
+      return;
+    }
     setLoading(true);
     try {
       // 1. PATCH /cases/{case_id}/extracted-info 에 검수 수정된 데이터 전송
@@ -393,15 +506,15 @@ export default function App() {
         const resReport = await api.get(`/api/v1/reports/${reportId}`);
         if (resReport.data.success) {
           setReport(resReport.data.data.body);
-          
+
           // 5. 조건별 비교 데이터 로드 (POST /analysis/compare)
           const compareRes = await api.post('/api/v1/analysis/compare', {
             case_id: currentCaseId,
             scenarios: [
               { days: 3, name: '통상입원 (3일)' },
               { days: 14, name: '장기입원 (14일)' },
-              { days: 30, name: '집중입원 (30일)' }
-            ]
+              { days: 30, name: '집중입원 (30일)' },
+            ],
           });
           if (compareRes.data.success) {
             setCompareData(compareRes.data.data);
@@ -410,7 +523,8 @@ export default function App() {
           setStep(2); // 분석 완료 레이아웃으로 변경!
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      console.error(err);
       alert('분석을 시작하는 데 오류가 발생했습니다.');
     } finally {
       setLoading(false);
@@ -419,11 +533,16 @@ export default function App() {
 
   const handleSubmitInput = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim()) {
+      return;
+    }
 
     if (inputMethod === 'PAYMENT' && currentCaseId) {
       const userText = inputValue;
-      setChatMessages(prev => [...prev, { id: Math.random().toString(), sender: 'user', text: userText, timestamp: new Date() }]);
+      setChatMessages(prev => [
+        ...prev,
+        { id: Math.random().toString(), sender: 'user', text: userText, timestamp: new Date() },
+      ]);
       setInputValue('');
       handleSendPaymentText(userText);
     } else {
@@ -453,7 +572,9 @@ export default function App() {
       <header className="app-header">
         <div className="header-logo">
           <span className="logo-spark">✨</span>
-          <h1 className="logo-title">보험금 놓치지 마세요! <span className="logo-sub">AI 약관 보장분석</span></h1>
+          <h1 className="logo-title">
+            보험금 놓치지 마세요! <span className="logo-sub">AI 약관 보장분석</span>
+          </h1>
         </div>
         <button onClick={handleReset} className="btn-reset">
           🔄 처음부터 다시 분석
@@ -468,9 +589,10 @@ export default function App() {
             <div className="preset-card glass">
               <h2 className="preset-title">보장 분석을 위한 내 가입 보험 설정</h2>
               <p className="preset-desc">
-                가지고 계신 보험 상품을 선택해주세요. 해당 약관의 원문 데이터를 기반으로 숨겨진 청구 보장 및 특약을 RAG 탐색합니다.
+                가지고 계신 보험 상품을 선택해주세요. 해당 약관의 원문 데이터를 기반으로 숨겨진 청구
+                보장 및 특약을 RAG 탐색합니다.
               </p>
-              
+
               {loading ? (
                 <div className="loader-container">
                   <div className="spinner"></div>
@@ -486,9 +608,7 @@ export default function App() {
                         onClick={() => handleTogglePreset(p.id)}
                         className={`preset-item glass ${isSelected ? 'selected' : ''}`}
                       >
-                        <div className="preset-checkbox">
-                          {isSelected ? '✓' : ''}
-                        </div>
+                        <div className="preset-checkbox">{isSelected ? '✓' : ''}</div>
                         <div className="preset-info">
                           <span className="preset-insurer">{p.insurer}</span>
                           <h3 className="preset-name">{p.name}</h3>
@@ -571,7 +691,8 @@ export default function App() {
                 <div className="chat-bubble-row bot">
                   <div className="bubble glass">
                     <div className="bubble-text">
-                      분석이 완료되었습니다! 우측 결과 보드에서 청구 가능한 보장과 상세 약관 원문 근거를 확인해 보세요.
+                      분석이 완료되었습니다! 우측 결과 보드에서 청구 가능한 보장과 상세 약관 원문
+                      근거를 확인해 보세요.
                     </div>
                   </div>
                 </div>
@@ -586,7 +707,10 @@ export default function App() {
                 </div>
               </div>
               <div className="p-4 border-t border-gray-700/50">
-                <button onClick={handleReset} className="w-full bg-accent text-white font-bold py-2 rounded-xl text-sm cursor-pointer">
+                <button
+                  onClick={handleReset}
+                  className="w-full bg-accent text-white font-bold py-2 rounded-xl text-sm cursor-pointer"
+                >
                   🔄 새로운 질환 분석하기
                 </button>
               </div>
@@ -609,27 +733,39 @@ export default function App() {
               {/* Tab Navigation */}
               <div className="board-tabs border-b border-gray-700">
                 <button
-                  onClick={() => { setActiveTab('eligible'); setSelectedCover(null); }}
+                  onClick={() => {
+                    setActiveTab('eligible');
+                    setSelectedCover(null);
+                  }}
                   className={`tab-btn ${activeTab === 'eligible' ? 'active' : ''}`}
                 >
                   지급 가능 보장 ({analysisResults.filter(x => x.status === 'eligible').length})
                 </button>
                 <button
-                  onClick={() => { setActiveTab('missed'); setSelectedCover(null); }}
+                  onClick={() => {
+                    setActiveTab('missed');
+                    setSelectedCover(null);
+                  }}
                   className={`tab-btn ${activeTab === 'missed' ? 'active' : ''}`}
                 >
                   놓친 보장 탐색 ({analysisResults.filter(x => x.missed).length})
                 </button>
                 {compareData && (
                   <button
-                    onClick={() => { setActiveTab('compare'); setSelectedCover(null); }}
+                    onClick={() => {
+                      setActiveTab('compare');
+                      setSelectedCover(null);
+                    }}
                     className={`tab-btn ${activeTab === 'compare' ? 'active' : ''}`}
                   >
                     📈 조건별 시나리오 비교
                   </button>
                 )}
                 <button
-                  onClick={() => { setActiveTab('checklist'); setSelectedCover(null); }}
+                  onClick={() => {
+                    setActiveTab('checklist');
+                    setSelectedCover(null);
+                  }}
                   className={`tab-btn ${activeTab === 'checklist' ? 'active' : ''}`}
                 >
                   📎 준비 서류 체크리스트
@@ -641,7 +777,9 @@ export default function App() {
                 {activeTab === 'eligible' && (
                   <div className="covers-list">
                     {analysisResults.length === 0 ? (
-                      <p className="text-gray-500 py-10">지급 조건에 부합하는 보장이 발견되지 않았습니다.</p>
+                      <p className="text-gray-500 py-10">
+                        지급 조건에 부합하는 보장이 발견되지 않았습니다.
+                      </p>
                     ) : (
                       analysisResults.map((r, idx) => (
                         <div
@@ -654,8 +792,16 @@ export default function App() {
                             <span className={`cover-badge status-${r.status}`}>{r.status}</span>
                           </div>
                           <h3 className="cover-name">{r.rider}</h3>
-                          {r.calc && <div className="cover-calc">계산구조: <code>{r.calc}</code></div>}
-                          {r.gap_days && <div className="text-xs text-orange-400 font-semibold mt-1">경계 도달 1일 미달! (+{r.gap_days}일 부족)</div>}
+                          {r.calc && (
+                            <div className="cover-calc">
+                              계산구조: <code>{r.calc}</code>
+                            </div>
+                          )}
+                          {r.gap_days && (
+                            <div className="text-xs text-orange-400 font-semibold mt-1">
+                              경계 도달 1일 미달! (+{r.gap_days}일 부족)
+                            </div>
+                          )}
                           <p className="cover-explanation">{r.explanation}</p>
                           <div className="cover-meta">
                             <span>{r.evidence.article}</span>
@@ -702,30 +848,41 @@ export default function App() {
                   <div className="compare-pane">
                     <h3 className="pane-title">📊 입원 일수에 따른 보장 가능성 변동 비교</h3>
                     <p className="pane-desc">
-                      치료 조건(입원 일수 등) 변동 시 각 약관 보장의 지급 금액 및 판정 결과가 어떻게 바뀌는지 추적합니다.
+                      치료 조건(입원 일수 등) 변동 시 각 약관 보장의 지급 금액 및 판정 결과가 어떻게
+                      바뀌는지 추적합니다.
                     </p>
                     <div className="compare-table-wrapper">
                       <table className="compare-table">
                         <thead>
                           <tr>
                             <th>보험사/특약</th>
-                            {compareData.scenarios.map((sc: any, i: number) => (
+                            {compareData.scenarios.map((sc: Scenario, i: number) => (
                               <th key={i}>{sc.name}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {compareData.comparisons.map((c: any, i: number) => (
+                          {compareData.comparisons.map((c: Comparison, i: number) => (
                             <tr key={i}>
                               <td className="font-semibold text-left">
                                 <div className="text-xs text-gray-500">{c.policy}</div>
                                 <div className="text-sm text-gray-200">{c.rider}</div>
                               </td>
-                              {c.outcomes.map((out: any, j: number) => (
+                              {c.outcomes.map((out: Outcome, j: number) => (
                                 <td key={j}>
-                                  <span className={`outcome-badge status-${out.status}`}>{out.status}</span>
-                                  {out.calc && <div className="text-xs text-gray-400 mt-1 font-mono">{out.calc}</div>}
-                                  {out.gap_days && <div className="text-xs text-orange-400 mt-1 font-bold">1일 부족 (경계미달)</div>}
+                                  <span className={`outcome-badge status-${out.status}`}>
+                                    {out.status}
+                                  </span>
+                                  {out.calc && (
+                                    <div className="text-xs text-gray-400 mt-1 font-mono">
+                                      {out.calc}
+                                    </div>
+                                  )}
+                                  {out.gap_days && (
+                                    <div className="text-xs text-orange-400 mt-1 font-bold">
+                                      1일 부족 (경계미달)
+                                    </div>
+                                  )}
                                 </td>
                               ))}
                             </tr>
@@ -736,15 +893,24 @@ export default function App() {
                   </div>
                 )}
 
-                {activeTab === 'checklist' && (
+                {activeTab === 'checklist' && report && (
                   <div className="checklist-pane">
                     <h3 className="pane-title">📎 필요 서류 및 체크리스트</h3>
-                    <p className="pane-desc">보험금 청구 시 원활한 지급 청구를 위한 구비서류 목록입니다.</p>
+                    <p className="pane-desc">
+                      보험금 청구 시 원활한 지급 청구를 위한 구비서류 목록입니다.
+                    </p>
                     <div className="checklist-list">
-                      {report.checklist.map((item: any, idx: number) => (
+                      {report.checklist.map((item: ChecklistItem, idx: number) => (
                         <div key={idx} className="checklist-item glass">
-                          <input type="checkbox" id={`chk-${idx}`} className="accent-accent w-4 h-4 cursor-pointer" />
-                          <label htmlFor={`chk-${idx}`} className="text-sm text-gray-300 select-none cursor-pointer">
+                          <input
+                            type="checkbox"
+                            id={`chk-${idx}`}
+                            className="accent-accent w-4 h-4 cursor-pointer"
+                          />
+                          <label
+                            htmlFor={`chk-${idx}`}
+                            className="text-sm text-gray-300 select-none cursor-pointer"
+                          >
                             {item.task}
                           </label>
                         </div>
@@ -752,7 +918,9 @@ export default function App() {
                     </div>
                     <div className="statute-box glass mt-6">
                       <h4 className="font-bold text-accent text-sm mb-1">⏳ 소멸시효 유의</h4>
-                      <p className="text-xs text-gray-400 leading-relaxed">{report.statute_of_limitations}</p>
+                      <p className="text-xs text-gray-400 leading-relaxed">
+                        {report.statute_of_limitations}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -762,7 +930,9 @@ export default function App() {
                   <div className="evidence-panel glass">
                     <div className="evidence-header">
                       <h4 className="evidence-title">🔍 약관 원문 근거 판독</h4>
-                      <button onClick={() => setSelectedCover(null)} className="evidence-close">✕</button>
+                      <button onClick={() => setSelectedCover(null)} className="evidence-close">
+                        ✕
+                      </button>
                     </div>
                     <div className="evidence-meta">
                       <span className="meta-article">{selectedCover.evidence.article}</span>
@@ -775,7 +945,8 @@ export default function App() {
                       </blockquote>
                     </div>
                     <p className="evidence-desc">
-                      <span className="font-semibold text-accent">AI 판독:</span> {selectedCover.explanation}
+                      <span className="font-semibold text-accent">AI 판독:</span>{' '}
+                      {selectedCover.explanation}
                     </p>
                   </div>
                 )}
