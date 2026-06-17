@@ -1,0 +1,783 @@
+{
+  "riders": [
+    {
+      "name": "상해급여실손의료비(갱신형) - 입원",
+      "is_main": true,
+      "trigger_type": "입원",
+      "trigger_detail": "피보험자가 상해로 인하여 의료기관에 입원하여 치료를 받은 경우 급여의료비를 보상",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "입원 본인부담금(일부본인부담금 + 전액본인부담금)의 80%, 연간 보험가입금액 한도 내",
+      "boundaries": [],
+      "exclusions": [
+        "유독가스 또는 유독물질을 상습적으로 흡입, 흡수 또는 섭취한 결과로 생긴 중독증상",
+        "세균성 음식물 중독증상"
+      ],
+      "limits": [
+        {
+          "scope": "annual",
+          "unit": "krw",
+          "value": 50000000,
+          "note": "입원+통원 합산 5천만원 한도 내 계약자 선택액"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "Ⅰ. 상해급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 입원",
+        "page": 37,
+        "raw_text": "회사는 피보험자가 상해로 인하여 의료기관에 입원 또는 통원(외래 및 처방조제)하여 치료를 받은 경우에는 급여의료비를 제5조(보험가입금액 한도 등)에서 정한 연간 보험가입금액의 한도 내에서 다음과 같이 보상합니다. [입원] 「국민건강보험법」에서 정한 요양급여 또는 「의료급여법」에서 정한 의료급여 중 본인부담금(본인이 실제로 부담한 금액으로서 요양급여 비용 또는 의료급여 비용의 일부를 본인이 부담하는 일부본인부담금과 요양급여 비용 또는 의료급여 비용의 전부를 본인이 부담하는 전액본인부담금을 말합니다)의 80%에 해당하는 금액."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "상해",
+        "medical_category": "급여",
+        "visit_type": "입원",
+        "reimbursement_rate": 0.8,
+        "deductible": null,
+        "formula": "covered_amount * 0.8"
+      },
+      "source_pages": [
+        37,
+        38
+      ]
+    },
+    {
+      "name": "상해급여실손의료비(갱신형) - 통원",
+      "is_main": true,
+      "trigger_type": "통원",
+      "trigger_detail": "피보험자가 상해로 인하여 의료기관에 통원(외래 및 처방조제)하여 치료를 받은 경우 급여의료비를 보상",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "통원 1회당(외래 및 처방조제 합산) 급여의료비 본인부담금에서 통원항목별 공제금액을 뺀 금액, 통원 1회당 20만원 이내 및 연간 보험가입금액 한도 내",
+      "boundaries": [],
+      "exclusions": [
+        "유독가스 또는 유독물질을 상습적으로 흡입, 흡수 또는 섭취한 결과로 생긴 중독증상",
+        "세균성 음식물 중독증상"
+      ],
+      "limits": [
+        {
+          "scope": "per_visit",
+          "unit": "krw",
+          "value": 200000,
+          "note": "통원 1회당 20만원 이내 계약자 선택액"
+        },
+        {
+          "scope": "annual",
+          "unit": "krw",
+          "value": 50000000,
+          "note": "입원+통원 합산 5천만원 한도 내 계약자 선택액"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "Ⅰ. 상해급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 통원",
+        "page": 37,
+        "raw_text": "[통원] 통원 1회당(외래 및 처방조제 합산) 「국민건강보험법」에서 정한 요양급여 또는 「의료급여법」에서 정한 의료급여 중 본인부담금에서 <표1>의 통원항목별 공제금액을 뺀 금액. <표1> 공제금액: 의원·보건소·약국 등은 1만원과 보장대상의료비의 20% 중 큰 금액, 상급종합·종합·전문요양기관 등은 2만원과 보장대상의료비의 20% 중 큰 금액. 통원 1회당 20만원 이내, 연간 보험가입금액 한도 내에서 보상."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "상해",
+        "medical_category": "급여",
+        "visit_type": "통원",
+        "reimbursement_rate": 1.0,
+        "deductible": {
+          "type": "by_table",
+          "note": "급여 통원항목별 공제금액 <표1> 적용: 1만원 또는 2만원과 보장대상의료비의 20% 중 큰 금액 등"
+        },
+        "formula": "covered_amount - deductible"
+      },
+      "source_pages": [
+        37,
+        38
+      ]
+    },
+    {
+      "name": "질병급여실손의료비(갱신형) - 입원",
+      "is_main": true,
+      "trigger_type": "입원",
+      "trigger_detail": "피보험자가 질병으로 의료기관에 입원하여 치료를 받은 경우 급여의료비를 연간 보험가입금액의 한도 내에서 보상",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "입원 본인부담금(일부본인부담금 + 전액본인부담금)의 80%, 연간 보험가입금액 한도 내",
+      "boundaries": [],
+      "exclusions": [],
+      "limits": [
+        {
+          "scope": "annual",
+          "unit": "krw",
+          "value": 50000000,
+          "note": "입원+통원 합산 5천만원 한도 내 계약자 선택액"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "Ⅱ. 질병급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 입원",
+        "page": 39,
+        "raw_text": "회사는 피보험자가 질병으로 인하여 의료기관에 입원 또는 통원(외래 및 처방조제)하여 치료를 받은 경우에는 급여의료비를 제5조(보험가입금액 한도 등)에서 정한 연간 보험가입금액의 한도 내에서 다음과 같이 보상합니다. [입원] 「국민건강보험법」에서 정한 요양급여 또는 「의료급여법」에서 정한 의료급여 중 본인부담금(일부본인부담금 + 전액본인부담금)의 80%에 해당하는 금액."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "질병",
+        "medical_category": "급여",
+        "visit_type": "입원",
+        "reimbursement_rate": 0.8,
+        "deductible": null,
+        "formula": "covered_amount * 0.8"
+      },
+      "source_pages": [
+        39,
+        40,
+        41
+      ]
+    },
+    {
+      "name": "질병급여실손의료비(갱신형) - 통원",
+      "is_main": true,
+      "trigger_type": "통원",
+      "trigger_detail": "피보험자가 질병으로 의료기관에 통원(외래 및 처방조제)하여 치료를 받은 경우 급여의료비를 연간 보험가입금액의 한도 내에서 보상",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "통원 1회당(외래 및 처방조제 합산) 급여의료비 본인부담금에서 통원항목별 공제금액을 뺀 금액, 통원 1회당 20만원 이내 및 연간 보험가입금액 한도 내",
+      "boundaries": [],
+      "exclusions": [],
+      "limits": [
+        {
+          "scope": "per_visit",
+          "unit": "krw",
+          "value": 200000,
+          "note": "통원 1회당 20만원 이내 계약자 선택액"
+        },
+        {
+          "scope": "annual",
+          "unit": "krw",
+          "value": 50000000,
+          "note": "입원+통원 합산 5천만원 한도 내 계약자 선택액"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "Ⅱ. 질병급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 통원",
+        "page": 39,
+        "raw_text": "[통원] 통원 1회당(외래 및 처방조제 합산) 「국민건강보험법」에서 정한 요양급여 또는 「의료급여법」에서 정한 의료급여 중 본인부담금에서 <표1>의 통원항목별 공제금액을 뺀 금액. 통원 1회당 20만원 이내, 연간 보험가입금액 한도 내에서 보상. ④ 입원의 경우 급여의료비 중 보상금액을 제외한 나머지 금액의 20%가 연간 200만원을 초과하는 경우 그 초과금액은 제1항 한도 내에서 보상."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "질병",
+        "medical_category": "급여",
+        "visit_type": "통원",
+        "reimbursement_rate": 1.0,
+        "deductible": {
+          "type": "by_table",
+          "note": "급여 통원항목별 공제금액 <표1> 적용: 1만원 또는 2만원과 보장대상의료비의 20% 중 큰 금액 등"
+        },
+        "formula": "covered_amount - deductible"
+      },
+      "source_pages": [
+        39,
+        40,
+        41
+      ]
+    },
+    {
+      "name": "상해비급여실손의료비(갱신형) - 입원",
+      "is_main": false,
+      "trigger_type": "입원",
+      "trigger_detail": "상해로 인하여 병원에 입원하여 치료를 받은 경우 비급여 의료비(비급여 병실료는 제외합니다)(본인이 실제로 부담한 금액을 말합니다)의 70%에 해당하는 금액",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "입원 비급여 의료비(비급여 병실료 제외) 본인부담금의 70%, 연간 보험가입금액 한도 내",
+      "boundaries": [],
+      "exclusions": [
+        "피보험자가 고의로 자신을 해친 경우",
+        "보험수익자가 고의로 피보험자를 해친 경우",
+        "계약자가 고의로 피보험자를 해친 경우",
+        "피보험자가 임신, 출산(제왕절개를 포함합니다), 산후기로 입원한 경우",
+        "전쟁, 외국의 무력행사, 혁명, 내란, 사변, 폭동으로 인한 경우",
+        "피보험자가 정당한 이유없이 입원기간 중 의사의 지시를 따르지 않거나 의사가 통원치료가 가능하다고 인정함에도 피보험자 본인이 자의적으로 입원하여 발생한 입원의료비",
+        "치과치료(다만 안면부 골절로 발생한 의료비는 치아관련 치료를 제외하고 보상합니다)·한방치료(다만, 「의료법」 제2조에 따른 한의사를 제외한 '의사'의 의료행위에 의해서 발생한 의료비는 보상합니다)",
+        "자동차보험(공제를 포함합니다)에서 보상받는 치료관계비(과실상계 후 금액을 기준으로 합니다) 또는 산재보험에서 보상받는 의료비",
+        "「국민건강보험법」 제42조의 요양기관이 아닌 외국에 있는 의료기관에서 발생한 의료비"
+      ],
+      "limits": [
+        {
+          "scope": "annual",
+          "unit": "krw",
+          "value": 50000000,
+          "note": "입원+통원 합산 5천만원 한도 내 계약자 선택액(3대비급여 제외)"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "1. 상해비급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 입원",
+        "page": 67,
+        "raw_text": "회사는 피보험자가 상해로 인하여 의료기관에 입원 또는 통원(외래 및 처방조제)하여 치료를 받은 경우에는 비급여의료비(3대비급여는 제외합니다)를 제4조(보험가입금액의 한도 등)에서 정한 연간 보험가입금액의 한도 내에서 보상합니다. [입원] 「비급여 의료비(비급여 병실료는 제외합니다)」(본인이 실제로 부담한 금액을 말합니다)의 70%에 해당하는 금액."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "상해",
+        "medical_category": "비급여",
+        "visit_type": "입원",
+        "reimbursement_rate": 0.7,
+        "deductible": null,
+        "formula": "covered_amount * 0.7"
+      },
+      "source_pages": [
+        67,
+        68,
+        69,
+        70
+      ]
+    },
+    {
+      "name": "상해비급여실손의료비(갱신형) - 입원(상급병실료 차액)",
+      "is_main": false,
+      "trigger_type": "입원",
+      "trigger_detail": "상해로 인하여 병원에 입원하여 상급병실을 이용한 경우 비급여 병실료의 50%에 해당하는 금액",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "비급여 병실료의 50%. 다만 1일 평균금액 10만원 한도",
+      "boundaries": [],
+      "exclusions": [],
+      "limits": [
+        {
+          "scope": "daily_average",
+          "unit": "krw",
+          "value": 100000,
+          "note": "상급병실료 차액 전체를 총 입원일수로 나눈 1일 평균금액 기준 10만원 한도"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "1. 상해비급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 상급병실료 차액",
+        "page": 68,
+        "raw_text": "상급병실료 차액: 비급여 병실료의 50%. 다만, 1일 평균금액 10만원을 한도로 하며, 1일 평균금액은 입원기간 동안 상급병실료 차액 전체를 총 입원일수로 나누어 산출합니다."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "상해",
+        "medical_category": "비급여",
+        "visit_type": "입원",
+        "benefit_item": "상급병실료 차액",
+        "reimbursement_rate": 0.5,
+        "deductible": null,
+        "formula": "min(room_charge_difference * 0.5, average_daily_limit)"
+      },
+      "source_pages": [
+        67,
+        68,
+        69,
+        70
+      ]
+    },
+    {
+      "name": "상해비급여실손의료비(갱신형) - 통원",
+      "is_main": false,
+      "trigger_type": "통원",
+      "trigger_detail": "상해로 인하여 의료기관에 통원하여 치료를 받은 경우 비급여 의료비(상급병실료 차액은 제외합니다)(본인이 실제로 부담한 금액을 말합니다)에서 항목별 공제금액을 뺀 금액",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "통원 1회당(외래 및 처방·조제비 합산) 비급여 의료비에서 항목별 공제금액을 뺀 금액",
+      "boundaries": [],
+      "exclusions": [
+        "피보험자가 고의로 자신을 해친 경우",
+        "보험수익자가 고의로 피보험자를 해친 경우",
+        "계약자가 고의로 피보험자를 해친 경우",
+        "피보험자가 임신, 출산(제왕절개를 포함합니다), 산후기로 통원한 경우",
+        "전쟁, 외국의 무력행사, 혁명, 내란, 사변, 폭동으로 인한 경우",
+        "피보험자가 정당한 이유없이 통원기간 중 의사의 지시를 따르지 않아 발생한 통원의료비",
+        "치과치료(다만 안면부 골절로 발생한 의료비는 치아관련 치료를 제외하고 보상합니다)·한방치료(다만, 「의료법」 제2조에 따른 한의사를 제외한 '의사'의 의료행위에 의해서 발생한 의료비는 보상합니다)",
+        "자동차보험(공제를 포함합니다)에서 보상받는 치료관계비(과실상계 후 금액을 기준으로 합니다) 또는 산재보험에서 보상받는 의료비",
+        "「국민건강보험법」 제42조의 요양기관이 아닌 외국에 있는 의료기관에서 발생한 의료비",
+        "「응급의료에 관한 법률」 및 동법 시행규칙에서 정한 응급환자에 해당하지 않는 자가 동법 제26조 권역응급의료센터 또는 「의료법」제3조의4에 따른 상급종합병원 응급실을 이용하면서 발생한 응급의료관리료"
+      ],
+      "limits": [
+        {
+          "scope": "annual",
+          "unit": "count",
+          "value": 100,
+          "note": "계약일 또는 매년 계약해당일부터 1년 단위 통원 100회 한도"
+        },
+        {
+          "scope": "per_visit",
+          "unit": "krw",
+          "value": 200000,
+          "note": "통원 1회당 20만원 이내"
+        },
+        {
+          "scope": "annual",
+          "unit": "krw",
+          "value": 50000000,
+          "note": "입원+통원 합산 5천만원 한도 내 계약자 선택액(3대비급여 제외)"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "1. 상해비급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 통원",
+        "page": 68,
+        "raw_text": "통원 1회당(외래 및 처방·조제비 합산) 「비급여 의료비(상급병실료 차액은 제외합니다)」(본인이 실제로 부담한 금액을 말합니다)에서 <표1>의 항목별 공제금액을 뺀 금액(매년 계약해당일부터 1년간 통원 100회를 한도로 합니다). <표1> 공제금액: 3만원과 보장대상의료비의 30% 중 큰 금액."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "상해",
+        "medical_category": "비급여",
+        "visit_type": "통원",
+        "reimbursement_rate": 1.0,
+        "deductible": {
+          "type": "max",
+          "value": 30000,
+          "rate": 0.3,
+          "note": "1회당 3만원과 보장대상의료비의 30% 중 큰 금액"
+        },
+        "formula": "covered_amount - max(30000, covered_amount * 0.3)"
+      },
+      "source_pages": [
+        67,
+        68,
+        69,
+        70
+      ]
+    },
+    {
+      "name": "질병비급여실손의료비(갱신형) - 입원",
+      "is_main": false,
+      "trigger_type": "입원",
+      "trigger_detail": "질병으로 인하여 병원에 입원하여 치료를 받은 경우 비급여 의료비(비급여 병실료는 제외합니다)(본인이 실제로 부담한 금액을 말합니다)의 70%에 해당하는 금액",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "입원 비급여 의료비(비급여 병실료 제외) 본인부담금의 70%, 연간 보험가입금액 한도 내",
+      "boundaries": [],
+      "exclusions": [
+        "피보험자가 고의로 자신을 해친 경우",
+        "보험수익자가 고의로 피보험자를 해친 경우",
+        "계약자가 고의로 피보험자를 해친 경우",
+        "피보험자가 임신, 출산(제왕절개를 포함합니다), 산후기로 입원한 경우",
+        "전쟁, 외국의 무력행사, 혁명, 내란, 사변, 폭동으로 인한 경우",
+        "피보험자가 정당한 이유없이 입원기간 중 의사의 지시를 따르지 않거나 의사가 통원치료가 가능하다고 인정함에도 피보험자 본인이 자의적으로 입원하여 발생한 입원의료비",
+        "치과치료(다만 안면부 골절로 발생한 의료비는 치아관련 치료를 제외하고 보상합니다)·한방치료(다만, 「의료법」 제2조에 따른 한의사를 제외한 '의사'의 의료행위에 의해서 발생한 의료비는 보상합니다)",
+        "자동차보험(공제를 포함합니다)에서 보상받는 치료관계비(과실상계 후 금액을 기준으로 합니다) 또는 산재보험에서 보상받는 의료비",
+        "「국민건강보험법」 제42조의 요양기관이 아닌 외국에 있는 의료기관에서 발생한 의료비"
+      ],
+      "limits": [
+        {
+          "scope": "annual",
+          "unit": "krw",
+          "value": 50000000,
+          "note": "입원+통원 합산 5천만원 한도 내 계약자 선택액(3대비급여 제외)"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "질병비급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 입원",
+        "page": 70,
+        "raw_text": "회사는 피보험자가 질병으로 인하여 의료기관에 입원 또는 통원(외래 및 처방조제)하여 치료를 받은 경우에는 비급여의료비(3대비급여는 제외합니다)를 제4조(보험가입금액의 한도 등)에서 정한 연간 보험가입금액의 한도 내에서 보상합니다. [입원] 「비급여 의료비(비급여 병실료는 제외합니다)」(본인이 실제로 부담한 금액을 말합니다)의 70%에 해당하는 금액. ※ 약관 원문 제1조 본문은 \"상해로\"로 표기되어 있으나 특약명·제2조 제목·제3조 면책(한국표준질병사인분류 F00~F99 등)에 따라 질병비급여 특약으로 확정."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "질병",
+        "medical_category": "비급여",
+        "visit_type": "입원",
+        "reimbursement_rate": 0.7,
+        "deductible": null,
+        "formula": "covered_amount * 0.7"
+      },
+      "source_pages": [
+        70,
+        71,
+        72,
+        73
+      ]
+    },
+    {
+      "name": "질병비급여실손의료비(갱신형) - 입원(상급병실료 차액)",
+      "is_main": false,
+      "trigger_type": "입원",
+      "trigger_detail": "질병으로 인하여 병원에 입원하여 상급병실을 이용한 경우 비급여 병실료의 50%에 해당하는 금액",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "비급여 병실료의 50%. 다만 1일 평균금액 10만원 한도",
+      "boundaries": [],
+      "exclusions": [],
+      "limits": [
+        {
+          "scope": "daily_average",
+          "unit": "krw",
+          "value": 100000,
+          "note": "상급병실료 차액 전체를 총 입원일수로 나눈 1일 평균금액 기준 10만원 한도"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "질병비급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 상급병실료 차액",
+        "page": 70,
+        "raw_text": "상급병실료 차액: 비급여 병실료의 50%. 다만, 1일 평균금액 10만원을 한도로 하며, 1일 평균금액은 입원기간 동안 상급병실료 차액 전체를 총 입원일수로 나누어 산출합니다."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "질병",
+        "medical_category": "비급여",
+        "visit_type": "입원",
+        "benefit_item": "상급병실료 차액",
+        "reimbursement_rate": 0.5,
+        "deductible": null,
+        "formula": "min(room_charge_difference * 0.5, average_daily_limit)"
+      },
+      "source_pages": [
+        70,
+        71,
+        72,
+        73
+      ]
+    },
+    {
+      "name": "질병비급여실손의료비(갱신형) - 통원",
+      "is_main": false,
+      "trigger_type": "통원",
+      "trigger_detail": "질병으로 인하여 의료기관에 통원하여 치료를 받은 경우 비급여 의료비(상급병실료 차액은 제외합니다)(본인이 실제로 부담한 금액을 말합니다)에서 항목별 공제금액을 뺀 금액",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "통원 1회당(외래 및 처방·조제비 합산) 비급여 의료비에서 항목별 공제금액을 뺀 금액",
+      "boundaries": [],
+      "exclusions": [
+        "피보험자가 고의로 자신을 해친 경우",
+        "보험수익자가 고의로 피보험자를 해친 경우",
+        "계약자가 고의로 피보험자를 해친 경우",
+        "피보험자가 임신, 출산(제왕절개를 포함합니다), 산후기로 통원한 경우",
+        "전쟁, 외국의 무력행사, 혁명, 내란, 사변, 폭동으로 인한 경우",
+        "피보험자가 정당한 이유없이 통원기간 중 의사의 지시를 따르지 않아 발생한 통원의료비",
+        "치과치료(다만 안면부 골절로 발생한 의료비는 치아관련 치료를 제외하고 보상합니다)·한방치료(다만, 「의료법」 제2조에 따른 한의사를 제외한 '의사'의 의료행위에 의해서 발생한 의료비는 보상합니다)",
+        "자동차보험(공제를 포함합니다)에서 보상받는 치료관계비(과실상계 후 금액을 기준으로 합니다) 또는 산재보험에서 보상받는 의료비",
+        "「국민건강보험법」 제42조의 요양기관이 아닌 외국에 있는 의료기관에서 발생한 의료비",
+        "「응급의료에 관한 법률」 및 동법 시행규칙에서 정한 응급환자에 해당하지 않는 자가 동법 제26조 권역응급의료센터 또는 「의료법」제3조의4에 따른 상급종합병원 응급실을 이용하면서 발생한 응급의료관리료"
+      ],
+      "limits": [
+        {
+          "scope": "annual",
+          "unit": "count",
+          "value": 100,
+          "note": "계약일 또는 매년 계약해당일부터 1년 단위 통원 100회 한도"
+        },
+        {
+          "scope": "per_visit",
+          "unit": "krw",
+          "value": 200000,
+          "note": "통원 1회당 20만원 이내"
+        },
+        {
+          "scope": "annual",
+          "unit": "krw",
+          "value": 50000000,
+          "note": "입원+통원 합산 5천만원 한도 내 계약자 선택액(3대비급여 제외)"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "질병비급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 통원",
+        "page": 70,
+        "raw_text": "통원 1회당(외래 및 처방·조제비 합산) 「비급여 의료비(상급병실료 차액은 제외합니다)」(본인이 실제로 부담한 금액을 말합니다)에서 <표1>의 항목별 공제금액을 뺀 금액(매년 계약해당일부터 1년간 통원 100회를 한도로 합니다). <표1> 공제금액: 3만원과 보장대상의료비의 30% 중 큰 금액."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "질병",
+        "medical_category": "비급여",
+        "visit_type": "통원",
+        "reimbursement_rate": 1.0,
+        "deductible": {
+          "type": "max",
+          "value": 30000,
+          "rate": 0.3,
+          "note": "1회당 3만원과 보장대상의료비의 30% 중 큰 금액"
+        },
+        "formula": "covered_amount - max(30000, covered_amount * 0.3)"
+      },
+      "source_pages": [
+        70,
+        71,
+        72,
+        73
+      ]
+    },
+    {
+      "name": "3대비급여실손의료비(갱신형) - 도수치료·체외충격파치료·증식치료",
+      "is_main": false,
+      "trigger_type": "치료",
+      "trigger_detail": "이 특약의 보험기간 중 상해 또는 질병의 치료목적으로 의료기관에 입원 또는 통원하여 도수치료·체외충격파치료·증식치료 비급여 의료행위로 치료를 받은 경우 본인이 실제로 부담한 비급여의료비(행위료, 약제비, 치료재료대 포함)",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "도수치료·체외충격파치료·증식치료로 본인이 실제로 부담한 비급여의료비에서 공제금액을 뺀 금액",
+      "boundaries": [],
+      "exclusions": [],
+      "limits": [
+        {
+          "scope": "annual",
+          "unit": "krw",
+          "value": 3500000,
+          "note": "계약일 또는 매년 계약해당일부터 1년 단위로 350만원 이내"
+        },
+        {
+          "scope": "annual",
+          "unit": "count",
+          "value": 50,
+          "note": "계약일 또는 매년 계약해당일부터 1년 단위로 50회까지. 최초 10회 보장 후 객관적·일반적으로 인정되는 검사결과 등을 토대로 증상 개선·병변 호전 등이 확인된 경우 10회 단위로 연간 50회까지 보상"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "3. 3대비급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 도수·체외충격파·증식치료",
+        "page": 73,
+        "raw_text": "회사는 이 특약의 보험기간 중 상해 또는 질병의 치료목적으로 의료기관에 입원 또는 통원하여 도수치료·체외충격파치료·증식치료 비급여 의료행위로 치료를 받은 경우 본인이 실제로 부담한 비급여의료비(행위료, 약제비, 치료재료대 포함)에서 공제금액을 뺀 금액을 보상합니다. 공제금액: 1회당 3만원과 보장대상의료비의 30% 중 큰 금액. 보상한도: 계약일 또는 매년 계약해당일부터 1년간 각 상해·질병 치료행위를 합산하여 350만원 이내에서 50회까지 보상."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "상해/질병",
+        "medical_category": "3대비급여",
+        "visit_type": "치료",
+        "benefit_item": "도수치료·체외충격파치료·증식치료",
+        "reimbursement_rate": 1.0,
+        "deductible": {
+          "type": "max",
+          "value": 30000,
+          "rate": 0.3,
+          "note": "1회당 3만원과 보장대상의료비의 30% 중 큰 금액"
+        },
+        "formula": "covered_amount - max(30000, covered_amount * 0.3)"
+      },
+      "source_pages": [
+        73,
+        74,
+        75,
+        76
+      ]
+    },
+    {
+      "name": "3대비급여실손의료비(갱신형) - 주사료",
+      "is_main": false,
+      "trigger_type": "치료",
+      "trigger_detail": "이 특약의 보험기간 중 상해 또는 질병의 치료목적으로 의료기관에 입원 또는 통원하여 주사치료를 받아 본인이 실제로 부담한 비급여의료비",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "주사치료를 받아 본인이 실제로 부담한 비급여의료비에서 공제금액을 뺀 금액",
+      "boundaries": [],
+      "exclusions": [],
+      "limits": [
+        {
+          "scope": "annual",
+          "unit": "krw",
+          "value": 2500000,
+          "note": "계약일 또는 매년 계약해당일부터 1년 단위로 250만원 이내"
+        },
+        {
+          "scope": "annual",
+          "unit": "count",
+          "value": 50,
+          "note": "계약일 또는 매년 계약해당일부터 1년 단위로 50회까지"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "3. 3대비급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 주사료",
+        "page": 73,
+        "raw_text": "주사치료를 받아 본인이 실제로 부담한 비급여의료비에서 공제금액을 뺀 금액을 보상합니다. 공제금액: 1회당 3만원과 보장대상의료비의 30% 중 큰 금액. 보상한도: 계약일 또는 매년 계약해당일부터 1년간 각 상해·질병 치료행위를 합산하여 250만원 이내에서 50회까지 보상."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "상해/질병",
+        "medical_category": "3대비급여",
+        "visit_type": "치료",
+        "benefit_item": "주사료",
+        "reimbursement_rate": 1.0,
+        "deductible": {
+          "type": "max",
+          "value": 30000,
+          "rate": 0.3,
+          "note": "1회당 3만원과 보장대상의료비의 30% 중 큰 금액"
+        },
+        "formula": "covered_amount - max(30000, covered_amount * 0.3)"
+      },
+      "source_pages": [
+        73,
+        74,
+        75,
+        76
+      ]
+    },
+    {
+      "name": "3대비급여실손의료비(갱신형) - 자기공명영상진단(MRI/MRA)",
+      "is_main": false,
+      "trigger_type": "치료",
+      "trigger_detail": "이 특약의 보험기간 중 상해 또는 질병의 치료목적으로 의료기관에 입원 또는 통원하여 자기공명영상진단을 받아 본인이 실제로 부담한 비급여의료비(조영제, 판독료 포함)",
+      "unit_amount": null,
+      "unit_type": null,
+      "unit_basis": "자기공명영상진단을 받아 본인이 실제로 부담한 비급여의료비에서 공제금액을 뺀 금액",
+      "boundaries": [],
+      "exclusions": [],
+      "limits": [
+        {
+          "scope": "annual",
+          "unit": "krw",
+          "value": 3000000,
+          "note": "계약일 또는 매년 계약해당일부터 1년 단위로 300만원 이내"
+        }
+      ],
+      "waiting_period_days": null,
+      "reductions": [],
+      "deduct_days": 0,
+      "source": {
+        "article": "3. 3대비급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 자기공명영상진단",
+        "page": 73,
+        "raw_text": "자기공명영상진단을 받아 본인이 실제로 부담한 비급여의료비(조영제, 판독료 포함)에서 공제금액을 뺀 금액을 보상합니다. 공제금액: 1회당 3만원과 보장대상의료비의 30% 중 큰 금액. 보상한도: 계약일 또는 매년 계약해당일부터 1년간 각 상해·질병 치료행위를 합산하여 300만원 이내에서 보상."
+      },
+      "verified": true,
+      "coverage_kind": "실손",
+      "claim_rule": {
+        "cause_type": "상해/질병",
+        "medical_category": "3대비급여",
+        "visit_type": "치료",
+        "benefit_item": "자기공명영상진단(MRI/MRA)",
+        "reimbursement_rate": 1.0,
+        "deductible": {
+          "type": "max",
+          "value": 30000,
+          "rate": 0.3,
+          "note": "1회당 3만원과 보장대상의료비의 30% 중 큰 금액"
+        },
+        "formula": "covered_amount - max(30000, covered_amount * 0.3)"
+      },
+      "source_pages": [
+        73,
+        74,
+        75,
+        76
+      ]
+    }
+  ],
+  "_meta": {
+    "policy": "현대해상 다이렉트 실손의료비보장보험(갱신형) Hi2204",
+    "version": "snapshot_review_reflected_13_riders",
+    "note": "스냅샷 검수 결과를 반영한 judge() 계산용 정리본. 자동 파싱 15개에서 중복/오분류를 정리하여 최종 보장 13개로 재구성. verified는 사람 최종 승인 전까지 false 유지.",
+    "rider_count": 13,
+    "verified_policy": "AI/스냅샷 검수 반영본이므로 verified=false 유지. 사람 최종 승인 후 true 변경 가능.",
+    "claim_rule_spec": {
+      "coverage_kind": "보장 종류(실손)",
+      "cause_type": "상해 | 질병 | 상해/질병",
+      "medical_category": "급여 | 비급여 | 3대비급여",
+      "visit_type": "입원 | 통원 | 치료",
+      "benefit_item": "선택 세부 항목명",
+      "reimbursement_rate": "보상비율. 통원처럼 공제만 차감하는 구조는 1.0",
+      "deductible": "공제 규칙. null 또는 by_table/max 등",
+      "formula": "계산식. covered_amount는 보장대상의료비/본인부담 의료비 기준"
+    },
+    "snapshot_review_summary": [
+      "p37~38 상해급여 입원/통원 2개로 병합",
+      "p39~41 질병급여 입원/통원 2개로 병합",
+      "p67~70 상해비급여 입원/상급병실료/통원 3개 유지",
+      "p70~73 질병비급여 입원/상급병실료/통원 3개 추가",
+      "p73~76 3대비급여 3개 유지 및 source_pages 확장",
+      "p45~53 보통약관 공통조항, p77~81 제도특별약관, p104~107 인용 법·규정은 보험금 계산용 riders에서 제외"
+    ],
+    "merge_log": [
+      "급여 상해입원: p37+p38 → 1건",
+      "급여 상해통원: p37+p38 → 1건",
+      "급여 질병입원: p39+p40+p41 → 1건",
+      "급여 질병통원: p39+p40+p41 → 1건",
+      "비급여 상해: p67~70 → 입원/상급병실료 차액/통원 3건",
+      "비급여 질병: p70~73 → 입원/상급병실료 차액/통원 3건",
+      "3대비급여: p73~76 → 도수치료·주사료·MRI/MRA 3건"
+    ],
+    "excluded_sections": [
+      {
+        "pages": [
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52,
+          53
+        ],
+        "reason": "보통약관 공통조항으로 보험금 계산용 보장 항목이 아님"
+      },
+      {
+        "pages": [
+          66
+        ],
+        "reason": "용어정의/보험료 계산 관련 페이지로 보험금 계산용 보장 항목이 아님"
+      },
+      {
+        "pages": [
+          77,
+          78,
+          79,
+          80,
+          81
+        ],
+        "reason": "제도특별약관으로 별도 조건/제도 항목. riders 제외"
+      },
+      {
+        "pages": [
+          104,
+          105,
+          106,
+          107
+        ],
+        "reason": "인용 법·규정. riders 제외"
+      }
+    ]
+  },
+  "_merge_note": {
+    "source_skeleton": "현대실손_judge정리본_최종반영_13개.json (claim_rule·병합구조·질병상해분류)",
+    "source_descriptive": "현대해상..._전체.json --full (trigger_detail·exclusions·boundaries·source.raw_text)",
+    "review_required": [],
+    "verified_policy": "전건 verified=false. 적재·탐색·임베딩 가능. 위 검수 완료 후 true 승격",
+    "resolved": [
+      "질병비급여 3건(입원·상급병실·통원) source.raw_text·article을 p.70~72 질병 원문으로 교체 (2026.06.14)",
+      "질병/상해 분류 — judge정리본 기준 질병비급여 확정 (full의 p.70 상해 오분류 미채택)",
+      "source.raw_text·article 전 13건을 약관 원문(p.37·38·39·67·68·70~73) 기준으로 교체 완료 (2026.06.14). 급여통원 표1 2구간 공제, 급여입원 200만원 초과분, 3대비급여 공제·한도까지 원문 반영",
+      "unit_type·unit_amount — 실손은 정률·공제형(claim_rule로 계산)이라 정액 단가 개념 부적합 → null. full의 1회당/1일당 표기 제거 (2026.06.14)",
+      "exclusions — full 원본값으로 복원(공통조항 포함). 설계서에 공통조항 관리 위치 미정의이고 judge가 공통면책을 판정에 쓸 수 있어, 정보 손실 방지 차원에서 각 rider에 보존. 정규화는 아래 open_question 참조 (2026.06.14)"
+    ],
+    "common_exclusion_note": "보통약관 공통 면책(고의·전쟁·중독·정신장애·임신·선천성 등)은 개별 rider가 아니라 policies 또는 공통조항 테이블에서 관리. 각 rider.exclusions에는 보장 고유 제외만 둠.",
+    "open_question": {
+      "topic": "공통면책 중복 저장 vs policies.common_exclusions 컬럼 정규화",
+      "detail": "고의·전쟁·정신장애·임신 등 보통약관 공통면책이 13개 rider에 중복 저장됨. policies 테이블에 common_exclusions(jsonb) 컬럼을 추가해 1회 저장하는 정규화를 검토 필요. 결정권: judge 담당(이태경) + DB 오너(진미경).",
+      "pending_decision": "DB설계서 v1.4 반영 여부"
+    }
+  }
+}

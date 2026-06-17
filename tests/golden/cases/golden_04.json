@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "id": "golden_04",
+    "title": "시나리오 B+ — 가입 400일차 위암 진단, 2년 이내 감액 50%",
+    "covers_ac": [
+      "AC-08"
+    ],
+    "verified": false,
+    "notes": "한화 p.13 '가입 후 2년간 보험금 50% 지급' 확인 완료. 조항 번호 파싱 시 확정 / 감액 50% 검증: contract_type=\"비갱신형\" + age=60 → 2년이내(400일) 감액 적용 조건. 계약유형·연령으로 감액률 분기"
+  },
+  "case": {
+    "disease_kcd": "C16",
+    "disease_name": "위의 악성신생물(위암)",
+    "surgery": false,
+    "diag_days": 10,
+    "current_days": 10,
+    "policy_elapsed_days": 400,
+    "contract_type": "비갱신형",
+    "age": 60,
+    "registered_policies": [
+      "hanwha_e암"
+    ],
+    "claimed_policy_keys": []
+  },
+  "expected": [
+    {
+      "policy": "hanwha_e암",
+      "rider": "암진단자금",
+      "status": "eligible",
+      "missed": true,
+      "calc_struct": "가입금액(일시금)",
+      "reduction": {
+        "rate": 0.5,
+        "until_elapsed_days": 730,
+        "display": "가입 후 2년 이내 진단 — 보험금 50% 지급(약관 기준)",
+        "condition": "contract_type=비갱신형 AND age>=15",
+        "source_note": "약관 reductions: 15세이상 비갱신형 및 갱신형(최초) 한정"
+      }
+    }
+  ],
+  "must_not_match": []
+}
