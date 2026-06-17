@@ -19,8 +19,8 @@ api.interceptors.request.use(async config => {
     }
   } catch (error) {
     // Supabase 미작동 시 로컬 테스트용 더미 토큰 자동 주입
+    console.warn('[API Auth] Session retrieval failed, using test token fallback:', error);
     config.headers.Authorization = `Bearer test-token`;
   }
   return config;
 });
-
