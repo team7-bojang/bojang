@@ -30,7 +30,7 @@ class Rider(TypedDict):
 
 
 class Judgement(TypedDict):
-    status: str            # core.constants.JudgeStatus
+    status: str  # core.constants.JudgeStatus
     gap_days: int | None
     matched_boundary: str | None
     calc: str | None

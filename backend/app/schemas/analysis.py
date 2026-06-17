@@ -12,7 +12,7 @@ class Evidence(BaseModel):
 class CoverageResult(BaseModel):
     policy: str
     rider: str
-    status: str          # judge 출력 (eligible/claimed/boundary_not_met/.../potential)
+    status: str  # judge 출력 (eligible/claimed/boundary_not_met/.../potential)
     missed: bool = False
     gap_days: int | None = None
     calc: str | None = None

@@ -1,7 +1,8 @@
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+
 
 # Mock DB 데이터 홀더
 class InMemoryDB:
@@ -17,13 +18,41 @@ class InMemoryDB:
     def initialize_if_needed(self):
         if self._initialized:
             return
-        
+
         # 1. Preset 보험 상품 생성
         preset_policies = [
-            {"id": "p-db-3dae", "name": "DB 3대질병", "insurer": "DB손해보험", "type": "질병", "is_preset": True, "pdf_path": None},
-            {"id": "p-hd-silsil", "name": "현대 실손", "insurer": "현대해상", "type": "실손", "is_preset": True, "pdf_path": None},
-            {"id": "p-hw-cancer", "name": "한화 e암보험", "insurer": "한화생명", "type": "암", "is_preset": True, "pdf_path": None},
-            {"id": "p-mr-sanghae", "name": "메리츠 상해안심", "insurer": "메리츠화재", "type": "상해", "is_preset": True, "pdf_path": None},
+            {
+                "id": "p-db-3dae",
+                "name": "DB 3대질병",
+                "insurer": "DB손해보험",
+                "type": "질병",
+                "is_preset": True,
+                "pdf_path": None,
+            },
+            {
+                "id": "p-hd-silsil",
+                "name": "현대 실손",
+                "insurer": "현대해상",
+                "type": "실손",
+                "is_preset": True,
+                "pdf_path": None,
+            },
+            {
+                "id": "p-hw-cancer",
+                "name": "한화 e암보험",
+                "insurer": "한화생명",
+                "type": "암",
+                "is_preset": True,
+                "pdf_path": None,
+            },
+            {
+                "id": "p-mr-sanghae",
+                "name": "메리츠 상해안심",
+                "insurer": "메리츠화재",
+                "type": "상해",
+                "is_preset": True,
+                "pdf_path": None,
+            },
         ]
         self.policies.extend(preset_policies)
 
@@ -31,16 +60,16 @@ class InMemoryDB:
         data_path = Path(__file__).resolve().parent.parent.parent.parent / "보험약관데이터.json"
         if data_path.exists():
             try:
-                with open(data_path, "r", encoding="utf-8") as f:
+                with open(data_path, encoding="utf-8") as f:
                     raw_data = json.load(f)
-                    
+
                 raw_riders = raw_data.get("riders", [])
-                for idx, r in enumerate(raw_riders):
+                for _idx, r in enumerate(raw_riders):
                     rider_id = str(uuid.uuid4())
-                    
+
                     # 특약 명칭에 따른 보험 상품 매핑
                     name = r.get("name", "")
-                    
+
                     # 골든셋 및 데모 요구사항에 맞게 특약명 정규화
                     if "질병급여실손의료비" in name and "입원" in name:
                         name = "질병급여실손의료비(입원)"
@@ -48,7 +77,7 @@ class InMemoryDB:
                         name = "뇌혈관질환입원일당(4일이상120일한도)"
                     elif "질병입원일당" in name:
                         name = "질병입원일당(1일이상180일한도)"
-                    
+
                     if "실손" in name or r.get("claim_rule") is not None:
                         policy_id = "p-hd-silsil"
                     elif "암" in name:
@@ -59,7 +88,7 @@ class InMemoryDB:
                         policy_id = "p-db-3dae"
 
                     source = r.get("source") or {}
-                    
+
                     rider_data = {
                         "id": rider_id,
                         "policy_id": policy_id,
@@ -81,7 +110,7 @@ class InMemoryDB:
                         "article_no": source.get("article"),
                         "page": source.get("page"),
                         "raw_text": source.get("raw_text"),
-                        "verified": r.get("verified", True)
+                        "verified": r.get("verified", True),
                     }
                     self.riders.append(rider_data)
 
@@ -96,8 +125,8 @@ class InMemoryDB:
                             "policy_id": policy_id,
                             "page": source.get("page"),
                             "article_no": source.get("article"),
-                            "trigger_type": r.get("trigger_type")
-                        }
+                            "trigger_type": r.get("trigger_type"),
+                        },
                     }
                     self.rider_chunks.append(chunk_data)
             except Exception as e:
@@ -178,17 +207,23 @@ class MockQueryBuilder:
         db_instance.initialize_if_needed()
 
         if self._is_insert:
-            rows = self._mutation_data if isinstance(self._mutation_data, list) else [self._mutation_data]
+            rows = (
+                self._mutation_data
+                if isinstance(self._mutation_data, list)
+                else [self._mutation_data]
+            )
             inserted_rows = []
             for row in rows:
                 new_row = row.copy()
                 if "id" not in new_row:
                     new_row["id"] = str(uuid.uuid4())
                 if "created_at" not in new_row:
-                    new_row["created_at"] = datetime.now(timezone.utc).isoformat()
+                    new_row["created_at"] = datetime.now(UTC).isoformat()
                 self.data_list.append(new_row)
                 inserted_rows.append(new_row)
-            return MockAPIResponse(inserted_rows if isinstance(self._mutation_data, list) else inserted_rows[0])
+            return MockAPIResponse(
+                inserted_rows if isinstance(self._mutation_data, list) else inserted_rows[0]
+            )
 
         if self._is_update:
             filtered_indices = []
@@ -223,14 +258,22 @@ class MockQueryBuilder:
                         match = False
             if match:
                 res_item = item.copy()
-                
-                if self.table_name == "rider_chunks" and ("riders(*)" in self._select_columns or "riders" in self._select_columns):
-                    rider = next((r for r in db_instance.riders if r["id"] == item["rider_id"]), None)
+
+                if self.table_name == "rider_chunks" and (
+                    "riders(*)" in self._select_columns or "riders" in self._select_columns
+                ):
+                    rider = next(
+                        (r for r in db_instance.riders if r["id"] == item["rider_id"]), None
+                    )
                     if rider:
                         res_item["riders"] = rider.copy()
-                
-                if self.table_name == "riders" and ("policies(*)" in self._select_columns or "policies" in self._select_columns):
-                    policy = next((p for p in db_instance.policies if p["id"] == item["policy_id"]), None)
+
+                if self.table_name == "riders" and (
+                    "policies(*)" in self._select_columns or "policies" in self._select_columns
+                ):
+                    policy = next(
+                        (p for p in db_instance.policies if p["id"] == item["policy_id"]), None
+                    )
                     if policy:
                         res_item["policies"] = policy.copy()
 
@@ -241,7 +284,7 @@ class MockQueryBuilder:
             results.sort(key=lambda x: x.get(col) or "", reverse=desc)
 
         if self._limit_count is not None:
-            results = results[:self._limit_count]
+            results = results[: self._limit_count]
 
         return MockAPIResponse(results)
 

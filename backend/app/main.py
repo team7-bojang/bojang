@@ -1,5 +1,5 @@
-from app.factory import create_app
 from app.config import settings
+from app.factory import create_app
 
 app = create_app()
 

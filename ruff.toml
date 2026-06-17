@@ -1,0 +1,14 @@
+# 저장소 루트 ruff 설정 — backend/ 밖의 파이썬(scripts/ 등)에 backend와 동일 규칙 적용.
+# backend/ 는 자체 backend/pyproject.toml[tool.ruff]가 우선한다(ruff는 가장 가까운 설정 사용).
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "I", "B", "UP"]
+# E501(라인 길이)은 제외 — 포맷터가 한국어 설명 문자열을 못 쪼개 잡음만 됨. 스타일은 ruff format에 맡김.
+ignore = ["E501"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

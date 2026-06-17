@@ -4,7 +4,9 @@ const url = import.meta.env.VITE_SUPABASE_URL;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!url || !anonKey) {
-  console.warn('[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY 가 설정되지 않았습니다. 더미 Supabase 클라이언트를 초기화합니다.');
+  console.warn(
+    '[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY 가 설정되지 않았습니다. 더미 Supabase 클라이언트를 초기화합니다.'
+  );
 }
 
 // url이나 key가 비어 있으면 supabase-js가 에러를 던지므로 더미 값을 사용
