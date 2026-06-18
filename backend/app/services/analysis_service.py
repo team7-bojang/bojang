@@ -147,7 +147,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "rider_id": rider_id,
             "policy_name": policy_name,
             "rider_name": rider["name"],
-            "status": status,
+            "status": status[:20] if status else None,
             "missed": missed,
             "gap_days": judgement.get("gap_days"),
             "evidence": evidence,

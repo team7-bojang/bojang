@@ -140,11 +140,8 @@ def create_case(user_id: str, situation: str) -> dict:
         "surgery": surgery,
         "diag_days": hosp_days if hosp_days > 0 else None,
         "current_days": hosp_days if hosp_days > 0 else None,
-        "policy_elapsed_days": 800,  # 기본값 (대기 및 감액 통과 조건 충족용)
+        "policy_elapsed_days": 800,
         "claimed_policy_ids": [],
-        "initial_situation": situation,
-        "claim_status": claim_status,
-        "recommended_input_method": rec_method,
         "created_at": datetime.now(UTC).isoformat(),
     }
 

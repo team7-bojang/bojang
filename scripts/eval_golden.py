@@ -21,6 +21,7 @@ sys.path.append(str(BACKEND_DIR))
 
 # 환경 변수 강제 주입 및 기본 설정
 import os
+os.chdir(BACKEND_DIR)
 os.environ["DEBUG"] = "True"
 
 from app.db import get_client
@@ -38,10 +39,24 @@ def load_cases() -> list[dict]:
 def main() -> None:
     # 1. DB 초기화 및 테스트 유저 프리셋 등록
     db = get_client()
-    user_id = "golden-test-user-uuid"
+    user_id = "00000000-0000-0000-0000-000000000000"
     
     # 이전에 테스트 데이터가 있다면 초기화
-    db.table("policies").data_list = [p for p in db.table("policies").data_list if p.get("user_id") != user_id]
+    if hasattr(db.table("policies"), "data_list"):
+        db.table("policies").data_list = [
+            p for p in db.table("policies").data_list if p.get("user_id") != user_id
+        ]
+    else:
+        try:
+            res_p = db.table("policies").select("id").eq("user_id", user_id).execute()
+            p_ids = [p["id"] for p in res_p.data or []]
+            if p_ids:
+                for pid in p_ids:
+                    db.table("rider_chunks").delete().eq("meta->>policy_id", pid).execute()
+                db.table("riders").delete().in_("policy_id", p_ids).execute()
+                db.table("policies").delete().eq("user_id", user_id).execute()
+        except Exception as e:
+            print(f"[golden] Real DB clean up failed: {e}")
     
     # Preset 상품 4개 등록
     presets = policy_service.get_presets()

@@ -84,7 +84,14 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
 
     # 3) calc 및 reductions 반영
     unit_amount = rider.get("unit_amount") or 30000
-    calc = f"{unit_amount:,}원 x {current_days}일 = {unit_amount * current_days:,}원"
+    unit_type = rider.get("unit_type") or ""
+
+    if ("일" in unit_type or trigger == "입원") and "일시금" not in unit_type:
+        calc = f"{unit_amount:,}원 x {current_days}일 = {unit_amount * current_days:,}원"
+        final_amount = unit_amount * current_days
+    else:
+        calc = f"{unit_amount:,}원 지급"
+        final_amount = unit_amount
 
     reduction = None
     limit_note = None
@@ -96,7 +103,16 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
             if until_days and elapsed < until_days:
                 rate = red.get("rate", 1.0)
                 reduction = {"condition": f"계약일로부터 {until_days}일 미만", "rate": rate}
-                calc = f"({calc}) x {int(rate * 100)}% 감액 = {int(unit_amount * current_days * rate):,}원"
+                if ("일" in unit_type or trigger == "입원") and "일시금" not in unit_type:
+                    calc = (
+                        f"({calc}) x {int(rate * 100)}% 감액 = "
+                        f"{int(final_amount * rate):,}원"
+                    )
+                else:
+                    calc = (
+                        f"{unit_amount:,}원 x {int(rate * 100)}% 감액 = "
+                        f"{int(final_amount * rate):,}원"
+                    )
                 limit_note = red.get("note")
                 break
 

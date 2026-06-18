@@ -43,6 +43,12 @@ class Retriever:
 
         for chunk in chunks:
             meta = chunk.get("meta") or {}
+            if isinstance(meta, str):
+                import json
+                try:
+                    meta = json.loads(meta)
+                except Exception:
+                    meta = {}
 
             # policy_ids 필터 적용 (있는 경우에만)
             if policy_ids and meta.get("policy_id") not in policy_ids:
