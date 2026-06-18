@@ -13,11 +13,26 @@ class InMemoryDB:
         self.cases = []
         self.analysis_results = []
         self.reports = []
+        self.diseases = []
         self._initialized = False
 
     def initialize_if_needed(self):
         if self._initialized:
             return
+
+        # 0. 질병 정보 사전 생성
+        preset_diseases = [
+            {"kcd": "I63", "name": "뇌경색증", "search_text": "뇌경색증 뇌혈관 I63"},
+            {"kcd": "I60", "name": "지주막하출혈", "search_text": "지주막하출혈 뇌출혈 I60"},
+            {"kcd": "I61", "name": "뇌내출혈", "search_text": "뇌내출혈 뇌출혈 I61"},
+            {"kcd": "C16", "name": "위의 악성 신생물 (위암)", "search_text": "위의 악성 신생물 (위암) C16 위암"},
+            {"kcd": "C34", "name": "폐암", "search_text": "폐암 C34"},
+            {"kcd": "M51", "name": "기타 추간판 장애 (허리디스크)", "search_text": "기타 추간판 장애 (허리디스크) 디스크 M51"},
+            {"kcd": "J30", "name": "혈관운동성 및 알레르기성 비염", "search_text": "비염 J30"},
+            {"kcd": "E11", "name": "2형 당뇨병", "search_text": "당뇨병 E11"},
+            {"kcd": "I21", "name": "급성 심근경색증", "search_text": "급성 심근경색증 심장 I21"},
+        ]
+        self.diseases.extend(preset_diseases)
 
         # 1. Preset 보험 상품 생성
         preset_policies = [
@@ -183,6 +198,10 @@ class MockQueryBuilder:
         self._filters.append((operator, column, value))
         return self
 
+    def or_(self, filter_str):
+        self._filters.append(("or", None, filter_str))
+        return self
+
     def order(self, column, descending=False):
         self._order_by = (column, descending)
         return self
@@ -256,6 +275,19 @@ class MockQueryBuilder:
                 elif op == "cs" and isinstance(item_val, list):
                     if val not in item_val:
                         match = False
+                elif op == "or":
+                    or_match = False
+                    for cond in val.split(','):
+                        parts = cond.split('.')
+                        if len(parts) == 3:
+                            col_name, operator, match_val = parts
+                            match_val_clean = match_val.replace('%', '').lower()
+                            item_field_val = str(item.get(col_name) or "").lower()
+                            if operator == "ilike" and match_val_clean in item_field_val:
+                                or_match = True
+                                break
+                    if not or_match:
+                        match = False
             if match:
                 res_item = item.copy()
 
@@ -304,5 +336,7 @@ class MockSupabaseClient:
             return MockQueryBuilder(table_name, db_instance.analysis_results)
         elif table_name == "reports":
             return MockQueryBuilder(table_name, db_instance.reports)
+        elif table_name == "diseases":
+            return MockQueryBuilder(table_name, db_instance.diseases)
         else:
             raise ValueError(f"Unknown table: {table_name}")

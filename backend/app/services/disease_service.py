@@ -1,6 +1,8 @@
 """질병 검색 서비스 (SCR-03)."""
 
-# KCD 질병 데이터 사전
+from app.db import get_client
+
+# KCD 질병 데이터 사전 (Fallback 용)
 _KCD_DATA = [
     {"kcd": "I63", "name": "뇌경색증"},
     {"kcd": "I60", "name": "지주막하출혈"},
@@ -16,12 +18,26 @@ _KCD_DATA = [
 
 def search_diseases(query: str) -> list[dict]:
     """검색어와 일치하는 질병명 및 KCD 코드를 반환합니다."""
-    if not query:
-        return _KCD_DATA
+    client = get_client()
+    try:
+        if not query:
+            res = client.table("diseases").select("kcd, name, search_text").limit(100).execute()
+            return res.data or []
 
-    results = []
-    for item in _KCD_DATA:
-        if query.lower() in item["name"].lower() or query.lower() in item["kcd"].lower():
-            results.append(item)
-
-    return results
+        res = (
+            client.table("diseases")
+            .select("kcd, name, search_text")
+            .or_(f"name.ilike.%{query}%,kcd.ilike.%{query}%,search_text.ilike.%{query}%")
+            .execute()
+        )
+        return res.data or []
+    except Exception as e:
+        print(f"[DiseaseService] Failed to fetch diseases from Supabase: {e}")
+        # Local fallback
+        if not query:
+            return _KCD_DATA
+        return [
+            item
+            for item in _KCD_DATA
+            if query.lower() in item["name"].lower() or query.lower() in item["kcd"].lower()
+        ]

@@ -1415,11 +1415,31 @@ HTML_CONTENT = """<!DOCTYPE html>
             const tbody = document.getElementById('compare-table-rows');
             tbody.innerHTML = '';
 
-            const compare = analysisData.compare || {};
+            const rawCompare = analysisData.compare || {};
+            let compare = {};
+            if (rawCompare && Array.isArray(rawCompare.comparisons)) {
+                rawCompare.comparisons.forEach((item, index) => {
+                    const key = item.rider || `rider_${index}`;
+                    compare[key] = item.outcomes.map(outcome => ({
+                        policy_name: item.policy,
+                        rider_name: item.rider,
+                        status: outcome.status,
+                        calc: outcome.calc,
+                        gap_days: outcome.gap_days
+                    }));
+                });
+            } else {
+                compare = rawCompare;
+            }
+
             const keys = Object.keys(compare);
 
             if (keys.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">비교 가능한 입원 일당 특약이 존재하지 않습니다.</td></tr>';
+                tbody.innerHTML = `<tr>
+                    <td colspan="4" style="text-align:center; color:var(--text-muted);">
+                        비교 가능한 입원 일당 특약이 존재하지 않습니다.
+                    </td>
+                </tr>`;
                 return;
             }
 
