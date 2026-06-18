@@ -2,8 +2,10 @@ addAssignees: author
 
 addReviewers: true
 reviewers:
-  - reviewer1
-  - reviewer2
+  - dlxorud1256
+  - jinmiee
+  - joyun04
+  - seowooda
 
 numberOfReviewers: 3
 skipKeywords:
