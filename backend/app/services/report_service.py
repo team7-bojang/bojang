@@ -48,8 +48,7 @@ def create_report(user_id: str, case_id: str) -> dict:
         checklist.append(
             {
                 "task": (
-                    "전문의 진단명이 기재된 '진단서' 및 "
-                    "'조직검사결과지' 또는 '영상판독서' 챙기기"
+                    "전문의 진단명이 기재된 '진단서' 및 '조직검사결과지' 또는 '영상판독서' 챙기기"
                 ),
                 "done": False,
             }
@@ -57,10 +56,7 @@ def create_report(user_id: str, case_id: str) -> dict:
     if case.get("surgery"):
         checklist.append(
             {
-                "task": (
-                    "수술 일자 및 수술명 정보가 포함된 "
-                    "'수술확인서' 또는 '진단서' 발급 받기"
-                ),
+                "task": ("수술 일자 및 수술명 정보가 포함된 '수술확인서' 또는 '진단서' 발급 받기"),
                 "done": False,
             }
         )

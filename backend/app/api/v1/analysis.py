@@ -1,7 +1,7 @@
 """보장 탐색·비교 라우트 (SCR-04·05, 데모의 심장).
 
-  POST /analysis/search    보장 교차 검색 (F-02)
-  POST /analysis/compare   조건별 비교 (F-03)
+POST /analysis/search    보장 교차 검색 (F-02)
+POST /analysis/compare   조건별 비교 (F-03)
 """
 
 from flask import g
@@ -38,4 +38,3 @@ def compare_scenarios(body: CompareRequest):
         return response.ok(data)
     except Exception as e:
         return response.fail("server_error", str(e), 500)
-

@@ -321,9 +321,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
     }
 
 
-def compare_scenarios(
-    user_id: str, case_id: str, current_days: int, target_days: int
-) -> dict:
+def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days: int) -> dict:
     """현재 입원 경과일수와 비교 대상 입원일수를 기준으로 보장 조건 차이를 비교합니다 (v2.1)."""
     db = get_client()
 
@@ -505,5 +503,3 @@ def compare_scenarios(
         ),
         "notice": notice,
     }
-
-

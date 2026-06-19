@@ -84,5 +84,3 @@ class CompareResponse(BaseModel):
     comparison: list[CompareRiderResult]
     disclaimer: str
     notice: str | None = None
-
-

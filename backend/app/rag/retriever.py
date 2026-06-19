@@ -45,6 +45,7 @@ class Retriever:
             meta = chunk.get("meta") or {}
             if isinstance(meta, str):
                 import json
+
                 try:
                     meta = json.loads(meta)
                 except Exception:

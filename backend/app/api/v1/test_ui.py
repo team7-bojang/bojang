@@ -1205,15 +1205,25 @@ HTML_CONTENT = """<!DOCTYPE html>
             chatbotQuestions = [];
 
             // 1. Disease name & KCD code check
-            if (!c.disease_name || !c.disease_kcd || c.disease_kcd === 'R69') {
+            if (!c.disease_name || !c.disease_kcd || c.disease_kcd === 'R69' || c.disease_match_confidence === 'need_user_confirmation') {
+                let btnHtml = '';
+                if (c.disease_kcd_candidates && c.disease_kcd_candidates.length > 0) {
+                    c.disease_kcd_candidates.forEach((cand, idx) => {
+                        btnHtml += `<button onclick="answerQuestion('disease', '${cand.name}', '${cand.kcd}')" class="msg-btn">${idx + 1}. ${cand.name} (${cand.kcd})</button> `;
+                    });
+                    btnHtml += `<button onclick="answerQuestion('disease', '상세불명 질환', 'R69')" class="msg-btn">해당 병명이 없어요</button>`;
+                } else {
+                    btnHtml = `
+                        <button onclick="answerQuestion('disease', '뇌경색증', 'I63')" class="msg-btn">뇌경색증 (I63)</button>
+                        <button onclick="answerQuestion('disease', '기타 추간판장애 (허리디스크)', 'M51')" class="msg-btn">허리디스크 (M51)</button>
+                        <button onclick="answerQuestion('disease', '위암', 'C16')" class="msg-btn">위암 (C16)</button>
+                    `;
+                }
+
                 chatbotQuestions.push({
                     type: 'disease',
-                    text: '어떤 질병(또는 질병코드)으로 치료받으셨나요?',
-                    actions: `
-                        <button onclick="answerQuestion('disease', '뇌경색증', 'I63')" class="msg-btn">뇌경색증 (I63)</button>
-                        <button onclick="answerQuestion('disease', '허리디스크', 'M511')" class="msg-btn">허리디스크 (M511)</button>
-                        <button onclick="answerQuestion('disease', '위암', 'C16')" class="msg-btn">위암 (C16)</button>
-                    `
+                    text: '정확한 진단명을 알 수 있을까요? 아래 후보 중 선택하시거나, 없으시면 입력창에 직접 써주세요.',
+                    actions: btnHtml
                 });
             }
 
@@ -1833,4 +1843,3 @@ HTML_CONTENT = """<!DOCTYPE html>
 def get_test_ui():
     """테스트 클라이언트 HTML 단일 페이지를 반환합니다."""
     return Response(HTML_CONTENT, mimetype="text/html")
-

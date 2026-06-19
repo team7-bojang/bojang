@@ -45,10 +45,10 @@ def select_presets(user_id: str, preset_ids: list[str]) -> list[str]:
 
         # 3. 연결된 특약(riders) 복제
         res_riders = db.table("riders").select("*").eq("policy_id", pid).execute()
-        
+
         riders_to_insert = []
         chunks_to_insert = []
-        
+
         for r in res_riders.data or []:
             new_rider = r.copy()
             new_rider_id = str(uuid.uuid4())
@@ -111,8 +111,7 @@ def upload_pdf(user_id: str, file_name: str) -> dict:
         "page": 10,
         "article_no": "입원특약 제4조",
         "raw_text": (
-            "피보험자가 질병으로 입원하여 치료를 받은 경우 "
-            "입원 1일째부터 입원일당을 지급합니다."
+            "피보험자가 질병으로 입원하여 치료를 받은 경우 입원 1일째부터 입원일당을 지급합니다."
         ),
     }
     db.table("riders").insert(cloned_rider).execute()

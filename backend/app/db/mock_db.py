@@ -25,9 +25,17 @@ class InMemoryDB:
             {"kcd": "I63", "name": "뇌경색증", "search_text": "뇌경색증 뇌혈관 I63"},
             {"kcd": "I60", "name": "지주막하출혈", "search_text": "지주막하출혈 뇌출혈 I60"},
             {"kcd": "I61", "name": "뇌내출혈", "search_text": "뇌내출혈 뇌출혈 I61"},
-            {"kcd": "C16", "name": "위의 악성 신생물 (위암)", "search_text": "위의 악성 신생물 (위암) C16 위암"},
+            {
+                "kcd": "C16",
+                "name": "위의 악성 신생물 (위암)",
+                "search_text": "위의 악성 신생물 (위암) C16 위암",
+            },
             {"kcd": "C34", "name": "폐암", "search_text": "폐암 C34"},
-            {"kcd": "M51", "name": "기타 추간판 장애 (허리디스크)", "search_text": "기타 추간판 장애 (허리디스크) 디스크 M51"},
+            {
+                "kcd": "M51",
+                "name": "기타 추간판 장애 (허리디스크)",
+                "search_text": "기타 추간판 장애 (허리디스크) 디스크 M51",
+            },
             {"kcd": "J30", "name": "혈관운동성 및 알레르기성 비염", "search_text": "비염 J30"},
             {"kcd": "E11", "name": "2형 당뇨병", "search_text": "당뇨병 E11"},
             {"kcd": "I21", "name": "급성 심근경색증", "search_text": "급성 심근경색증 심장 I21"},
@@ -277,11 +285,11 @@ class MockQueryBuilder:
                         match = False
                 elif op == "or":
                     or_match = False
-                    for cond in val.split(','):
-                        parts = cond.split('.')
+                    for cond in val.split(","):
+                        parts = cond.split(".")
                         if len(parts) == 3:
                             col_name, operator, match_val = parts
-                            match_val_clean = match_val.replace('%', '').lower()
+                            match_val_clean = match_val.replace("%", "").lower()
                             item_field_val = str(item.get(col_name) or "").lower()
                             if operator == "ilike" and match_val_clean in item_field_val:
                                 or_match = True

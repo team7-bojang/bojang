@@ -104,10 +104,7 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
                 rate = red.get("rate", 1.0)
                 reduction = {"condition": f"계약일로부터 {until_days}일 미만", "rate": rate}
                 if ("일" in unit_type or trigger == "입원") and "일시금" not in unit_type:
-                    calc = (
-                        f"({calc}) x {int(rate * 100)}% 감액 = "
-                        f"{int(final_amount * rate):,}원"
-                    )
+                    calc = f"({calc}) x {int(rate * 100)}% 감액 = {int(final_amount * rate):,}원"
                 else:
                     calc = (
                         f"{unit_amount:,}원 x {int(rate * 100)}% 감액 = "

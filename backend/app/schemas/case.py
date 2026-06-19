@@ -81,4 +81,3 @@ class MedicalDetailResponse(BaseModel):
     input_method: str
     extracted_medical_info: ExtractedMedicalInfo
     needs_confirmation: bool
-

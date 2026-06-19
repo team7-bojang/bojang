@@ -65,9 +65,8 @@ def judge(case: Case, rider: Rider) -> Judgement:
     # 1-4) 특정 질병군 적합성 상세 필터링
     # 뇌혈관/뇌졸중/뇌출혈 그룹
     if any(w in rider_name for w in ["뇌혈관", "뇌졸중", "뇌출혈", "뇌경색"]):
-        is_brain_disease = (
-            disease_kcd.startswith("I6") or
-            any(w in disease_name for w in ["뇌경색", "뇌졸중", "뇌출혈", "뇌혈관"])
+        is_brain_disease = disease_kcd.startswith("I6") or any(
+            w in disease_name for w in ["뇌경색", "뇌졸중", "뇌출혈", "뇌혈관"]
         )
         if not is_brain_disease:
             return _empty_not_applicable()
@@ -75,20 +74,19 @@ def judge(case: Case, rider: Rider) -> Judgement:
     # 암/악성신생물/유사암 그룹
     if any(w in rider_name for w in ["암", "악성신생물", "유사암", "제자리암"]):
         is_cancer_disease = (
-            disease_kcd.startswith("C") or
-            disease_kcd.startswith("D0") or
-            disease_kcd.startswith("D3") or
-            disease_kcd.startswith("D4") or
-            any(w in disease_name for w in ["암", "악성신생물", "종양", "유사암", "경계성"])
+            disease_kcd.startswith("C")
+            or disease_kcd.startswith("D0")
+            or disease_kcd.startswith("D3")
+            or disease_kcd.startswith("D4")
+            or any(w in disease_name for w in ["암", "악성신생물", "종양", "유사암", "경계성"])
         )
         if not is_cancer_disease:
             return _empty_not_applicable()
 
     # 심장/심근경색/허혈성심장질환 그룹
     if any(w in rider_name for w in ["심근경색", "허혈성", "심장", "심혈관"]):
-        is_heart_disease = (
-            disease_kcd.startswith("I2") or
-            any(w in disease_name for w in ["심근경색", "허혈성", "심장", "심혈관"])
+        is_heart_disease = disease_kcd.startswith("I2") or any(
+            w in disease_name for w in ["심근경색", "허혈성", "심장", "심혈관"]
         )
         if not is_heart_disease:
             return _empty_not_applicable()
@@ -96,12 +94,12 @@ def judge(case: Case, rider: Rider) -> Judgement:
     # 추간판/디스크/척추 그룹
     if any(w in rider_name for w in ["추간판", "디스크", "척추", "탈출증"]):
         is_spine_disease = (
-            disease_kcd.startswith("M50") or
-            disease_kcd.startswith("M51") or
-            disease_kcd.startswith("M52") or
-            disease_kcd.startswith("M53") or
-            disease_kcd.startswith("M54") or
-            any(w in disease_name for w in ["디스크", "추간판", "척추", "탈출증"])
+            disease_kcd.startswith("M50")
+            or disease_kcd.startswith("M51")
+            or disease_kcd.startswith("M52")
+            or disease_kcd.startswith("M53")
+            or disease_kcd.startswith("M54")
+            or any(w in disease_name for w in ["디스크", "추간판", "척추", "탈출증"])
         )
         if not is_spine_disease:
             return _empty_not_applicable()
@@ -110,4 +108,3 @@ def judge(case: Case, rider: Rider) -> Judgement:
     if rider.get("claim_rule") is None:
         return judge_fixed(case, rider)
     return judge_reimbursement(case, rider)
-

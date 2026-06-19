@@ -119,26 +119,139 @@ def create_case(
     # 2. 의도 판정
     claim_status, rec_method, message = _classify_intent_llm(initial_situation)
 
-    # 3. 질병명 매핑 스텁 (질문 텍스트에서 간단히 매칭)
+    # 3. 질병명 매핑 (검색 키워드 매칭 및 Supabase diseases 조회)
     disease_kcd = None
     disease_name = None
-    if "뇌경색" in initial_situation or "뇌졸중" in initial_situation:
-        disease_kcd = "I63"
-        disease_name = "뇌경색증"
-    elif "비염" in initial_situation:
-        disease_kcd = "J30"
-        disease_name = "알레르기성 비염"
-    elif "위암" in initial_situation:
-        disease_kcd = "C16"
-        disease_name = "위의 악성 신생물 (위암)"
-    elif "디스크" in initial_situation or "허리" in initial_situation:
-        disease_kcd = "M511"
-        disease_name = "허리디스크"
+    disease_kcd_candidates = []
+    disease_match_confidence = "high"
 
-    if not disease_name:
-        disease_name = initial_situation[:50]
-    if not disease_kcd:
-        disease_kcd = "R69"
+    # 키워드 추출
+    import re
+
+    words = re.findall(r"[가-힣a-zA-Z0-9]+", initial_situation)
+    keywords = []
+
+    # 1. 2글자 이상인 텍스트에서 간단히 조사 및 치료 관련어 제거
+    josa_suffixes = [
+        "은",
+        "는",
+        "이",
+        "가",
+        "을",
+        "를",
+        "에",
+        "에서",
+        "에게",
+        "의",
+        "으로",
+        "로",
+        "와",
+        "과",
+        "하고",
+        "했다",
+        "해요",
+        "했습니다",
+        "해서",
+        "했음",
+        "입원",
+        "통원",
+        "수술",
+        "치료",
+        "다녀왔어",
+        "방문",
+    ]
+    for w in words:
+        if len(w) < 2:
+            continue
+        cleaned = w
+        for josa in josa_suffixes:
+            if w.endswith(josa) and len(w) > len(josa):
+                candidate = w[: -len(josa)]
+                if len(candidate) >= 2:
+                    cleaned = candidate
+                    break
+        keywords.append(cleaned)
+
+    # 2. disease_group_aliases의 alias를 매칭하여 키워드에 추가
+    try:
+        aliases_res = db.table("disease_group_aliases").select("alias").execute()
+        db_aliases = [row["alias"] for row in aliases_res.data or []]
+        for alias in db_aliases:
+            if alias in initial_situation:
+                keywords.append(alias)
+    except Exception as e:
+        print(f"[CaseService] Failed to query disease_group_aliases: {e}")
+
+    keywords = list(set(keywords))
+
+    # 3. diseases 테이블 조회하여 후보군 수집
+    seen_kcds = set()
+    for kw in keywords:
+        if len(kw) < 2:
+            continue
+        try:
+            res = (
+                db.table("diseases")
+                .select("kcd, name")
+                .ilike("search_text", f"%{kw}%")
+                .limit(4)
+                .execute()
+            )
+            for item in res.data or []:
+                kcd = item["kcd"]
+                if kcd not in seen_kcds:
+                    seen_kcds.add(kcd)
+                    disease_kcd_candidates.append({"kcd": kcd, "name": item["name"]})
+            if len(disease_kcd_candidates) >= 4:
+                break
+        except Exception as e:
+            print(f"[CaseService] Failed to query diseases for keyword {kw}: {e}")
+
+    disease_kcd_candidates = disease_kcd_candidates[:4]
+
+    # 4. 신뢰도 및 질병명 세팅
+    if len(disease_kcd_candidates) > 1:
+        disease_match_confidence = "need_user_confirmation"
+        disease_kcd = disease_kcd_candidates[0]["kcd"]
+        disease_name = disease_kcd_candidates[0]["name"]
+    elif len(disease_kcd_candidates) == 1:
+        disease_match_confidence = "high"
+        disease_kcd = disease_kcd_candidates[0]["kcd"]
+        disease_name = disease_kcd_candidates[0]["name"]
+    else:
+        # 매칭되는 게 없을 경우 하드코딩 폴백 및 기본값 처리
+        if "뇌경색" in initial_situation or "뇌졸중" in initial_situation:
+            disease_kcd = "I63"
+            disease_name = "뇌경색증"
+            disease_match_confidence = "high"
+        elif "비염" in initial_situation:
+            disease_kcd = "J30"
+            disease_name = "알레르기성 비염"
+            disease_match_confidence = "high"
+        elif "위암" in initial_situation:
+            disease_kcd = "C16"
+            disease_name = "위의 악성 신생물 (위암)"
+            disease_match_confidence = "high"
+        elif "디스크" in initial_situation or "허리" in initial_situation:
+            disease_kcd = "M51"
+            disease_name = "기타 추간판장애 (허리디스크)"
+            disease_match_confidence = "need_user_confirmation"
+            disease_kcd_candidates = [
+                {"kcd": "M51", "name": "기타 추간판장애 (허리디스크)"},
+                {"kcd": "S335", "name": "요추의 염좌 및 긴장"},
+                {"kcd": "M41", "name": "척추측만증"},
+                {"kcd": "M47", "name": "척추증"},
+            ]
+        else:
+            disease_kcd = "R69"
+            disease_name = initial_situation[:50]
+            disease_match_confidence = "need_user_confirmation"
+            disease_kcd_candidates = [
+                {"kcd": "M51", "name": "기타 추간판장애 (허리디스크)"},
+                {"kcd": "I63", "name": "뇌경색증"},
+                {"kcd": "J30", "name": "알레르기성 비염"},
+                {"kcd": "C16", "name": "위의 악성 신생물 (위암)"},
+            ]
 
     # 4. 입원/통원 여부 매핑
     is_inpatient = "입원" in initial_situation
@@ -147,7 +260,7 @@ def create_case(
     )
     if is_inpatient and is_outpatient:
         is_outpatient = False
-    
+
     if not is_inpatient and not is_outpatient:
         is_outpatient = True
 
@@ -186,6 +299,8 @@ def create_case(
         "user_id": user_id,
         "disease_kcd": disease_kcd,
         "disease_name": disease_name,
+        "disease_kcd_candidates": disease_kcd_candidates,
+        "disease_match_confidence": disease_match_confidence,
         "surgery": surgery,
         "diag_days": diag_days,
         "current_days": current_days,
@@ -206,6 +321,8 @@ def create_case(
         "claim_status": claim_status,
         "disease_name": disease_name,
         "disease_kcd": disease_kcd,
+        "disease_kcd_candidates": disease_kcd_candidates,
+        "disease_match_confidence": disease_match_confidence,
         "recommended_input_method": None if service_type == "CASE2" else rec_method,
         "available_input_methods": (
             [] if service_type == "CASE2" else ["PAYMENT", "MEDICAL_DETAIL_STATEMENT"]
@@ -394,8 +511,10 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
 
         if q_id == "disease_name":
             updates["disease_name"] = val
+            updates["disease_match_confidence"] = "high"
         elif q_id == "disease_kcd":
             updates["disease_kcd"] = val
+            updates["disease_match_confidence"] = "high"
         elif q_id == "is_inpatient":
             is_inpt = bool(val)
         elif q_id == "is_outpatient":
