@@ -333,6 +333,7 @@ def create_case(
             [] if service_type == "CASE2" else ["PAYMENT", "MEDICAL_DETAIL_STATEMENT"]
         ),
         "message": None if service_type == "CASE2" else message,
+        "treatment_types": get_treatment_types(),
     }
 
 
@@ -409,6 +410,7 @@ def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
             "message": inf_message,
             "threshold_basis": threshold_basis,
         },
+        "treatment_types": get_treatment_types(),
     }
 
 
@@ -552,7 +554,11 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
     res_c = db.table("cases").select("*").eq("id", case_id).execute()
     latest_case = res_c.data[0] if res_c.data else {}
 
-    return {"ready_for_dashboard": True, "case": latest_case}
+    return {
+        "ready_for_dashboard": True,
+        "case": latest_case,
+        "treatment_types": get_treatment_types(),
+    }
 
 
 def get_dashboard(user_id: str, case_id: str) -> dict:
@@ -685,3 +691,23 @@ def get_my_cases(user_id: str) -> list[dict]:
         )
 
     return results
+
+
+def get_treatment_types() -> list[dict]:
+    """Supabase 또는 폴백 기본 리스트로부터 치료 종류 목록을 조회합니다."""
+    db = get_client()
+    try:
+        res = db.table("treatment_types").select("*").execute()
+        if res.data:
+            return res.data
+    except Exception as e:
+        print(f"[CaseService] Failed to query treatment_types: {e}")
+
+    return [
+        {"code": "MRI_MRA", "name": "MRI / MRA 검사"},
+        {"code": "XRAY", "name": "엑스레이"},
+        {"code": "INJECTION", "name": "주사치료"},
+        {"code": "MANUAL_THERAPY", "name": "도수치료"},
+        {"code": "PHYSICAL_THERAPY", "name": "물리치료"},
+        {"code": "ETC", "name": "기타"},
+    ]

@@ -1007,6 +1007,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         // Chatbot multi-turn interactive variables
         let chatbotQuestions = [];
         let currentQuestionIndex = 0;
+        let globalTreatmentTypes = [];
 
         // On document load
         window.addEventListener('DOMContentLoaded', () => {
@@ -1139,6 +1140,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             inputField.value = '';
 
             const isPaymentInput = inputField.dataset.mode === 'payment';
+            const isAnnualCountInput = inputField.dataset.mode === 'annual_visit_count';
 
             try {
                 if (isPaymentInput) {
@@ -1152,6 +1154,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                     });
                     if (res.success) {
                         const payData = res.data;
+                        globalTreatmentTypes = payData.treatment_types || [];
                         const inf = payData.visit_type_inference;
                         
                         if (inf && inf.inferred) {
@@ -1183,6 +1186,29 @@ HTML_CONTENT = """<!DOCTYPE html>
                             }
                         }
                     }
+                } else if (isAnnualCountInput) {
+                    inputField.dataset.mode = ''; // Reset
+                    inputField.placeholder = "치료 상황을 말해보세요 (예: '뇌경색 3일 입원')";
+                    
+                    const numMatch = text.match(/[0-9]+/);
+                    const countVal = numMatch ? parseInt(numMatch[0]) : 1;
+                    
+                    const res = await fetchAPI(`/cases/${activeCaseId}/answers`, {
+                        method: 'POST',
+                        body: {
+                            answers: [
+                                { question_id: "annual_visit_count", value: countVal }
+                            ]
+                        }
+                    });
+                    if (res.success) {
+                        globalTreatmentTypes = res.data.treatment_types || [];
+                        if (res.data.case) {
+                            rebuildQuestions(res.data.case);
+                        }
+                    }
+                    currentQuestionIndex++;
+                    askNextQuestion();
                 } else {
                     // Normal Case Initial Situation Input
                     const res = await fetchAPI('/cases', {
@@ -1196,6 +1222,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                     
                     if (res.success) {
                         const c = res.data;
+                        globalTreatmentTypes = c.treatment_types || [];
                         if (c.out_of_scope) {
                             addBotMessage(c.message, `
                                 <button onclick="alert('지원 범위: 질병·암·실손·상해 관련 입원/수술/진단 특약. 자동차/화재/배상책임은 제외')" class="msg-btn">지원 범위 다시 보기</button>
@@ -1293,46 +1320,126 @@ HTML_CONTENT = """<!DOCTYPE html>
 
             // 4. Outpatient branch questions
             if (c.is_outpatient) {
-                chatbotQuestions.push({
-                    type: 'treatments',
-                    text: '통원 중 받으신 특수 치료나 검사 항목이 있으신가요? (중복 선택 가능)',
-                    actions: `
-                        <div style="display:flex; flex-direction:column; gap:0.5rem; width:100%; margin-top:0.5rem; text-align:left;">
-                            <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main);">
-                                <input type="checkbox" name="chk-treatment" value="MANUAL_THERAPY" style="width:16px; height:16px;"> 도수치료 (Manual Therapy)
-                            </label>
-                            <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main);">
-                                <input type="checkbox" name="chk-treatment" value="ECSWT" style="width:16px; height:16px;"> 체외충격파 (ECSWT)
-                            </label>
-                            <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main);">
-                                <input type="checkbox" name="chk-treatment" value="MRI_MRA" style="width:16px; height:16px;"> MRI / MRA 검사
-                            </label>
-                            <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main);">
-                                <input type="checkbox" name="chk-treatment" value="INJECTION" style="width:16px; height:16px;"> 주사 치료
-                            </label>
-                            <div style="margin-top:0.5rem; display:flex; gap:0.5rem;">
-                                <button onclick="submitCheckedTreatments()" class="msg-btn msg-btn-primary">선택 완료</button>
-                                <button onclick="answerQuestion('treatments', [])" class="msg-btn">선택 없음</button>
+                const treatmentsInputted = (c.additional_treatments !== null && c.additional_treatments !== undefined);
+                if (!treatmentsInputted) {
+                    const types = (globalTreatmentTypes && globalTreatmentTypes.length > 0) ? globalTreatmentTypes : [
+                        {"code": "MRI_MRA", "name": "MRI / MRA 검사"},
+                        {"code": "XRAY", "name": "엑스레이"},
+                        {"code": "INJECTION", "name": "주사치료"},
+                        {"code": "MANUAL_THERAPY", "name": "도수치료"},
+                        {"code": "PHYSICAL_THERAPY", "name": "물리치료"},
+                        {"code": "ETC", "name": "기타"}
+                    ];
+
+                    let checkboxesHtml = '';
+                    types.forEach(t => {
+                        if (t.code === 'ETC') {
+                            checkboxesHtml += `
+                                <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main); margin-bottom:0.25rem;">
+                                    <input type="checkbox" name="chk-treatment" value="${t.code}" onchange="toggleEtcInput(this)" style="width:16px; height:16px;"> ${t.name}
+                                </label>
+                                <input type="text" id="chk-treatment-etc-detail" placeholder="상세 치료 내용을 입력하세요 (예: 응급실 진료, 깁스)" 
+                                    style="display:none; width:100%; padding:0.35rem; font-size:0.8rem; border:1px solid var(--border-color); border-radius:4px; background:var(--bg-card); color:var(--text-main); margin-top:0.25rem; margin-bottom:0.5rem;">
+                            `;
+                        } else {
+                            checkboxesHtml += `
+                                <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main); margin-bottom:0.25rem;">
+                                    <input type="checkbox" name="chk-treatment" value="${t.code}" style="width:16px; height:16px;"> ${t.name}
+                                </label>
+                            `;
+                        }
+                    });
+
+                    chatbotQuestions.push({
+                        type: 'treatments',
+                        text: '이번에 받은 추가 치료를 모두 선택해주세요.',
+                        actions: `
+                            <div style="display:flex; flex-direction:column; gap:0.25rem; width:100%; margin-top:0.5rem; text-align:left;">
+                                ${checkboxesHtml}
+                                <div style="margin-top:0.5rem; display:flex; gap:0.5rem;">
+                                    <button onclick="submitCheckedTreatments()" class="msg-btn msg-btn-primary">선택 완료</button>
+                                    <button onclick="answerQuestion('treatments', [])" class="msg-btn">선택 없음</button>
+                                </div>
                             </div>
-                        </div>
-                    `
-                });
+                        `
+                    });
+                }
+
+                // 5. Outpatient annual visit count check
+                const annualCountInputted = (c.annual_visit_count !== null && c.annual_visit_count !== undefined);
+                if (treatmentsInputted && !annualCountInputted) {
+                    chatbotQuestions.push({
+                        type: 'annual_visit_count',
+                        text: '해당 진료와 같은 내용으로 올해 몇 번 받으셨나요?',
+                        actions: `
+                            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">
+                                <button onclick="answerQuestion('annual_visit_count', 1)" class="msg-btn">1번</button>
+                                <button onclick="answerQuestion('annual_visit_count', 2)" class="msg-btn">2번</button>
+                                <button onclick="answerQuestion('annual_visit_count', 3)" class="msg-btn">3번</button>
+                                <button onclick="answerQuestion('annual_visit_count', 5)" class="msg-btn">5번 이상</button>
+                            </div>
+                        `
+                    });
+                }
+            }
+        }
+
+        // Toggle etc detail input display status
+        function toggleEtcInput(checkbox) {
+            const etcInput = document.getElementById('chk-treatment-etc-detail');
+            if (etcInput) {
+                etcInput.style.display = checkbox.checked ? 'block' : 'none';
+                if (checkbox.checked) {
+                    etcInput.focus();
+                }
             }
         }
 
         // Submit checked outpatient treatments
         function submitCheckedTreatments() {
             const checkboxes = document.querySelectorAll('input[name="chk-treatment"]:checked');
-            const values = Array.from(checkboxes).map(cb => cb.value);
+            const values = Array.from(checkboxes).map(cb => {
+                if (cb.value === 'ETC') {
+                    const etcDetail = document.getElementById('chk-treatment-etc-detail')?.value.trim();
+                    return etcDetail ? `ETC:${etcDetail}` : 'ETC';
+                }
+                return cb.value;
+            });
             answerQuestion('treatments', values);
         }
 
         // Ask next interactive question
-        function askNextQuestion() {
+        async function askNextQuestion() {
             if (currentQuestionIndex < chatbotQuestions.length) {
                 const q = chatbotQuestions[currentQuestionIndex];
+                
+                const inputField = document.getElementById('chat-input-field');
+                if (q.type === 'annual_visit_count') {
+                    inputField.dataset.mode = 'annual_visit_count';
+                    inputField.placeholder = "올해 진료 횟수를 입력하세요 (예: 1)";
+                } else {
+                    inputField.dataset.mode = '';
+                    inputField.placeholder = "치료 상황을 말해보세요 (예: '뇌경색 3일 입원')";
+                }
+                
                 addBotMessage(q.text, q.actions);
             } else {
+                try {
+                    const res = await fetchAPI(`/cases/${activeCaseId}/dashboard`);
+                    if (res.success) {
+                        const dbVal = res.data.dashboard;
+                        if (dbVal.is_outpatient && dbVal.payment_amount !== null && dbVal.payment_amount !== undefined) {
+                            addBotMessage(
+                                '내용 확인을 위해 대시보드로 넘어갈게요.',
+                                renderVerifyForm(dbVal)
+                            );
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    console.error("Failed to check case state for dashboard auto-transition", err);
+                }
+
                 const actionsHtml = `
                     <button onclick="selectInputMethod('PAYMENT')" class="msg-btn msg-btn-primary">💳 결제 내역 복사입력</button>
                     <button onclick="selectInputMethod('STATEMENT')" class="msg-btn">📄 세부산정내역서 파일 업로드</button>
@@ -1376,10 +1483,21 @@ HTML_CONTENT = """<!DOCTYPE html>
                     "MANUAL_THERAPY": "도수치료",
                     "ECSWT": "체외충격파",
                     "MRI_MRA": "MRI/MRA",
-                    "INJECTION": "주사치료"
+                    "INJECTION": "주사치료",
+                    "XRAY": "엑스레이",
+                    "PHYSICAL_THERAPY": "물리치료",
+                    "ETC": "기타"
                 };
-                textRep = value.length > 0 ? `치료 선택: ${value.map(v => names[v] || v).join(', ')}` : "치료 없음";
+                textRep = value.length > 0 ? `치료 선택: ${value.map(v => {
+                    if (typeof v === 'string' && v.startsWith('ETC:')) {
+                        return `기타(${v.substring(4)})`;
+                    }
+                    return names[v] || v;
+                }).join(', ')}` : "치료 없음";
                 answers.push({ question_id: "treatment_items", value: value });
+            } else if (type === 'annual_visit_count') {
+                textRep = `${value}번`;
+                answers.push({ question_id: "annual_visit_count", value: value });
             }
             
             addUserMessage(textRep);
@@ -1390,8 +1508,11 @@ HTML_CONTENT = """<!DOCTYPE html>
                     body: { answers: answers }
                 });
                 
-                if (res.success && res.data && res.data.case) {
-                    rebuildQuestions(res.data.case);
+                if (res.success && res.data) {
+                    globalTreatmentTypes = res.data.treatment_types || [];
+                    if (res.data.case) {
+                        rebuildQuestions(res.data.case);
+                    }
                 }
                 
                 currentQuestionIndex++;
@@ -1491,10 +1612,18 @@ HTML_CONTENT = """<!DOCTYPE html>
                 "MANUAL_THERAPY": "도수치료",
                 "ECSWT": "체외충격파",
                 "MRI_MRA": "MRI/MRA",
-                "INJECTION": "주사치료"
+                "INJECTION": "주사치료",
+                "XRAY": "엑스레이",
+                "PHYSICAL_THERAPY": "물리치료",
+                "ETC": "기타"
             };
             const treatmentText = treatments.length > 0 ?
-                treatments.map(v => names[v] || v).join(', ') : "없음";
+                treatments.map(v => {
+                    if (typeof v === 'string' && v.startsWith('ETC:')) {
+                        return `기타(${v.substring(4)})`;
+                    }
+                    return names[v] || v;
+                }).join(', ') : "없음";
 
             return `
                 <div class="verify-card" id="${formId}">

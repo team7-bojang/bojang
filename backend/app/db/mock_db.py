@@ -14,11 +14,23 @@ class InMemoryDB:
         self.analysis_results = []
         self.reports = []
         self.diseases = []
+        self.treatment_types = []
         self._initialized = False
 
     def initialize_if_needed(self):
         if self._initialized:
             return
+
+        # treatment_types 사전 생성
+        preset_treatments = [
+            {"code": "MRI_MRA", "name": "MRI / MRA 검사"},
+            {"code": "XRAY", "name": "엑스레이"},
+            {"code": "INJECTION", "name": "주사치료"},
+            {"code": "MANUAL_THERAPY", "name": "도수치료"},
+            {"code": "PHYSICAL_THERAPY", "name": "물리치료"},
+            {"code": "ETC", "name": "기타"},
+        ]
+        self.treatment_types.extend(preset_treatments)
 
         # 0. 질병 정보 사전 생성
         preset_diseases = [
@@ -375,5 +387,7 @@ class MockSupabaseClient:
             return MockQueryBuilder(table_name, db_instance.reports)
         elif table_name == "diseases":
             return MockQueryBuilder(table_name, db_instance.diseases)
+        elif table_name == "treatment_types":
+            return MockQueryBuilder(table_name, db_instance.treatment_types)
         else:
             raise ValueError(f"Unknown table: {table_name}")
