@@ -37,7 +37,7 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
     current_days = case.get("current_days") or 0
     surgery = case.get("surgery") or False
     disease_kcd = case.get("disease_kcd") or ""
-    disease_name = case.get("disease") or ""  # case_service/eval_golden 호환
+    disease_name = case.get("disease_name") or case.get("disease") or ""  # 호환성 강화
 
     if trigger == "입원" and current_days == 0:
         return _empty(JudgeStatus.NOT_APPLICABLE)
