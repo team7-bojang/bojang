@@ -45,19 +45,28 @@ def select_presets(user_id: str, preset_ids: list[str]) -> list[str]:
 
         # 3. 연결된 특약(riders) 복제
         res_riders = db.table("riders").select("*").eq("policy_id", pid).execute()
+        
+        riders_to_insert = []
+        chunks_to_insert = []
+        
         for r in res_riders.data or []:
             new_rider = r.copy()
-            new_rider["id"] = str(uuid.uuid4())
+            new_rider_id = str(uuid.uuid4())
+            new_rider["id"] = new_rider_id
             new_rider["policy_id"] = new_policy_id
             new_rider["verified"] = True
-            db.table("riders").insert(new_rider).execute()
+            riders_to_insert.append(new_rider)
 
-            # chunker를 사용해 rider_chunks 생성 및 적재
+            # chunker를 사용해 rider_chunks 생성
             from app.rag.chunker import chunk_rider
 
             chunks = chunk_rider(new_rider)
-            for c in chunks:
-                db.table("rider_chunks").insert(c).execute()
+            chunks_to_insert.extend(chunks)
+
+        if riders_to_insert:
+            db.table("riders").insert(riders_to_insert).execute()
+        if chunks_to_insert:
+            db.table("rider_chunks").insert(chunks_to_insert).execute()
 
         registered_policy_ids.append(new_policy_id)
 
