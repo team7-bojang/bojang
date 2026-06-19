@@ -1151,11 +1151,37 @@ HTML_CONTENT = """<!DOCTYPE html>
                         body: { payment_text: text }
                     });
                     if (res.success) {
-                        const dashRes = await fetchAPI(`/cases/${activeCaseId}/dashboard`);
-                        addBotMessage(
-                            '결제 내역 데이터를 수신했습니다. 최종 정보를 확인 후 보장 분석을 실행해 주세요.',
-                            renderVerifyForm(dashRes.data.dashboard)
-                        );
+                        const payData = res.data;
+                        const inf = payData.visit_type_inference;
+                        
+                        if (inf && inf.inferred) {
+                            const isOutpt = inf.inferred_is_outpatient;
+                            const actionsHtml = `
+                                <button onclick="confirmInferredVisitType(${!isOutpt})" class="msg-btn msg-btn-primary">네, 맞아요</button>
+                                <button onclick="confirmInferredVisitType(${isOutpt})" class="msg-btn">아니오, ${isOutpt ? '입원' : '통원'}치료입니다</button>
+                            `;
+                            addBotMessage(inf.message, actionsHtml);
+                        } else {
+                            const dashRes = await fetchAPI(`/cases/${activeCaseId}/dashboard`);
+                            const dbVal = dashRes.data.dashboard;
+                            
+                            if (!dbVal.is_inpatient && !dbVal.is_outpatient) {
+                                const actionsHtml = `
+                                    <button onclick="confirmInferredVisitType(false)" class="msg-btn msg-btn-primary">통원 치료</button>
+                                    <button onclick="confirmInferredVisitType(true)" class="msg-btn">입원 치료</button>
+                                `;
+                                addBotMessage(
+                                    `결제금액이 ${payData.extracted_payment.payment_amount.toLocaleString()}원이네요. ` +
+                                    `통원치료와 입원치료 중 어떤 형태로 치료받으셨나요?`,
+                                    actionsHtml
+                                );
+                            } else {
+                                addBotMessage(
+                                    '결제 내역 데이터를 수신했습니다. 최종 정보를 확인 후 보장 분석을 실행해 주세요.',
+                                    renderVerifyForm(dbVal)
+                                );
+                            }
+                        }
                     }
                 } else {
                     // Normal Case Initial Situation Input
@@ -1832,6 +1858,38 @@ HTML_CONTENT = """<!DOCTYPE html>
             document.getElementById('dashboard-content').style.display = 'none';
 
             loadPresets();
+        }
+
+        async function confirmInferredVisitType(isInpatient) {
+            const textRep = isInpatient ? "입원 치료 선택" : "통원 치료 선택";
+            addUserMessage(textRep);
+            
+            try {
+                const answers = [
+                    { question_id: "is_inpatient", value: isInpatient },
+                    { question_id: "is_outpatient", value: !isInpatient }
+                ];
+                if (!isInpatient) {
+                    answers.push({ question_id: "admission_days_current", value: 0 });
+                    answers.push({ question_id: "admission_days_diagnosed", value: 0 });
+                    answers.push({ question_id: "surgery", value: false });
+                }
+                
+                const res = await fetchAPI(`/cases/${activeCaseId}/answers`, {
+                    method: 'POST',
+                    body: { answers: answers }
+                });
+                
+                if (res.success) {
+                    const dashRes = await fetchAPI(`/cases/${activeCaseId}/dashboard`);
+                    addBotMessage(
+                        '치료 형태가 확정되었습니다. 최종 정보를 검수 후 보장 분석을 실행해 주세요.',
+                        renderVerifyForm(dashRes.data.dashboard)
+                    );
+                }
+            } catch (err) {
+                addBotMessage("오류가 발생했습니다: " + err.message);
+            }
         }
     </script>
 </body>

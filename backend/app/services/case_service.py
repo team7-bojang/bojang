@@ -267,7 +267,7 @@ def create_case(
         is_outpatient = False
 
     if not is_inpatient and not is_outpatient:
-        is_outpatient = True
+        is_outpatient = False
 
     # 5. 기본 치료 형태 매핑
     surgery = "수술" in initial_situation
@@ -345,7 +345,6 @@ def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
         raise Exception("해당 케이스를 찾을 수 없습니다.")
 
     case = res.data[0]
-    initial_situation = case.get("initial_situation") or ""
 
     import re
 
@@ -367,31 +366,30 @@ def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
     if hosp_match:
         hospital_name = hosp_match.group(1)
 
-    # 입원/통원 기설정 여부 판단
-    has_inpt = "입원" in initial_situation
-    has_outpt = any(w in initial_situation for w in ["통원", "치료", "다녀왔어"])
+    # 실제 DB에 설정된 값을 기준으로 기설정 여부 판단
+    db_inpt = bool(case.get("is_inpatient"))
+    db_outpt = bool(case.get("is_outpatient"))
+    has_established_type = db_inpt or db_outpt
 
-    inferred = True
+    inferred = False
     inferred_is_inpatient = None
     inferred_is_outpatient = None
     inf_message = None
     threshold_basis = None
 
-    if has_inpt or has_outpt:
-        inferred = False
-    else:
+    if not has_established_type:
         if payment_amount < 100000:
+            inferred = True
             inferred_is_inpatient = False
             inferred_is_outpatient = True
             inf_message = "결제금액을 보니 통원치료인 것 같은데 맞나요?"
             threshold_basis = "10만원 미만"
         elif payment_amount >= 500000:
+            inferred = True
             inferred_is_inpatient = True
             inferred_is_outpatient = False
             inf_message = "결제금액을 보니 입원치료인 것 같은데 맞나요?"
             threshold_basis = "50만원 이상"
-        else:
-            inferred = False
 
     db.table("cases").update({"payment_amount": payment_amount}).eq("id", case_id).execute()
 
