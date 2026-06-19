@@ -16,6 +16,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 보험 보장 분석 서비스 - 테스트 클라이언트</title>
+    <link rel="icon" href="data:,">
     <!-- Modern Outfits & Inter Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -966,7 +967,34 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
 
     <!-- Coverage Quote Modal -->
-    <div cl    <!-- Frontend JS logic -->
+    <div class="modal" id="quote-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-rider-name">특약 상세 정보</h3>
+                <button onclick="closeModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <div class="modal-sec-title">가입 보험 상품</div>
+                    <div id="modal-policy-name" style="font-weight:600;">-</div>
+                </div>
+                <div>
+                    <div class="modal-sec-title font-outfit">판정 결과 및 설명</div>
+                    <div id="modal-explanation" style="font-size:0.92rem; color: #f1f5f9; background: rgba(255,255,255,0.03); padding:0.85rem; border-radius:6px;">-</div>
+                </div>
+                <div>
+                    <div class="modal-sec-title">약관 근거 조항 정보</div>
+                    <div id="modal-evidence-article" style="font-weight:600;">-</div>
+                </div>
+                <div>
+                    <div class="modal-sec-title">약관 원문 인용 (100% 검증)</div>
+                    <div class="modal-quote-box" id="modal-evidence-quote">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frontend JS logic -->
     <script>
         // Global variables
         const API_BASE = "/api/v1";
@@ -1064,7 +1092,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                     // Welcome bot message
                     addBotMessage(
                         '안녕하세요! 가입하신 보험을 바탕으로 청구 가능한 특약을 찾아 드릴게요. ' +
-                        '지금 어떤 치료나 질환 상황을 겪으셨나요?\n\n' +
+                        '지금 어떤 치료나 질환 상황을 겪으셨나요?\\n\\n' +
                         '(예: "뇌경색 입원했어요", "위암 진단받았습니다")'
                     );
                 }
@@ -1078,7 +1106,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             const container = document.getElementById('chat-messages');
             const bubble = document.createElement('div');
             bubble.className = 'msg-bubble msg-bot';
-            bubble.innerHTML = text.replace(/\n/g, '<br>');
+            bubble.innerHTML = text.replace(/\\n/g, '<br>');
             
             if (actions) {
                 const actionDiv = document.createElement('div');
@@ -1192,7 +1220,8 @@ HTML_CONTENT = """<!DOCTYPE html>
 
                         const claimStatusText = c.claim_status === 'BEFORE_CLAIM' ? '아직 청구 전' : '1차 청구 완료';
                         addBotMessage(
-                            `상황을 접수했습니다. 분석 결과 고객님은 [${claimStatusText}] 상태이십니다.\n` +
+                            `상황을 접수했습니다. ` +
+                            `분석 결과 고객님은 [${claimStatusText}] 상태이십니다.\\n` +
                             `더 정확한 보장 분석을 위해 몇 가지 추가 질문에 답해주세요.`
                         );
                         
@@ -1432,10 +1461,10 @@ HTML_CONTENT = """<!DOCTYPE html>
 
                 // 임의 데이터 보완에 대한 알림(notice) 챗봇 출력
                 if (searchRes.data.notice) {
-                    addBotMessage(`⚠️ [알림]\n${searchRes.data.notice}`);
+                    addBotMessage(`⚠️ [알림]\\n${searchRes.data.notice}`);
                 }
                 if (compareRes.data.notice && compareRes.data.notice !== searchRes.data.notice) {
-                    addBotMessage(`⚠️ [알림]\n${compareRes.data.notice}`);
+                    addBotMessage(`⚠️ [알림]\\n${compareRes.data.notice}`);
                 }
 
             } catch (err) {
