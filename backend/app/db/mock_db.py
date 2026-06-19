@@ -39,6 +39,26 @@ class InMemoryDB:
             {"kcd": "J30", "name": "혈관운동성 및 알레르기성 비염", "search_text": "비염 J30"},
             {"kcd": "E11", "name": "2형 당뇨병", "search_text": "당뇨병 E11"},
             {"kcd": "I21", "name": "급성 심근경색증", "search_text": "급성 심근경색증 심장 I21"},
+            {
+                "kcd": "S62",
+                "name": "손목 및 손부위의 골절",
+                "search_text": "손목 및 손부위의 골절 골절 S62 손목",
+            },
+            {
+                "kcd": "S63",
+                "name": "손목 및 손부위의 관절 및 인대의 탈구, 염좌 및 긴장",
+                "search_text": ("손목 및 손부위의 관절 및 인대의 탈구, 염좌 및 긴장 염좌 S63 손목"),
+            },
+            {
+                "kcd": "S60",
+                "name": "손목 및 손의 표재성 손상 (손목 타박상)",
+                "search_text": "손목 및 손의 표재성 손상 타박상 S60 손목",
+            },
+            {
+                "kcd": "S635",
+                "name": "손목 인대 손상",
+                "search_text": "손목 인대 손상 인대 S635 손목",
+            },
         ]
         self.diseases.extend(preset_diseases)
 
@@ -202,6 +222,10 @@ class MockQueryBuilder:
         self._filters.append(("neq", column, value))
         return self
 
+    def ilike(self, column, value):
+        self._filters.append(("ilike", column, value))
+        return self
+
     def filter(self, column, operator, value):
         self._filters.append((operator, column, value))
         return self
@@ -282,6 +306,11 @@ class MockQueryBuilder:
                     match = False
                 elif op == "cs" and isinstance(item_val, list):
                     if val not in item_val:
+                        match = False
+                elif op == "ilike":
+                    val_clean = str(val).replace("%", "").lower()
+                    item_val_str = str(item_val or "").lower()
+                    if val_clean not in item_val_str:
                         match = False
                 elif op == "or":
                     or_match = False

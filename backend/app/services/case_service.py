@@ -209,6 +209,11 @@ def create_case(
 
     disease_kcd_candidates = disease_kcd_candidates[:4]
 
+    print(f"[create_case] initial_situation: {initial_situation}")
+    print(f"[create_case] extracted keywords: {keywords}")
+    print(f"[create_case] candidates count: {len(disease_kcd_candidates)}")
+    print(f"[create_case] candidates: {disease_kcd_candidates}")
+
     # 4. 신뢰도 및 질병명 세팅
     if len(disease_kcd_candidates) > 1:
         disease_match_confidence = "need_user_confirmation"
