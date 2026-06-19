@@ -135,6 +135,11 @@ def create_case(
         disease_kcd = "M511"
         disease_name = "허리디스크"
 
+    if not disease_name:
+        disease_name = initial_situation[:50]
+    if not disease_kcd:
+        disease_kcd = "R69"
+
     # 4. 입원/통원 여부 매핑
     is_inpatient = "입원" in initial_situation
     is_outpatient = any(
