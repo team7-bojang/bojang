@@ -23,6 +23,7 @@ sys.path.append(str(BACKEND_DIR))
 import os
 os.chdir(BACKEND_DIR)
 os.environ["DEBUG"] = "True"
+os.environ["MOCK_LLM"] = "True"
 
 from app.db import get_client
 from app.services import policy_service, case_service, analysis_service
@@ -77,11 +78,17 @@ def main() -> None:
         
         # 2. Case 임시 생성 및 골든셋 인풋 주입
         # POST /cases 처럼 동작
-        init_res = case_service.create_case(user_id, f"골든셋 평가: {input_data.get('disease', '상황')}")
+        init_res = case_service.create_case(
+            user_id,
+            "CASE1",
+            preset_ids,
+            f"골든셋 평가: {input_data.get('disease', '상황')}"
+        )
         temp_case_id = init_res["case_id"]
         
         # 골든셋 케이스 조건으로 덮어쓰기
         case_service.patch_extracted_info(user_id, temp_case_id, {
+
             "disease_kcd": input_data.get("disease_kcd"),
             "disease_name": input_data.get("disease"),
             "surgery": input_data.get("surgery", False),

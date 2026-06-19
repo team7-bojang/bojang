@@ -28,12 +28,61 @@ class SearchSummary(BaseModel):
 class SearchResponse(BaseModel):
     summary: SearchSummary
     results: list[CoverageResult]
+    notice: str | None = None
 
 
 class SearchRequest(BaseModel):
     case_id: str
 
 
+# ── POST /analysis/compare (API 15) v2.1 ──
 class CompareRequest(BaseModel):
     case_id: str
-    scenarios: list[dict]  # [{"days": 14}, {"days": 28}]
+    current_days: int
+    target_days: int
+
+
+class SliderInfo(BaseModel):
+    min: int
+    max: int
+    current: int
+    target: int
+    breakpoints: list[int]
+
+
+class CompareScenario(BaseModel):
+    days: int
+    status: str
+    type: str  # "base" | "special"
+    label: str
+    calc: str | None = None
+    amount_note: str | None = None
+    gap_days: int | None = None
+
+
+class CompareEvidence(BaseModel):
+    article_no: str | None = None
+    page: int | None = None
+    quote: str | None = None
+
+
+class CompareRiderResult(BaseModel):
+    rider_name: str
+    policy_name: str
+    insurer: str
+    verified: bool
+    scenarios: list[CompareScenario] | None = None
+    base_calc: str | None = None
+    evidence: CompareEvidence | None = None
+
+
+class CompareResponse(BaseModel):
+    has_special_coverage: bool
+    top_message: str
+    missed_amount_note: str | None = None
+    slider: SliderInfo | None = None
+    comparison: list[CompareRiderResult]
+    disclaimer: str
+    notice: str | None = None
+
+

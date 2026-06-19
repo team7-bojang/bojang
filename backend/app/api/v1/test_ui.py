@@ -966,34 +966,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
 
     <!-- Coverage Quote Modal -->
-    <div class="modal" id="quote-modal">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3 id="modal-rider-name">특약 상세 정보</h3>
-                <button onclick="closeModal()" class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div>
-                    <div class="modal-sec-title">가입 보험 상품</div>
-                    <div id="modal-policy-name" style="font-weight:600;">-</div>
-                </div>
-                <div>
-                    <div class="modal-sec-title font-outfit">판정 결과 및 설명</div>
-                    <div id="modal-explanation" style="font-size:0.92rem; color: #f1f5f9; background: rgba(255,255,255,0.03); padding:0.85rem; border-radius:6px;">-</div>
-                </div>
-                <div>
-                    <div class="modal-sec-title">약관 근거 조항 정보</div>
-                    <div id="modal-evidence-article" style="font-weight:600;">-</div>
-                </div>
-                <div>
-                    <div class="modal-sec-title">약관 원문 인용 (100% 검증)</div>
-                    <div class="modal-quote-box" id="modal-evidence-quote">-</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Frontend JS logic -->
+    <div cl    <!-- Frontend JS logic -->
     <script>
         // Global variables
         const API_BASE = "/api/v1";
@@ -1002,6 +975,10 @@ HTML_CONTENT = """<!DOCTYPE html>
         let selectedPresetIds = [];
         let curStep = 0;
         let analysisData = null;
+
+        // Chatbot multi-turn interactive variables
+        let chatbotQuestions = [];
+        let currentQuestionIndex = 0;
 
         // On document load
         window.addEventListener('DOMContentLoaded', () => {
@@ -1050,7 +1027,11 @@ HTML_CONTENT = """<!DOCTYPE html>
                 }
             } catch (err) {
                 console.error(err);
-                document.getElementById('presets-container').innerHTML = `<div style="color:var(--text-danger)">보험 프리셋을 불러오지 못했습니다. 백엔드 서버 상태를 확인해 주세요.</div>`;
+                document.getElementById('presets-container').innerHTML = `
+                    <div style="color:var(--text-danger)">
+                        보험 프리셋을 불러오지 못했습니다. 백엔드 서버 상태를 확인해 주세요.
+                    </div>
+                `;
             }
         }
 
@@ -1081,7 +1062,11 @@ HTML_CONTENT = """<!DOCTYPE html>
                     curStep = 1;
                     
                     // Welcome bot message
-                    addBotMessage('안녕하세요! 가입하신 보험을 바탕으로 청구 가능한 특약을 찾아 드릴게요. 지금 어떤 치료나 질환 상황을 겪으셨나요?\\n\\n(예: "뇌경색 3일 입원했어요", "위암 진단 75일째 입니다")');
+                    addBotMessage(
+                        '안녕하세요! 가입하신 보험을 바탕으로 청구 가능한 특약을 찾아 드릴게요. ' +
+                        '지금 어떤 치료나 질환 상황을 겪으셨나요?\n\n' +
+                        '(예: "뇌경색 입원했어요", "위암 진단받았습니다")'
+                    );
                 }
             } catch (err) {
                 alert('보험 프리셋 설정에 실패했습니다: ' + err.message);
@@ -1093,7 +1078,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             const container = document.getElementById('chat-messages');
             const bubble = document.createElement('div');
             bubble.className = 'msg-bubble msg-bot';
-            bubble.innerHTML = text.replace(/\\n/g, '<br>');
+            bubble.innerHTML = text.replace(/\n/g, '<br>');
             
             if (actions) {
                 const actionDiv = document.createElement('div');
@@ -1125,7 +1110,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             addUserMessage(text);
             inputField.value = '';
 
-            // Check if active input is expecting payment details
             const isPaymentInput = inputField.dataset.mode === 'payment';
 
             try {
@@ -1139,13 +1123,21 @@ HTML_CONTENT = """<!DOCTYPE html>
                         body: { payment_text: text }
                     });
                     if (res.success) {
-                        addBotMessage('결제 내역 데이터를 정상 수신했습니다. 추출된 내용을 최종 검수 후 분석을 진행해 주세요.', renderVerifyForm(res.data));
+                        const dashRes = await fetchAPI(`/cases/${activeCaseId}/dashboard`);
+                        addBotMessage(
+                            '결제 내역 데이터를 수신했습니다. 최종 정보를 확인 후 보장 분석을 실행해 주세요.',
+                            renderVerifyForm(dashRes.data.dashboard)
+                        );
                     }
                 } else {
                     // Normal Case Initial Situation Input
                     const res = await fetchAPI('/cases', {
                         method: 'POST',
-                        body: { initial_situation: text }
+                        body: {
+                            service_type: 'CASE1',
+                            policy_ids: selectedPresetIds,
+                            initial_situation: text
+                        }
                     });
                     
                     if (res.success) {
@@ -1159,19 +1151,127 @@ HTML_CONTENT = """<!DOCTYPE html>
                         }
 
                         activeCaseId = c.case_id;
+                        chatbotQuestions = [];
+                        currentQuestionIndex = 0;
+
+                        // 부족 정보 기반 추가 질문 리스트업
+                        if (!c.disease_name || !c.disease_kcd) {
+                            chatbotQuestions.push({
+                                type: 'disease',
+                                text: '어떤 질병(또는 질병코드)으로 치료받으셨나요?',
+                                actions: `
+                                    <button onclick="answerQuestion('disease', '뇌경색증', 'I63')" class="msg-btn">뇌경색증 (I63)</button>
+                                    <button onclick="answerQuestion('disease', '허리디스크', 'M511')" class="msg-btn">허리디스크 (M511)</button>
+                                    <button onclick="answerQuestion('disease', '위암', 'C16')" class="msg-btn">위암 (C16)</button>
+                                `
+                            });
+                        }
                         
-                        // Detect claim status to output customized welcome
-                        const claimStatusText = c.claim_status === 'BEFORE_CLAIM' ? '아직 보험금을 청구하지 않으신 상황' : '이미 1차 실손 청구를 진행하신 상황';
+                        const needDays = (c.current_days === null || c.current_days === undefined || c.current_days === 0);
+                        if (needDays) {
+                            chatbotQuestions.push({
+                                type: 'days',
+                                text: '입원 치료를 받으셨나요? 받으셨다면 며칠간 입원하셨나요?',
+                                actions: `
+                                    <button onclick="answerQuestion('days', 3)" class="msg-btn">3일 입원</button>
+                                    <button onclick="answerQuestion('days', 14)" class="msg-btn">14일 입원</button>
+                                    <button onclick="answerQuestion('days', 30)" class="msg-btn">30일 입원</button>
+                                    <button onclick="answerQuestion('days', 0)" class="msg-btn">입원하지 않음 (통원)</button>
+                                `
+                            });
+                        }
+
+                        chatbotQuestions.push({
+                            type: 'surgery',
+                            text: '치료 중 수술적 처치를 받으셨나요?',
+                            actions: `
+                                <button onclick="answerQuestion('surgery', true)" class="msg-btn">예, 수술 받았습니다</button>
+                                <button onclick="answerQuestion('surgery', false)" class="msg-btn">아니오, 수술받지 않았습니다</button>
+                            `
+                        });
+
+                        const claimStatusText = c.claim_status === 'BEFORE_CLAIM' ? '아직 청구 전' : '1차 청구 완료';
+                        addBotMessage(
+                            `상황을 접수했습니다. 분석 결과 고객님은 [${claimStatusText}] 상태이십니다.\n` +
+                            `더 정확한 보장 분석을 위해 몇 가지 추가 질문에 답해주세요.`
+                        );
                         
-                        const actionsHtml = `
-                            <button onclick="selectInputMethod('PAYMENT')" class="msg-btn msg-btn-primary">💳 결제 내역 복사입력</button>
-                            <button onclick="selectInputMethod('STATEMENT')" class="msg-btn">📄 세부산정내역서 파일 업로드</button>
-                        `;
-                        addBotMessage(`상황을 파악했습니다. 분석 결과 고객님은 [${claimStatusText}]으로 판별됩니다.\\n\\n${c.message}\\n\\n분석할 의료 기록 데이터의 입력 형태를 선택해 주세요.`, actionsHtml);
+                        setTimeout(() => {
+                            askNextQuestion();
+                        }, 500);
                     }
                 }
             } catch (err) {
                 addBotMessage('데이터 처리 중 오류가 발생했습니다: ' + err.message);
+            }
+        }
+
+        // Ask next interactive question
+        function askNextQuestion() {
+            if (currentQuestionIndex < chatbotQuestions.length) {
+                const q = chatbotQuestions[currentQuestionIndex];
+                addBotMessage(q.text, q.actions);
+            } else {
+                const actionsHtml = `
+                    <button onclick="selectInputMethod('PAYMENT')" class="msg-btn msg-btn-primary">💳 결제 내역 복사입력</button>
+                    <button onclick="selectInputMethod('STATEMENT')" class="msg-btn">📄 세부산정내역서 파일 업로드</button>
+                    <button onclick="skipReceiptInput()" class="msg-btn">⏭️ 영수증 없이 바로 분석</button>
+                `;
+                addBotMessage(
+                    "추가 정보 수집을 완료했습니다! 분석할 영수증 내역을 입력하시겠습니까? " +
+                    "영수증이 없다면 바로 보장 분석을 진행할 수 있습니다.",
+                    actionsHtml
+                );
+            }
+        }
+
+        // Answer interactive question
+        async function answerQuestion(type, value, extraVal = null) {
+            let textRep = "";
+            let answers = [];
+            if (type === 'disease') {
+                textRep = `${value} (${extraVal})`;
+                answers.push({ question_id: "disease_name", value: value });
+                answers.push({ question_id: "disease_kcd", value: extraVal });
+            } else if (type === 'days') {
+                textRep = value > 0 ? `${value}일 입원` : "통원치료";
+                answers.push({ question_id: "is_inpatient", value: value > 0 });
+                answers.push({ question_id: "is_outpatient", value: value === 0 });
+                answers.push({ question_id: "admission_days_current", value: value });
+                answers.push({ question_id: "admission_days_diagnosed", value: value });
+            } else if (type === 'surgery') {
+                textRep = value ? "수술 받음" : "수술 안 받음";
+                answers.push({ question_id: "surgery", value: value });
+            }
+            
+            addUserMessage(textRep);
+            
+            try {
+                await fetchAPI(`/cases/${activeCaseId}/answers`, {
+                    method: 'POST',
+                    body: { answers: answers }
+                });
+                
+                currentQuestionIndex++;
+                askNextQuestion();
+            } catch (err) {
+                addBotMessage("오류가 발생했습니다: " + err.message);
+            }
+        }
+
+        // Skip receipt flow
+        async function skipReceiptInput() {
+            addUserMessage("영수증 입력 건너뛰기");
+            try {
+                const res = await fetchAPI(`/cases/${activeCaseId}/dashboard`);
+                if (res.success) {
+                    addBotMessage(
+                        '최종 분석 정보입니다. 내용을 확인하고 보장 분석을 시작해 주세요.',
+                        renderVerifyForm(res.data.dashboard)
+                    );
+                }
+            } catch (err) {
+                addBotMessage("대시보드 조회 실패: " + err.message);
             }
         }
 
@@ -1209,7 +1309,11 @@ HTML_CONTENT = """<!DOCTYPE html>
                 });
                 
                 if (res.success) {
-                    addBotMessage('세부산정내역서 텍스트 파싱을 완료했습니다. 추출된 내용을 최종 검수 후 분석을 시작해 주세요.', renderVerifyForm(res.data));
+                    const dashRes = await fetchAPI(`/cases/${activeCaseId}/dashboard`);
+                    addBotMessage(
+                        '세부산정내역서 텍스트 파싱을 완료했습니다. 추출된 내용을 최종 검수 후 분석을 시작해 주세요.',
+                        renderVerifyForm(dashRes.data.dashboard)
+                    );
                 }
             } catch (err) {
                 addBotMessage('파일 분석 실패: ' + err.message);
@@ -1221,7 +1325,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             // Preset values if empty
             const disease_name = data.disease_name || '기타 추간판 장애 (허리디스크)';
             const disease_kcd = data.disease_kcd || 'M51';
-            const current_days = data.current_days || 0;
+            const current_days = data.admission_days_current || 0;
             const policy_elapsed_days = data.policy_elapsed_days || 800;
             const surgery = data.surgery ? 'checked' : '';
 
@@ -1277,17 +1381,16 @@ HTML_CONTENT = """<!DOCTYPE html>
             addBotMessage('입력하신 치료 상황을 확정하여 분석을 실행합니다. (RAG 및 룰 엔진 구동중...)');
 
             try {
-                // 1. PATCH /cases/{id}/extracted-info
-                await fetchAPI(`/cases/${activeCaseId}/extracted-info`, {
+                // 1. PATCH /cases/{id}/dashboard (v2.1)
+                await fetchAPI(`/cases/${activeCaseId}/dashboard`, {
                     method: 'PATCH',
                     body: {
                         disease_kcd,
                         disease_name,
                         surgery,
-                        diag_days: current_days,
-                        current_days,
-                        policy_elapsed_days,
-                        claimed_policy_ids: []
+                        admission_days_current: current_days,
+                        admission_days_diagnosed: current_days,
+                        policy_elapsed_days
                     }
                 });
 
@@ -1297,16 +1400,14 @@ HTML_CONTENT = """<!DOCTYPE html>
                     body: { case_id: activeCaseId }
                 });
 
-                // 3. POST /analysis/compare
+                // 3. POST /analysis/compare (v2.1)
+                const targetDays = current_days > 3 ? 30 : 14;
                 const compareRes = await fetchAPI('/analysis/compare', {
                     method: 'POST',
                     body: {
                         case_id: activeCaseId,
-                        scenarios: [
-                            { days: 3, name: '단기 퇴원 (3일)' },
-                            { days: 14, name: '장기 퇴원 (14일)' },
-                            { days: 30, name: '집중입원 (30일)' }
-                        ]
+                        current_days: current_days,
+                        target_days: targetDays
                     }
                 });
 
@@ -1323,11 +1424,19 @@ HTML_CONTENT = """<!DOCTYPE html>
                 analysisData = {
                     search: searchRes.data,
                     compare: compareRes.data,
-                    report: reportRes.data.body
+                    report: reportRes.data ? reportRes.data.body : { claim_documents: [] }
                 };
 
                 showDashboard();
                 addBotMessage('보장 분석 및 비교 리포트 생성을 완료했습니다! 우측 패널의 리포트를 탭하여 확인해 보세요.');
+
+                // 임의 데이터 보완에 대한 알림(notice) 챗봇 출력
+                if (searchRes.data.notice) {
+                    addBotMessage(`⚠️ [알림]\n${searchRes.data.notice}`);
+                }
+                if (compareRes.data.notice && compareRes.data.notice !== searchRes.data.notice) {
+                    addBotMessage(`⚠️ [알림]\n${compareRes.data.notice}`);
+                }
 
             } catch (err) {
                 addBotMessage('RAG 분석 도중 실패: ' + err.message);
@@ -1413,55 +1522,41 @@ HTML_CONTENT = """<!DOCTYPE html>
         // Render Compare view scenario table
         function renderCompareTable() {
             const tbody = document.getElementById('compare-table-rows');
+            const table = tbody.closest('table');
+            const thead = table.querySelector('thead');
             tbody.innerHTML = '';
 
             const rawCompare = analysisData.compare || {};
-            let compare = {};
-            if (rawCompare && Array.isArray(rawCompare.comparisons)) {
-                rawCompare.comparisons.forEach((item, index) => {
-                    const key = item.rider || `rider_${index}`;
-                    compare[key] = item.outcomes.map(outcome => ({
-                        policy_name: item.policy,
-                        rider_name: item.rider,
-                        status: outcome.status,
-                        calc: outcome.calc,
-                        gap_days: outcome.gap_days
-                    }));
-                });
-            } else {
-                compare = rawCompare;
-            }
+            const comparisons = rawCompare.comparison || [];
+            const slider = rawCompare.slider || {};
+            
+            const currentDays = slider.current || 3;
+            const targetDays = slider.target || 14;
 
-            const keys = Object.keys(compare);
+            // Update headers dynamically
+            thead.innerHTML = `
+                <tr>
+                    <th>보험상품 / 특약명</th>
+                    <th>현재 퇴원 시점 (${currentDays}일)</th>
+                    <th>비교 퇴원 시점 (${targetDays}일)</th>
+                </tr>
+            `;
 
-            if (keys.length === 0) {
+            if (comparisons.length === 0) {
                 tbody.innerHTML = `<tr>
-                    <td colspan="4" style="text-align:center; color:var(--text-muted);">
+                    <td colspan="3" style="text-align:center; color:var(--text-muted);">
                         비교 가능한 입원 일당 특약이 존재하지 않습니다.
                     </td>
                 </tr>`;
                 return;
             }
 
-            keys.forEach(riderKey => {
-                const riderScenarios = compare[riderKey];
-                
-                // Get general info from first scenario
-                const first = riderScenarios[0] || {};
-                const policyName = first.policy_name || '';
-                const riderName = first.rider_name || '';
-
+            comparisons.forEach(item => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td><strong>[${policyName}]</strong><br>${riderName}</td>`;
+                tr.innerHTML = `<td><strong>[${item.policy_name}]</strong><br>${item.rider_name}</td>`;
 
-                // Render 3 scenarios (3 days, 14 days, 30 days)
-                for (let i = 0; i < 3; i++) {
-                    const sc = riderScenarios[i];
-                    if (!sc) {
-                        tr.innerHTML += '<td>-</td>';
-                        continue;
-                    }
-
+                const scenarios = item.scenarios || [];
+                scenarios.forEach(sc => {
                     let badgeClass = 'status-potential';
                     let label = '미해당';
                     if (sc.status === 'eligible') { badgeClass = 'status-eligible'; label = '청구 가능'; }
@@ -1470,15 +1565,17 @@ HTML_CONTENT = """<!DOCTYPE html>
 
                     const boundaryText = sc.gap_days ? `<span class="compare-boundary-highlight">⚠️ ${sc.gap_days}일 부족으로 미해당</span>` : '';
                     const calcText = sc.calc ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">${sc.calc}</div>` : '';
+                    const amountText = sc.amount_note ? `<div style="font-size:0.8rem; font-weight:600; color:var(--accent-color);">${sc.amount_note}</div>` : '';
 
                     tr.innerHTML += `
                         <td>
                             <span class="compare-status-badge ${badgeClass}">${label}</span>
                             ${boundaryText}
+                            ${amountText}
                             ${calcText}
                         </td>
                     `;
-                }
+                });
                 tbody.appendChild(tr);
             });
         }
@@ -1559,6 +1656,8 @@ HTML_CONTENT = """<!DOCTYPE html>
             selectedPresetIds = [];
             analysisData = null;
             curStep = 0;
+            chatbotQuestions = [];
+            currentQuestionIndex = 0;
 
             document.getElementById('step-preset').style.display = 'flex';
             document.getElementById('step-main').style.display = 'none';
@@ -1579,3 +1678,4 @@ HTML_CONTENT = """<!DOCTYPE html>
 def get_test_ui():
     """테스트 클라이언트 HTML 단일 페이지를 반환합니다."""
     return Response(HTML_CONTENT, mimetype="text/html")
+

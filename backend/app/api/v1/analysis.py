@@ -2,31 +2,18 @@
 
   POST /analysis/search    보장 교차 검색 (F-02)
   POST /analysis/compare   조건별 비교 (F-03)
-
-※ search 는 flask-openapi3 배선 패턴 예시(요청/응답 스키마 지정 → 자동 문서화)다.
-  나머지 라우트도 동일 패턴으로 service 연결 시 채운다.
 """
 
 from flask import g
 from flask_openapi3.blueprint import APIBlueprint
 from flask_openapi3.models.tag import Tag
-from pydantic import BaseModel
 
 from app.auth import require_auth
 from app.core import response
+from app.schemas.analysis import CompareRequest, SearchRequest
 from app.services import analysis_service
 
 bp = APIBlueprint("analysis", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="analysis")])
-
-
-# 요청용 Pydantic 모델
-class SearchRequest(BaseModel):
-    case_id: str
-
-
-class CompareRequest(BaseModel):
-    case_id: str
-    scenarios: list[dict]
 
 
 @bp.post("/analysis/search")
@@ -43,9 +30,12 @@ def search_analysis(body: SearchRequest):
 @bp.post("/analysis/compare")
 @require_auth
 def compare_scenarios(body: CompareRequest):
-    """조건별 비교 분석 (SCR-05)."""
+    """조건별 비교 분석 (v2.1)."""
     try:
-        data = analysis_service.compare_scenarios(g.user_id, body.case_id, body.scenarios)
+        data = analysis_service.compare_scenarios(
+            g.user_id, body.case_id, body.current_days, body.target_days
+        )
         return response.ok(data)
     except Exception as e:
         return response.fail("server_error", str(e), 500)
+

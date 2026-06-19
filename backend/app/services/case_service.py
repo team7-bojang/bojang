@@ -10,7 +10,9 @@ from app.db import get_client
 
 def _classify_intent_llm(situation: str) -> tuple[str, str, str]:
     """LLM을 이용해 청구 상태와 추천 입력 방식을 예측합니다."""
-    if not settings.openai_api_key:
+    import os
+
+    if os.environ.get("MOCK_LLM") == "True" or not settings.openai_api_key:
         return _classify_intent_rule(situation)
 
     try:
@@ -79,20 +81,23 @@ def _classify_intent_rule(situation: str) -> tuple[str, str, str]:
     return claim_status, recommended, message
 
 
-def create_case(user_id: str, situation: str) -> dict:
-    """최초 상황 입력을 받아 분석 세션(Case)을 시작하고 의도 분석 결과를 반환합니다 (v1.5).
-    SCR-10b 지원 범위 밖 질문 감지 포함.
-    """
+def create_case(
+    user_id: str, service_type: str, policy_ids: list[str], initial_situation: str
+) -> dict:
+    """최초 상황 입력을 받아 분석 세션(Case)을 시작하고 결과를 반환합니다 (v2.1)."""
     # 지원 범위 밖 감지 (FR-10b)
     out_of_scope_keywords = ["자동차", "교통사고", "화재", "배상책임", "배상", "일상생활배상"]
-    if any(kw in situation for kw in out_of_scope_keywords):
+    if any(kw in initial_situation for kw in out_of_scope_keywords):
         return {
             "case_id": None,
-            "initial_situation": situation,
+            "service_type": service_type,
+            "policy_ids": policy_ids,
+            "initial_situation": initial_situation,
             "claim_status": "UNKNOWN",
+            "disease_name": None,
+            "disease_kcd": None,
             "recommended_input_method": "PAYMENT",
             "available_input_methods": [],
-            "out_of_scope": True,
             "message": """문의하신 내용은 현재 지원 범위 밖이에요.
 저희 서비스는 질병·암·실손·상해보험 약관을 기준으로 보장 가능성을 안내합니다.
 자동차·화재·배상책임 관련 청구는 사고 경위, 과실 비율, 현장 조사 등
@@ -103,34 +108,69 @@ def create_case(user_id: str, situation: str) -> dict:
     db = get_client()
     case_id = str(uuid.uuid4())
 
-    # 의도 판정
-    claim_status, rec_method, message = _classify_intent_llm(situation)
+    # 1. Preset 선택 등록 (CASE2인 경우 단일 선택 유효성 검증)
+    from app.services import policy_service
 
-    # 질병명 매핑 스텁 (질문 텍스트에서 간단히 매칭)
-    disease_kcd = "M51"
-    disease_name = "기타 추간판 장애 (허리디스크)"
-    if "뇌경색" in situation or "뇌졸중" in situation:
+    if service_type == "CASE2" and len(policy_ids) > 1:
+        raise ValueError("CASE2는 1개의 보험 상품만 선택할 수 있습니다.")
+
+    policy_service.select_presets(user_id, policy_ids)
+
+    # 2. 의도 판정
+    claim_status, rec_method, message = _classify_intent_llm(initial_situation)
+
+    # 3. 질병명 매핑 스텁 (질문 텍스트에서 간단히 매칭)
+    disease_kcd = None
+    disease_name = None
+    if "뇌경색" in initial_situation or "뇌졸중" in initial_situation:
         disease_kcd = "I63"
         disease_name = "뇌경색증"
-    elif "비염" in situation:
+    elif "비염" in initial_situation:
         disease_kcd = "J30"
         disease_name = "알레르기성 비염"
-    elif "위암" in situation:
+    elif "위암" in initial_situation:
         disease_kcd = "C16"
         disease_name = "위의 악성 신생물 (위암)"
+    elif "디스크" in initial_situation or "허리" in initial_situation:
+        disease_kcd = "M511"
+        disease_name = "허리디스크"
 
-    # 기본 치료 형태 매핑
-    surgery = "수술" in situation
+    # 4. 입원/통원 여부 매핑
+    is_inpatient = "입원" in initial_situation
+    is_outpatient = any(
+        w in initial_situation for w in ["통원", "치료", "다녀왔어", "다녀왔음", "방문", "외래"]
+    )
+    if is_inpatient and is_outpatient:
+        is_outpatient = False
+    
+    if not is_inpatient and not is_outpatient:
+        is_outpatient = True
+
+    # 5. 기본 치료 형태 매핑
+    surgery = "수술" in initial_situation
     hosp_days = 0
-    if "입원" in situation:
-        # 간단한 숫자 파싱 (예: "30일 입원" -> 30)
+    if "입원" in initial_situation:
         import re
 
-        match = re.search(r"(\d+)\s*일\s*입원", situation)
+        match = re.search(r"(\d+)\s*일\s*입원", initial_situation)
         if match:
             hosp_days = int(match.group(1))
         else:
             hosp_days = 3  # 기본값
+
+    diag_days = hosp_days if hosp_days > 0 else None
+    current_days = hosp_days if hosp_days > 0 else None
+
+    # CASE2인 경우 진단 및 경과 주수 파싱
+    if service_type == "CASE2":
+        import re
+
+        diag_match = re.search(r"(\d+)\s*주\s*진단", initial_situation)
+        curr_match = re.search(r"(\d+)\s*주\s*차", initial_situation)
+        if diag_match:
+            diag_days = int(diag_match.group(1)) * 7
+        if curr_match:
+            current_days = int(curr_match.group(1)) * 7
 
     case_data = {
         "id": case_id,
@@ -138,10 +178,12 @@ def create_case(user_id: str, situation: str) -> dict:
         "disease_kcd": disease_kcd,
         "disease_name": disease_name,
         "surgery": surgery,
-        "diag_days": hosp_days if hosp_days > 0 else None,
-        "current_days": hosp_days if hosp_days > 0 else None,
+        "diag_days": diag_days,
+        "current_days": current_days,
         "policy_elapsed_days": 800,
         "claimed_policy_ids": [],
+        "is_inpatient": is_inpatient,
+        "is_outpatient": is_outpatient,
         "created_at": datetime.now(UTC).isoformat(),
     }
 
@@ -149,111 +191,328 @@ def create_case(user_id: str, situation: str) -> dict:
 
     return {
         "case_id": case_id,
-        "initial_situation": situation,
+        "service_type": service_type,
+        "policy_ids": policy_ids,
+        "initial_situation": initial_situation,
         "claim_status": claim_status,
-        "recommended_input_method": rec_method,
-        "available_input_methods": ["PAYMENT", "MEDICAL_DETAIL_STATEMENT"],
-        "message": message,
+        "disease_name": disease_name,
+        "disease_kcd": disease_kcd,
+        "recommended_input_method": None if service_type == "CASE2" else rec_method,
+        "available_input_methods": (
+            [] if service_type == "CASE2" else ["PAYMENT", "MEDICAL_DETAIL_STATEMENT"]
+        ),
+        "message": None if service_type == "CASE2" else message,
     }
 
 
 def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
-    """결제내역 텍스트를 파싱하여 Case 정보를 업데이트합니다."""
+    """결제내역 텍스트를 파싱하여 Case 정보를 업데이트하고 visit_type_inference 추론을 제공합니다."""
     db = get_client()
 
-    # 기존 Case 조회
     res = db.table("cases").select("*").eq("id", case_id).execute()
     if not res.data:
         raise Exception("해당 케이스를 찾을 수 없습니다.")
 
     case = res.data[0]
+    initial_situation = case.get("initial_situation") or ""
 
-    # 텍스트 분석하여 입원일수, 수술여부, 질병명 추가 보정 (스텁)
-    updates = {}
-
-    # 예: "30일 입원"
     import re
 
-    hosp_match = re.search(r"(\d+)\s*일\s*입원", payment_text)
+    # 1. 금액 파싱 (기본 8만원)
+    payment_amount = 80000
+    amt_match = re.search(r"([\d,]+)\s*원", payment_text)
+    if amt_match:
+        payment_amount = int(amt_match.group(1).replace(",", ""))
+
+    # 2. 날짜 파싱 (기본 2026-06-10)
+    payment_date = "2026-06-10"
+    date_match = re.search(r"(\d{1,2})/(\d{1,2})", payment_text)
+    if date_match:
+        payment_date = f"2026-{int(date_match.group(1)):02d}-{int(date_match.group(2)):02d}"
+
+    # 3. 병원명 파싱
+    hospital_name = "OO정형외과"
+    hosp_match = re.search(r"([가-힣\w]+(?:병원|의원|약국))", payment_text)
     if hosp_match:
-        days = int(hosp_match.group(1))
-        updates["current_days"] = days
-        updates["diag_days"] = days
+        hospital_name = hosp_match.group(1)
 
-    if "수술" in payment_text:
-        updates["surgery"] = True
+    # 입원/통원 기설정 여부 판단
+    has_inpt = "입원" in initial_situation
+    has_outpt = any(w in initial_situation for w in ["통원", "치료", "다녀왔어"])
 
-    if updates:
-        db.table("cases").update(updates).eq("id", case_id).execute()
-        # 최신 데이터 리로드
-        res = db.table("cases").select("*").eq("id", case_id).execute()
-        case = res.data[0]
+    inferred = True
+    inferred_is_inpatient = None
+    inferred_is_outpatient = None
+    inf_message = None
+    threshold_basis = None
 
-    return case
+    if has_inpt or has_outpt:
+        inferred = False
+    else:
+        if payment_amount < 100000:
+            inferred_is_inpatient = False
+            inferred_is_outpatient = True
+            inf_message = "결제금액을 보니 통원치료인 것 같은데 맞나요?"
+            threshold_basis = "10만원 미만"
+        elif payment_amount >= 500000:
+            inferred_is_inpatient = True
+            inferred_is_outpatient = False
+            inf_message = "결제금액을 보니 입원치료인 것 같은데 맞나요?"
+            threshold_basis = "50만원 이상"
+        else:
+            inferred = False
+
+    db.table("cases").update({"payment_amount": payment_amount}).eq("id", case_id).execute()
+
+    return {
+        "case_id": case_id,
+        "input_method": "PAYMENT",
+        "extracted_payment": {
+            "payment_amount": payment_amount,
+            "payment_date": payment_date,
+            "hospital_name": hospital_name,
+        },
+        "needs_confirmation": True,
+        "visit_type_inference": {
+            "inferred": inferred,
+            "inferred_is_inpatient": inferred_is_inpatient,
+            "inferred_is_outpatient": inferred_is_outpatient,
+            "message": inf_message,
+            "threshold_basis": threshold_basis,
+        },
+    }
 
 
 def save_medical_detail_statement(user_id: str, case_id: str, file_name: str) -> dict:
-    """진료비 세부산정내역서 PDF 업로드 분석 결과를 Case에 업데이트합니다 (스텁)."""
+    """진료비 세부산정내역서 PDF 업로드 결과를 가공하여 extracted_medical_info 양식으로 리턴합니다."""
     db = get_client()
 
+    treatment_items = ["도수치료", "물리치료"]
     updates = {
-        "diag_days": 14,  # 예시: 14일 입원 추출
+        "diag_days": 14,
         "current_days": 14,
         "surgery": False,
+        "additional_treatments": treatment_items,
+        "is_inpatient": False,
+        "is_outpatient": True,
+        "payment_amount": 90000,
     }
     db.table("cases").update(updates).eq("id", case_id).execute()
-    # 최신 데이터 리로드
-    res = db.table("cases").select("*").eq("id", case_id).execute()
-    return res.data[0] if res.data else updates
+
+    # 데이터 미비 시 임의 기본값을 활용했다는 print 알림 남김
+    print(
+        "[case_service] 세부산정내역서 데이터가 부족하여 기본 스텁 데이터"
+        "(허리디스크 통원 14일)를 임의로 보완 적재했습니다."
+    )
+
+    return {
+        "case_id": case_id,
+        "input_method": "MEDICAL_DETAIL_STATEMENT",
+        "extracted_medical_info": {
+            "disease_name": "허리디스크",
+            "disease_kcd": "M511",
+            "hospital_name": "OO정형외과",
+            "visit_date": "2026-06-10",
+            "is_inpatient": False,
+            "is_outpatient": True,
+            "surgery": False,
+            "treatment_items": treatment_items,
+            "payment_amount": 90000,
+            "total_amount": 113900,
+            "patient_paid_amount": 7100,
+            "nhis_paid_amount": 16800,
+            "non_covered_amount": 90000,
+            "item_details": [
+                {"name": "도수치료", "amount": 70000, "is_non_covered": True, "count": 1}
+            ],
+        },
+        "needs_confirmation": True,
+    }
 
 
 def patch_extracted_info(user_id: str, case_id: str, info: dict) -> dict:
     """사용자가 직접 확인 및 수정한 추출 정보를 업데이트합니다."""
     db = get_client()
 
-    # Pydantic 또는 요청 바디의 필드 매핑
     updates = {}
-    if "disease_kcd" in info:
-        updates["disease_kcd"] = info["disease_kcd"]
-    if "disease_name" in info:
-        updates["disease_name"] = info["disease_name"]
-    if "surgery" in info:
-        updates["surgery"] = info["surgery"]
-    if "diag_days" in info:
-        updates["diag_days"] = info["diag_days"]
-    if "current_days" in info:
-        updates["current_days"] = info["current_days"]
-    if "claimed_policy_ids" in info:
-        updates["claimed_policy_ids"] = info["claimed_policy_ids"]
-    if "policy_elapsed_days" in info:
-        updates["policy_elapsed_days"] = info["policy_elapsed_days"]
+    input_method = info.get("input_method")
 
-    db.table("cases").update(updates).eq("id", case_id).execute()
-    return {"status": "success"}
+    is_inpt = info.get("confirmed_is_inpatient")
+    is_outpt = info.get("confirmed_is_outpatient")
+
+    if is_inpt is not None:
+        updates["is_inpatient"] = bool(is_inpt)
+    if is_outpt is not None:
+        updates["is_outpatient"] = bool(is_outpt)
+
+    if input_method == "PAYMENT" and "confirmed_payment" in info:
+        pay_info = info["confirmed_payment"] or {}
+        if "payment_amount" in pay_info:
+            updates["payment_amount"] = pay_info["payment_amount"]
+        if "payment_date" in pay_info:
+            updates["visit_dates"] = pay_info["payment_date"]
+
+    elif input_method == "MEDICAL_DETAIL_STATEMENT" and "confirmed_medical_info" in info:
+        med_info = info["confirmed_medical_info"] or {}
+        if "disease_name" in med_info:
+            updates["disease_name"] = med_info["disease_name"]
+        if "disease_kcd" in med_info:
+            updates["disease_kcd"] = med_info["disease_kcd"]
+        if "surgery" in med_info:
+            updates["surgery"] = med_info["surgery"]
+        if "treatment_items" in med_info:
+            updates["additional_treatments"] = med_info["treatment_items"]
+        if "payment_amount" in med_info:
+            updates["payment_amount"] = med_info["payment_amount"]
+
+    if updates:
+        db.table("cases").update(updates).eq("id", case_id).execute()
+
+    return {"confirmed": True}
 
 
-def save_answers(user_id: str, case_id: str, answers: dict) -> dict:
-    """부족 정보에 대한 추가 답변을 저장합니다."""
+def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
+    """부족 정보에 대한 추가 답변 리스트(v2.1)를 저장합니다."""
     db = get_client()
 
-    # 답변 정보를 case 데이터에 녹여 입원/수술 정보 등으로 보완
     updates = {}
-    if answers.get("surgery") is not None:
-        updates["surgery"] = answers["surgery"]
-    if answers.get("current_days") is not None:
-        updates["current_days"] = answers["current_days"]
-    if answers.get("diag_days") is not None:
-        updates["diag_days"] = answers["diag_days"]
+    is_inpt = None
+    is_outpt = None
 
-    db.table("cases").update(updates).eq("id", case_id).execute()
-    return {"status": "success"}
+    for ans in answers:
+        q_id = ans.get("question_id")
+        val = ans.get("value")
+
+        if q_id == "disease_name":
+            updates["disease_name"] = val
+        elif q_id == "disease_kcd":
+            updates["disease_kcd"] = val
+        elif q_id == "is_inpatient":
+            is_inpt = bool(val)
+        elif q_id == "is_outpatient":
+            is_outpt = bool(val)
+        elif q_id == "surgery":
+            updates["surgery"] = bool(val)
+        elif q_id == "admission_days_diagnosed":
+            updates["diag_days"] = int(val) if val is not None else None
+        elif q_id == "admission_days_current":
+            updates["current_days"] = int(val) if val is not None else None
+        elif q_id == "treatment_items":
+            updates["additional_treatments"] = val
+        elif q_id == "annual_visit_count":
+            updates["annual_visit_count"] = int(val) if val is not None else None
+
+    if is_inpt is not None:
+        updates["is_inpatient"] = bool(is_inpt)
+        if is_inpt:
+            res_c = db.table("cases").select("*").eq("id", case_id).execute()
+            c_data = res_c.data[0] if res_c.data else {}
+            if not c_data.get("diag_days") and not updates.get("diag_days"):
+                print("[case_service] 진단일수가 누락되어 임의 기본값(14일)을 할당했습니다.")
+                updates["diag_days"] = 14
+            if not c_data.get("current_days") and not updates.get("current_days"):
+                updates["current_days"] = 14
+    if is_outpt is not None:
+        updates["is_outpatient"] = bool(is_outpt)
+
+    if updates:
+        db.table("cases").update(updates).eq("id", case_id).execute()
+
+    return {"ready_for_dashboard": True}
+
+
+def get_dashboard(user_id: str, case_id: str) -> dict:
+    """대시보드 화면에 노출할 9개 항목 데이터를 조회해 가공합니다."""
+    db = get_client()
+    res = db.table("cases").select("*").eq("id", case_id).execute()
+    if not res.data:
+        raise Exception("해당 케이스를 찾을 수 없습니다.")
+
+    c = res.data[0]
+    is_inpatient = bool(c.get("is_inpatient"))
+    is_outpatient = bool(c.get("is_outpatient"))
+
+    visit_date = c.get("visit_dates")
+    if not visit_date and c.get("created_at"):
+        visit_date = c["created_at"][:10]
+
+    return {
+        "case_id": case_id,
+        "service_type": "CASE1" if c.get("diag_days") is None else "CASE2",
+        "dashboard": {
+            "disease_name": c.get("disease_name"),
+            "disease_kcd": c.get("disease_kcd"),
+            "is_inpatient": is_inpatient,
+            "is_outpatient": is_outpatient,
+            "admission_days_current": c.get("current_days") if is_inpatient else None,
+            "admission_days_diagnosed": c.get("diag_days") if is_inpatient else None,
+            "treatment_items": c.get("additional_treatments") or [],
+            "payment_amount": c.get("payment_amount") if is_outpatient else None,
+            "visit_date": visit_date if is_outpatient else None,
+            "surgery": bool(c.get("surgery")),
+            "annual_visit_count": c.get("annual_visit_count") or 1,
+        },
+    }
+
+
+def patch_dashboard(user_id: str, case_id: str, data: dict) -> dict:
+    """대시보드 화면에서 직접 수정한 정보들을 DB에 반영합니다."""
+    db = get_client()
+
+    updates = {}
+
+    if "disease_name" in data:
+        updates["disease_name"] = data["disease_name"]
+    if "disease_kcd" in data:
+        updates["disease_kcd"] = data["disease_kcd"]
+    if "surgery" in data:
+        updates["surgery"] = bool(data["surgery"])
+    if "admission_days_diagnosed" in data:
+        updates["diag_days"] = (
+            int(data["admission_days_diagnosed"])
+            if data["admission_days_diagnosed"] is not None
+            else None
+        )
+    if "admission_days_current" in data:
+        updates["current_days"] = (
+            int(data["admission_days_current"])
+            if data["admission_days_current"] is not None
+            else None
+        )
+    if "treatment_items" in data:
+        updates["additional_treatments"] = data["treatment_items"]
+    if "payment_amount" in data:
+        updates["payment_amount"] = (
+            int(data["payment_amount"]) if data["payment_amount"] is not None else None
+        )
+    if "visit_date" in data:
+        updates["visit_dates"] = data["visit_date"]
+    if "annual_visit_count" in data:
+        updates["annual_visit_count"] = (
+            int(data["annual_visit_count"]) if data["annual_visit_count"] is not None else None
+        )
+
+    is_inpt = data.get("is_inpatient")
+    is_outpt = data.get("is_outpatient")
+    if is_inpt is not None:
+        updates["is_inpatient"] = bool(is_inpt)
+    if is_outpt is not None:
+        updates["is_outpatient"] = bool(is_outpt)
+
+    if updates:
+        db.table("cases").update(updates).eq("id", case_id).execute()
+
+    return {
+        "case_id": case_id,
+        "updated": True,
+        "dashboard": get_dashboard(user_id, case_id)["dashboard"],
+    }
 
 
 def get_my_cases(user_id: str) -> list[dict]:
     """내 분석 이력 목록을 조회합니다."""
     db = get_client()
 
-    # 1. 사용자의 케이스 이력 조회
     res_cases = (
         db.table("cases")
         .select("*")
@@ -265,7 +524,6 @@ def get_my_cases(user_id: str) -> list[dict]:
 
     results = []
     for c in cases:
-        # 각 case에 대한 분석 결과(eligible_count 등) 카운팅
         res_results = db.table("analysis_results").select("*").eq("case_id", c["id"]).execute()
         analysis_data = res_results.data or []
 
@@ -273,11 +531,9 @@ def get_my_cases(user_id: str) -> list[dict]:
             1 for r in analysis_data if r.get("status") in ["eligible", "potential"]
         )
 
-        # 리포트 존재 여부 조회
         res_reports = db.table("reports").select("id").eq("case_id", c["id"]).execute()
         report_id = res_reports.data[0]["id"] if res_reports.data else None
 
-        # summary 텍스트 작성
         summary = f"{c.get('disease_name', '질환')} 치료"
         if c.get("current_days"):
             summary += f" ({c['current_days']}일 입원)"
