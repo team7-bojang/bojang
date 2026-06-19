@@ -177,6 +177,10 @@ def create_case(
         if curr_match:
             current_days = int(curr_match.group(1)) * 7
 
+    if is_outpatient and not is_inpatient:
+        current_days = 0
+        surgery = False
+
     case_data = {
         "id": case_id,
         "user_id": user_id,
@@ -423,7 +427,10 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
     if updates:
         db.table("cases").update(updates).eq("id", case_id).execute()
 
-    return {"ready_for_dashboard": True}
+    res_c = db.table("cases").select("*").eq("id", case_id).execute()
+    latest_case = res_c.data[0] if res_c.data else {}
+
+    return {"ready_for_dashboard": True, "case": latest_case}
 
 
 def get_dashboard(user_id: str, case_id: str) -> dict:
