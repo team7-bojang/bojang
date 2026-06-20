@@ -1,4 +1,5 @@
 import json
+import re
 import uuid
 from datetime import UTC, datetime
 
@@ -338,8 +339,6 @@ def create_case(
     surgery = "수술" in initial_situation
     hosp_days = 0
     if "입원" in initial_situation:
-        import re
-
         match = re.search(r"(\d+)\s*일\s*입원", initial_situation)
         if match:
             hosp_days = int(match.group(1))
@@ -351,8 +350,6 @@ def create_case(
 
     # CASE2인 경우 진단 및 경과 주수 파싱
     if service_type == "CASE2":
-        import re
-
         diag_match = re.search(r"(\d+)\s*주\s*진단", initial_situation)
         curr_match = re.search(r"(\d+)\s*주\s*차", initial_situation)
         if diag_match:
