@@ -4,12 +4,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { CaseDashboard } from '@/types/case';
 import { Field, NumberField } from './controls';
-
-/** Date -> 'YYYY-MM-DD' (로컬 기준). */
-function toISODate(date: Date): string {
-  const offset = date.getTimezoneOffset();
-  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10);
-}
+import { toISODate } from '../utils/date';
 
 interface VisitSectionProps {
   form: CaseDashboard;

@@ -21,7 +21,7 @@ export function ClaimSection({
 }: ClaimSectionProps) {
   return (
     <div className="mt-6 grid gap-6 sm:grid-cols-2">
-      <Field label="기청구 보험 (복수 선택)" required>
+      <Field label="기청구 보험 (복수 선택)">
         {claimOptions.length === 0 ? (
           <p className="text-sm text-muted">이전 화면에서 선택하거나 업로드한 보험이 없습니다.</p>
         ) : (

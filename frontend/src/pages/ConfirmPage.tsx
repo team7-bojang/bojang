@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Stepper } from '@/components/common/Stepper';
+import { Button } from '@/components/ui/button';
 import { getCaseDashboard } from '@/features/case/api/cases';
 import { useCaseStore } from '@/features/case/store/caseStore';
 import { ClaimSection, type ClaimOption } from '@/features/confirm/components/ClaimSection';
@@ -24,6 +25,8 @@ export function ConfirmPage() {
   const selectedPolicyIds = useCaseStore(state => state.selectedPolicyIds);
   const uploadedPdfs = useCaseStore(state => state.uploadedPdfs);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [form, setForm] = useState<CaseDashboard | null>(null);
   const [claimedPolicyIds, setClaimedPolicyIds] = useState<string[]>([]);
   const [enrollmentDate, setEnrollmentDate] = useState<string | null>(null);
@@ -35,16 +38,23 @@ export function ConfirmPage() {
       window.setTimeout(resolve, MIN_SKELETON_MS);
     });
 
-    Promise.all([getCaseDashboard(caseId), minimumDelay]).then(([res]) => {
-      if (alive) {
-        setForm(res.dashboard);
-        setLoading(false);
-      }
-    });
+    Promise.all([getCaseDashboard(caseId), minimumDelay])
+      .then(([res]) => {
+        if (alive) {
+          setForm(res.dashboard);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          setError(true);
+          setLoading(false);
+        }
+      });
     return () => {
       alive = false;
     };
-  }, [caseId]);
+  }, [caseId, reloadKey]);
 
   const patch = (partial: Partial<CaseDashboard>) =>
     setForm(prev => (prev ? { ...prev, ...partial } : prev));
@@ -110,8 +120,24 @@ export function ConfirmPage() {
           정확한 분석을 위해 아래 정보를 확인하고 입력해주세요.
         </p>
 
-        {loading || !form ? (
+        {loading ? (
           <ConfirmFormSkeleton />
+        ) : error || !form ? (
+          <div className="mt-6 flex flex-col items-center gap-4 rounded-card bg-surface p-10 text-center shadow-sm ring-1 ring-line">
+            <p className="text-sm text-muted">
+              정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setLoading(true);
+                setError(false);
+                setReloadKey(k => k + 1);
+              }}
+            >
+              다시 시도
+            </Button>
+          </div>
         ) : (
           <div className="animate-confirm-form-enter mt-6 rounded-card bg-surface p-5 shadow-sm ring-1 ring-line sm:p-7">
             <DiagnosisSection form={form} patch={patch} />
