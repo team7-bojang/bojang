@@ -1,113 +1,307 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+/* 디자인 토큰 (딥 틸/에메랄드 · 신뢰감) — 색상 변경 시 이 블록만 수정 */
+@theme {
+  --color-canvas: #eef3f2;
+  --color-surface: #ffffff;
+  --color-primary: #0d6e66;
+  --color-primary-soft: #14b8a6;
+  --color-primary-tint: #d8ece8;
+  --color-success: #15803d;
+  --color-success-tint: #cdeed7;
+  --color-ink: #0b1220;
+  --color-muted: #475569;
+  --color-line: #d5e0dd;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --radius-card: 0.8rem;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --font-sans:
+    'Pretendard Variable', Pretendard, system-ui, 'Apple SD Gothic Neo', 'Segoe UI', Roboto,
+    sans-serif;
+}
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
+/* 스크롤은 되지만 스크롤바는 숨김 */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+@keyframes step-line {
+  from {
+    width: 0;
   }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  to {
+    width: 100%;
   }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+@keyframes step-node {
+  from {
+    opacity: 0.7;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
+
+@keyframes confirm-form-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
-p {
-  margin: 0;
+
+@keyframes step-ping {
+  0% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  80%,
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+@keyframes result-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+@keyframes firework-launch {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 80px) scaleY(0.15);
+  }
+  8% {
+    opacity: 1;
+    transform: translate(-50%, 58px) scaleY(0.75);
+  }
+  27% {
+    opacity: 0.9;
+    transform: translate(-50%, 0) scaleY(0.35);
+  }
+  32%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 0) scaleY(0.15);
+  }
+}
+
+@keyframes firework-spark {
+  0%,
+  27% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--spark-rotate)) translateX(0) scaleX(0.2);
+  }
+  29% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--spark-rotate)) translateX(8px) scaleX(0.7);
+  }
+  62% {
+    opacity: 0.95;
+    transform: translate(calc(-50% + var(--spark-x)), calc(-50% + var(--spark-y)))
+      rotate(var(--spark-rotate)) scaleX(0.85);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--spark-x)), calc(-50% + var(--spark-y)))
+      rotate(var(--spark-rotate)) scaleX(0.45);
+  }
+}
+
+@keyframes amount-digit-pulse {
+  0% {
+    opacity: 0.55;
+    transform: translateY(-0.08em) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes amount-digit-settle {
+  0% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes coverage-bar-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@utility animate-step-line {
+  animation: step-line 420ms ease-out forwards;
+}
+
+@utility animate-step-node {
+  animation: step-node 220ms ease-out both;
+}
+
+@utility animate-step-ping {
+  animation: step-ping 1400ms cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@utility animate-confirm-form-enter {
+  animation: confirm-form-enter 220ms ease-out both;
+}
+
+@utility animate-result-enter {
+  animation: result-enter 360ms ease-out both;
+}
+
+@utility animate-coverage-bar-rise {
+  animation: coverage-bar-rise 760ms cubic-bezier(0.16, 1, 0.3, 1) 180ms both;
+  transform-origin: bottom;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html,
+  body,
+  #root {
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family:
+      'Pretendard Variable', Pretendard, system-ui, 'Apple SD Gothic Neo', 'Segoe UI', Roboto,
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .firework {
+    position: absolute;
+    z-index: 0;
+    width: 180px;
+    height: 220px;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .firework-launch {
+    position: absolute;
+    left: 50%;
+    top: 112px;
+    opacity: 0;
+    width: 3px;
+    height: 86px;
+    border-radius: 999px;
+    background: linear-gradient(to bottom, transparent, #facc15 35%, #f8fafc 72%, transparent);
+    box-shadow: 0 0 12px rgba(250, 204, 21, 0.55);
+    transform-origin: top;
+    animation: firework-launch 3000ms ease-out var(--firework-delay) infinite;
+  }
+
+  .firework-spark {
+    position: absolute;
+    left: 50%;
+    top: 72px;
+    opacity: 0;
+    width: 18px;
+    height: 3px;
+    border-radius: 999px;
+    color: var(--spark-color, #facc15);
+    background: var(--spark-color, #facc15);
+    box-shadow: 0 0 8px currentColor;
+    transform-origin: left center;
+    animation: firework-spark 3000ms cubic-bezier(0.12, 0.78, 0.32, 1) var(--spark-delay) infinite;
+  }
+
+  .firework-spark:nth-child(4n + 1) {
+    --spark-color: #facc15;
+  }
+
+  .firework-spark:nth-child(4n + 2) {
+    --spark-color: #f472b6;
+  }
+
+  .firework-spark:nth-child(4n + 3) {
+    --spark-color: #67e8f9;
+  }
+
+  .firework-spark:nth-child(4n + 4) {
+    --spark-color: #a78bfa;
+  }
+
+  .amount-digit-tile {
+    display: flex;
+    width: 3rem;
+    height: 1.18em;
+    overflow: hidden;
+    align-items: flex-start;
+    justify-content: center;
+    border: 1px solid var(--color-line);
+    border-radius: 0.75rem;
+    background: var(--color-surface);
+    color: var(--color-primary);
+    font-size: 2.25rem;
+    font-weight: 900;
+    line-height: 1.18;
+    box-shadow: 0 6px 18px rgba(13, 110, 102, 0.1);
+  }
+
+  .amount-digit-current {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    animation: amount-digit-settle 180ms ease-out;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .amount-digit-current-rolling {
+    animation: amount-digit-pulse 76ms linear infinite;
+    filter: blur(0.4px);
+  }
+
+  @media (min-width: 640px) {
+    .amount-digit-tile {
+      width: 4rem;
+      height: 1.18em;
+      border-radius: 0.75rem;
+      font-size: 3.75rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-result-enter,
+    .animate-coverage-bar-rise {
+      animation: none;
+    }
+  }
 }
