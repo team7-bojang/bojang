@@ -10,7 +10,7 @@ class Retriever:
         self.db = get_client()
 
     def search(
-        self, query: str, policy_ids: list[str] = None, trigger_type: str = None, k: int = 5
+        self, query: str, policy_ids: list[str] = None, trigger_type: str = None, disease_kcd: str = None, k: int = 5
     ) -> list[dict]:
         """쿼리와 유사한 약관 청크를 검색합니다.
 
@@ -24,6 +24,52 @@ class Retriever:
                 q_emb = embs[0]
         except Exception as e:
             print(f"[Retriever] Failed to embed query: {e}")
+
+        # 1.5. 확정된 질병 코드(KCD)가 있을 경우 DB Rules 및 Groups를 동적으로 연동하여 가산점 키워드 도출
+        group_keywords = []
+        if disease_kcd:
+            try:
+                rules_res = self.db.table("disease_group_code_rules").select("*").execute()
+                matched_group_ids = []
+                excluded_group_ids = []
+                for rule in rules_res.data or []:
+                    start = rule.get("code_start")
+                    end = rule.get("code_end")
+                    group_id = rule.get("group_id")
+                    
+                    # KCD 범위 매칭 체크
+                    in_range = False
+                    kcd_clean = disease_kcd[:3]
+                    if start:
+                        if end:
+                            if start <= kcd_clean <= end:
+                                in_range = True
+                        else:
+                            if disease_kcd.startswith(start):
+                                in_range = True
+                                
+                    if in_range:
+                        if rule.get("rule_type") == "include":
+                            matched_group_ids.append(group_id)
+                        elif rule.get("rule_type") == "exclude":
+                            excluded_group_ids.append(group_id)
+                
+                # 최종 매치 그룹
+                final_group_ids = [gid for gid in matched_group_ids if gid not in excluded_group_ids]
+                
+                if final_group_ids:
+                    # disease_groups에서 한글 명칭/라벨 가져오기
+                    groups_res = self.db.table("disease_groups").select("id, name, user_label").in_("id", final_group_ids).execute()
+                    for group in groups_res.data or []:
+                        if group.get("name"):
+                            group_keywords.append(group["name"])
+                        if group.get("user_label"):
+                            group_keywords.append(group["user_label"])
+                    
+                group_keywords = list(set(group_keywords))
+                print(f"[Retriever] Dynamic group keywords for KCD {disease_kcd}: {group_keywords}")
+            except Exception as e:
+                print(f"[Retriever] Failed to extract dynamic group keywords: {e}")
 
         # 2. DB에서 전체 chunk 목록 로드 (Mock/Real)
         # 1주차 pnpm workspace 개발 시, full join 또는 riders 로드가 필요하므로
@@ -115,54 +161,13 @@ class Retriever:
                     else:
                         keyword_score += 0.4
 
-            # 질병 도메인별 그룹 가산점
-            # 뇌혈관질환 그룹
-            brain_keywords = [
-                "뇌경색",
-                "뇌졸중",
-                "뇌출혈",
-                "뇌혈관",
-                "i60",
-                "i61",
-                "i62",
-                "i63",
-                "i64",
-                "i65",
-                "i66",
-                "i67",
-                "i68",
-                "i69",
-            ]
-            has_brain_query = any(w in query.lower() for w in brain_keywords)
-            has_brain_rider = any(
-                w in rider_name or w in content for w in ["뇌혈관", "뇌졸중", "뇌출혈"]
-            )
-            if has_brain_query and has_brain_rider:
-                keyword_score += 1.5
-
-            # 암 그룹
-            cancer_keywords = [
-                "위암",
-                "폐암",
-                "간암",
-                "유방암",
-                "대장암",
-                "갑상선암",
-                "암",
-                "악성신생물",
-            ]
-            has_cancer_query = any(w in query.lower() for w in cancer_keywords)
-            has_cancer_rider = any(w in rider_name or w in content for w in ["암", "악성신생물"])
-            if has_cancer_query and has_cancer_rider:
-                keyword_score += 1.5
-
-            # 척추/디스크 그룹
-            spine_keywords = ["디스크", "추간판", "척추", "허리디스크", "m50", "m51"]
-            has_spine_query = any(w in query.lower() for w in spine_keywords)
-            has_spine_rider = any(
-                w in rider_name or w in content for w in ["디스크", "추간판", "척추"]
-            )
-            if has_spine_query and has_spine_rider:
+            # 동적 질병 그룹 가산점 (DB 룰 연동 적용)
+            has_dynamic_match = False
+            for gk in group_keywords:
+                if gk in rider_name or gk in content:
+                    has_dynamic_match = True
+                    break
+            if has_dynamic_match:
                 keyword_score += 1.5
 
             # 질병 관련 특약 가산점 (질병 상황 시 일반 질병 특약 매칭 보정)

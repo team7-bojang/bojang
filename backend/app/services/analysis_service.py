@@ -196,7 +196,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
 
     if not is_dummy_used:
         try:
-            chunks = retriever.search(query, policy_ids=policy_ids, k=15)
+            chunks = retriever.search(query, policy_ids=policy_ids, disease_kcd=case_data.get("disease_kcd"), k=15)
         except Exception as e:
             print(f"[analysis_service] RAG retriever.search failed: {e}")
             chunks = []
