@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from openai import OpenAI
 
 from app.config import settings
+from app.core.errors import NotFoundError
 from app.db import get_client
 
 
@@ -299,6 +300,18 @@ def create_case(
         current_days = 0
         surgery = False
 
+    # AFTER_CLAIM일 때 이미 청구한 보험 id 목록 파싱
+    claimed_ids = []
+    if claim_status == "AFTER_CLAIM":
+        for pid in policy_ids:
+            res_p = db.table("policies").select("name, insurer").eq("id", pid).execute()
+            if res_p.data:
+                p_info = res_p.data[0]
+                if p_info.get("insurer") in initial_situation or p_info.get("name") in initial_situation:
+                    claimed_ids.append(pid)
+        if not claimed_ids and policy_ids:
+            claimed_ids = [policy_ids[0]]
+
     case_data = {
         "id": case_id,
         "user_id": user_id,
@@ -309,11 +322,13 @@ def create_case(
         "surgery": surgery,
         "admission_days_diagnosed": diag_days,
         "admission_days_current": current_days,
-        "policy_elapsed_days": 800,
-        "claimed_policy_ids": [],
+        "policy_elapsed_days": None,
+        "claimed_policy_ids": claimed_ids,
         "is_inpatient": is_inpatient,
         "is_outpatient": is_outpatient,
         "created_at": datetime.now(UTC).isoformat(),
+        "service_type": service_type,
+        "policy_ids": policy_ids,
     }
 
     db.table("cases").insert(case_data).execute()
@@ -324,6 +339,7 @@ def create_case(
         "policy_ids": policy_ids,
         "initial_situation": initial_situation,
         "claim_status": claim_status,
+        "claimed_policy_ids": claimed_ids if claim_status == "AFTER_CLAIM" else None,
         "disease_name": disease_name,
         "disease_kcd": disease_kcd,
         "disease_kcd_candidates": disease_kcd_candidates,
@@ -343,9 +359,11 @@ def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
 
     res = db.table("cases").select("*").eq("id", case_id).execute()
     if not res.data:
-        raise Exception("해당 케이스를 찾을 수 없습니다.")
+        raise NotFoundError("해당 케이스를 찾을 수 없습니다.")
 
     case = res.data[0]
+    if case.get("service_type") == "CASE2":
+        raise ValueError("CASE2 서비스에서는 결제 입력 API를 사용할 수 없습니다.")
 
     import re
 
@@ -418,7 +436,13 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_name: str) ->
     """진료비 세부산정내역서 PDF 업로드 결과를 가공하여 extracted_medical_info 양식으로 리턴합니다."""
     db = get_client()
 
-    treatment_items = ["도수치료", "물리치료"]
+    res = db.table("cases").select("service_type").eq("id", case_id).execute()
+    if not res.data:
+        raise NotFoundError("해당 케이스를 찾을 수 없습니다.")
+    if res.data[0].get("service_type") == "CASE2":
+        raise ValueError("CASE2 서비스에서는 세부산정내역서 입력 API를 사용할 수 없습니다.")
+
+    treatment_items = ["MANUAL_THERAPY", "PHYSICAL_THERAPY"]
     updates = {
         "admission_days_diagnosed": 14,
         "admission_days_current": 14,
@@ -443,7 +467,7 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_name: str) ->
             "disease_name": "허리디스크",
             "disease_kcd": "M511",
             "hospital_name": "OO정형외과",
-            "visit_date": "2026-06-10",
+            "visit_dates": ["2026-06-10"],
             "is_inpatient": False,
             "is_outpatient": True,
             "surgery": False,
@@ -534,6 +558,8 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
             updates["treatment_items"] = val
         elif q_id == "annual_visit_count":
             updates["annual_visit_count"] = int(val) if val is not None else None
+        elif q_id == "policy_elapsed_days":
+            updates["policy_elapsed_days"] = int(val) if val is not None else None
 
     if is_inpt is not None:
         updates["is_inpatient"] = bool(is_inpt)
@@ -555,6 +581,7 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
     latest_case = res_c.data[0] if res_c.data else {}
 
     return {
+        "case_id": case_id,
         "ready_for_dashboard": True,
         "case": latest_case,
         "treatment_types": get_treatment_types(),
@@ -566,7 +593,7 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
     db = get_client()
     res = db.table("cases").select("*").eq("id", case_id).execute()
     if not res.data:
-        raise Exception("해당 케이스를 찾을 수 없습니다.")
+        raise NotFoundError("해당 케이스를 찾을 수 없습니다.")
 
     c = res.data[0]
     is_inpatient = bool(c.get("is_inpatient"))

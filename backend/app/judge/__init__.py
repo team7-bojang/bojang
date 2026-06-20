@@ -104,6 +104,13 @@ def judge(case: Case, rider: Rider) -> Judgement:
         if not is_spine_disease:
             return _empty_not_applicable()
 
+    # 1-5) 치료 항목 적합성 필터링 (rider_treatment_rules 연동)
+    rider_treatment_codes = rider.get("treatment_codes") or []
+    case_treatment_items = case.get("treatment_items") or []
+    if rider_treatment_codes:
+        if not any(item in rider_treatment_codes for item in case_treatment_items):
+            return _empty_not_applicable()
+
     # 2. 세부 정액/실손 판정 위임
     if rider.get("claim_rule") is None:
         return judge_fixed(case, rider)

@@ -18,6 +18,12 @@ def select_presets(user_id: str, preset_ids: list[str]) -> list[str]:
     db = get_client()
     registered_policy_ids = []
 
+    # 404 처리를 위해 모든 preset_ids가 실재하는지 선검증
+    for pid in preset_ids:
+        res_p = db.table("policies").select("id").eq("id", pid).execute()
+        if not res_p.data:
+            raise NotFoundError(f"존재하지 않는 preset id가 포함되어 있습니다: {pid}")
+
     for pid in preset_ids:
         # 1. Preset 상품 조회
         res_policy = db.table("policies").select("*").eq("id", pid).execute()

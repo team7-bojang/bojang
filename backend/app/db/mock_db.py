@@ -196,8 +196,9 @@ db_instance = InMemoryDB()
 
 
 class MockAPIResponse:
-    def __init__(self, data):
+    def __init__(self, data, count=None):
         self.data = data
+        self.count = count if count is not None else (len(data) if isinstance(data, list) else 1)
 
 
 class MockQueryBuilder:
@@ -211,6 +212,13 @@ class MockQueryBuilder:
         self._is_insert = False
         self._is_update = False
         self._mutation_data = None
+        self._range_start = None
+        self._range_end = None
+
+    def range(self, start, end):
+        self._range_start = start
+        self._range_end = end
+        return self
 
     def select(self, columns="*"):
         self._select_columns = columns
@@ -364,10 +372,15 @@ class MockQueryBuilder:
             col, desc = self._order_by
             results.sort(key=lambda x: x.get(col) or "", reverse=desc)
 
+        total_count = len(results)
+
+        if self._range_start is not None and self._range_end is not None:
+            results = results[self._range_start : self._range_end + 1]
+
         if self._limit_count is not None:
             results = results[: self._limit_count]
 
-        return MockAPIResponse(results)
+        return MockAPIResponse(results, count=total_count)
 
 
 class MockSupabaseClient:

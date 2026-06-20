@@ -124,6 +124,37 @@ DUMMY_CHUNKS = [
 ]
 
 
+def get_rider_treatment_codes(db, rider_id: str, rider_name: str) -> list[str]:
+    """해당 특약에 지정된 치료 종류 코드 목록을 조회합니다 (실제 DB 조회 + 특약명 폴백)."""
+    try:
+        res = db.table("rider_treatment_rules").select("treatment_code").eq("rider_id", rider_id).execute()
+        if res.data:
+            return [row.get("treatment_code") for row in res.data if row.get("treatment_code")]
+    except Exception as e:
+        print(f"[AnalysisService] Failed to query rider_treatment_rules for {rider_id}: {e}")
+
+    # DB 조회 실패 또는 비어있을 시 특약명을 기반으로 하드코딩 폴백 매핑
+    codes = []
+    rider_name_lower = (rider_name or "").lower()
+    
+    if any(w in rider_name_lower for w in ["도수", "충격파", "증식"]):
+        codes.append("MANUAL_THERAPY")
+    if "물리" in rider_name_lower:
+        codes.append("PHYSICAL_THERAPY")
+    if "mri" in rider_name_lower or "mra" in rider_name_lower:
+        codes.append("MRI_MRA")
+    if any(w in rider_name_lower for w in ["엑스레이", "x-ray", "xray"]):
+        codes.append("XRAY")
+    if "주사" in rider_name_lower:
+        codes.append("INJECTION")
+    if "응급" in rider_name_lower:
+        codes.append("EMERGENCY")
+    if "깁스" in rider_name_lower:
+        codes.append("CAST")
+        
+    return codes
+
+
 def search_analysis(user_id: str, case_id: str) -> dict:
     """RAG 탐색과 룰 판정을 연동해 청구 가능한 보장을 탐색하고 스냅샷을 저장합니다."""
     db = get_client()
@@ -202,6 +233,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "diag_days": int(case_data.get("diag_days") or 0),
             "current_days": int(case_data.get("current_days") or 0),
             "policy_elapsed_days": case_data.get("policy_elapsed_days"),
+            "treatment_items": case_data.get("treatment_items") or [],
         }
 
         judge_rider = {
@@ -217,6 +249,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "unit_type": rider.get("unit_type"),
             "claim_rule": rider.get("claim_rule"),
             "source_pages": rider.get("source_pages", []),
+            "treatment_codes": get_rider_treatment_codes(db, rider_id, rider.get("name")),
         }
 
         # 룰 엔진 판정 실행
