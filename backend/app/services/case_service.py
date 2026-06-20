@@ -307,8 +307,8 @@ def create_case(
         "disease_kcd_candidates": disease_kcd_candidates,
         "disease_match_confidence": disease_match_confidence,
         "surgery": surgery,
-        "diag_days": diag_days,
-        "current_days": current_days,
+        "admission_days_diagnosed": diag_days,
+        "admission_days_current": current_days,
         "policy_elapsed_days": 800,
         "claimed_policy_ids": [],
         "is_inpatient": is_inpatient,
@@ -420,10 +420,10 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_name: str) ->
 
     treatment_items = ["도수치료", "물리치료"]
     updates = {
-        "diag_days": 14,
-        "current_days": 14,
+        "admission_days_diagnosed": 14,
+        "admission_days_current": 14,
         "surgery": False,
-        "additional_treatments": treatment_items,
+        "treatment_items": treatment_items,
         "is_inpatient": False,
         "is_outpatient": True,
         "payment_amount": 90000,
@@ -492,7 +492,7 @@ def patch_extracted_info(user_id: str, case_id: str, info: dict) -> dict:
         if "surgery" in med_info:
             updates["surgery"] = med_info["surgery"]
         if "treatment_items" in med_info:
-            updates["additional_treatments"] = med_info["treatment_items"]
+            updates["treatment_items"] = med_info["treatment_items"]
         if "payment_amount" in med_info:
             updates["payment_amount"] = med_info["payment_amount"]
 
@@ -527,11 +527,11 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
         elif q_id == "surgery":
             updates["surgery"] = bool(val)
         elif q_id == "admission_days_diagnosed":
-            updates["diag_days"] = int(val) if val is not None else None
+            updates["admission_days_diagnosed"] = int(val) if val is not None else None
         elif q_id == "admission_days_current":
-            updates["current_days"] = int(val) if val is not None else None
+            updates["admission_days_current"] = int(val) if val is not None else None
         elif q_id == "treatment_items":
-            updates["additional_treatments"] = val
+            updates["treatment_items"] = val
         elif q_id == "annual_visit_count":
             updates["annual_visit_count"] = int(val) if val is not None else None
 
@@ -540,11 +540,11 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
         if is_inpt:
             res_c = db.table("cases").select("*").eq("id", case_id).execute()
             c_data = res_c.data[0] if res_c.data else {}
-            if not c_data.get("diag_days") and not updates.get("diag_days"):
+            if not c_data.get("admission_days_diagnosed") and not updates.get("admission_days_diagnosed"):
                 print("[case_service] 진단일수가 누락되어 임의 기본값(14일)을 할당했습니다.")
-                updates["diag_days"] = 14
-            if not c_data.get("current_days") and not updates.get("current_days"):
-                updates["current_days"] = 14
+                updates["admission_days_diagnosed"] = 14
+            if not c_data.get("admission_days_current") and not updates.get("admission_days_current"):
+                updates["admission_days_current"] = 14
     if is_outpt is not None:
         updates["is_outpatient"] = bool(is_outpt)
 
@@ -578,15 +578,15 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
 
     return {
         "case_id": case_id,
-        "service_type": "CASE1" if c.get("diag_days") is None else "CASE2",
+        "service_type": "CASE1" if c.get("admission_days_diagnosed") is None else "CASE2",
         "dashboard": {
             "disease_name": c.get("disease_name"),
             "disease_kcd": c.get("disease_kcd"),
             "is_inpatient": is_inpatient,
             "is_outpatient": is_outpatient,
-            "admission_days_current": c.get("current_days") if is_inpatient else None,
-            "admission_days_diagnosed": c.get("diag_days") if is_inpatient else None,
-            "treatment_items": c.get("additional_treatments") or [],
+            "admission_days_current": c.get("admission_days_current") if is_inpatient else None,
+            "admission_days_diagnosed": c.get("admission_days_diagnosed") if is_inpatient else None,
+            "treatment_items": c.get("treatment_items") or [],
             "payment_amount": c.get("payment_amount") if is_outpatient else None,
             "visit_date": visit_date if is_outpatient else None,
             "surgery": bool(c.get("surgery")),
@@ -608,19 +608,19 @@ def patch_dashboard(user_id: str, case_id: str, data: dict) -> dict:
     if "surgery" in data:
         updates["surgery"] = bool(data["surgery"])
     if "admission_days_diagnosed" in data:
-        updates["diag_days"] = (
+        updates["admission_days_diagnosed"] = (
             int(data["admission_days_diagnosed"])
             if data["admission_days_diagnosed"] is not None
             else None
         )
     if "admission_days_current" in data:
-        updates["current_days"] = (
+        updates["admission_days_current"] = (
             int(data["admission_days_current"])
             if data["admission_days_current"] is not None
             else None
         )
     if "treatment_items" in data:
-        updates["additional_treatments"] = data["treatment_items"]
+        updates["treatment_items"] = data["treatment_items"]
     if "payment_amount" in data:
         updates["payment_amount"] = (
             int(data["payment_amount"]) if data["payment_amount"] is not None else None
@@ -675,8 +675,8 @@ def get_my_cases(user_id: str) -> list[dict]:
         report_id = res_reports.data[0]["id"] if res_reports.data else None
 
         summary = f"{c.get('disease_name', '질환')} 치료"
-        if c.get("current_days"):
-            summary += f" ({c['current_days']}일 입원)"
+        if c.get("admission_days_current"):
+            summary += f" ({c['admission_days_current']}일 입원)"
         if c.get("surgery"):
             summary += " 및 수술"
 

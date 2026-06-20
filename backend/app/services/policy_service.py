@@ -25,6 +25,20 @@ def select_presets(user_id: str, preset_ids: list[str]) -> list[str]:
             continue
         preset_policy = res_policy.data[0]
 
+        # 중복 방지: 이미 복제된 상품이 존재하는지 체크 (uq_policies_user_name_insurer 제약조건 방지)
+        res_existing = (
+            db.table("policies")
+            .select("id")
+            .eq("user_id", user_id)
+            .eq("name", preset_policy["name"])
+            .eq("insurer", preset_policy["insurer"])
+            .eq("is_preset", False)
+            .execute()
+        )
+        if res_existing.data:
+            registered_policy_ids.append(res_existing.data[0]["id"])
+            continue
+
         # 2. 상품 복제 (is_preset=False, user_id 할당)
         new_policy_id = str(uuid.uuid4())
         cloned_policy = {
