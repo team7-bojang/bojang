@@ -1,0 +1,76 @@
+{
+  "schema_version": "2.0",
+  "id": "c1_07",
+  "service_type": "CASE1",
+  "description": "대상포진 통원 시 선택 보험에서 결과 0건",
+  "selected_policies": [
+    "메리츠 상해안심보험",
+    "DB 계속받는 3대질병보험"
+  ],
+  "case": {
+    "initial_situation": "대상포진 진단 후 통원 주사치료",
+    "disease": "대상포진",
+    "disease_kcd": "B02",
+    "is_inpatient": false,
+    "is_outpatient": true,
+    "surgery": false,
+    "treatment_items": [
+      "INJECTION"
+    ],
+    "payment_amount": 35000,
+    "visit_dates": [
+      "2026-06-10"
+    ],
+    "annual_visit_count": 2,
+    "policy_elapsed_days": 730
+  },
+  "demo_assumptions": {},
+  "expected": [],
+  "must_not_match": [
+    {
+      "policy": "메리츠 상해안심보험",
+      "rider": "갱신형 일반상해입원일당(1일이상)보장 특별약관"
+    },
+    {
+      "policy": "메리츠 상해안심보험",
+      "rider": "갱신형 골절(치아파절제외)진단비Ⅱ보장 특별약관"
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "질병입원일당(1일이상180일한도)"
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "뇌혈관질환입원일당(4일이상120일한도)"
+    }
+  ],
+  "expected_summary": {
+    "eligible_count": 0,
+    "not_met_count": 0,
+    "empty_result": true
+  },
+  "display_rule": {
+    "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+    "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+    "show_total_as_confirmed_payment": false
+  },
+  "demo_amount_inputs": [],
+  "policy_amount_summary": [
+    {
+      "policy": "메리츠 상해안심보험",
+      "estimated_amount": 0,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "note": "현재 시나리오에서 지급 가능으로 판정된 특약 없음",
+      "calculation_breakdown": [],
+      "total_calculation": "지급 가능 특약 0건 = 0원"
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "estimated_amount": 0,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "note": "현재 시나리오에서 지급 가능으로 판정된 특약 없음",
+      "calculation_breakdown": [],
+      "total_calculation": "지급 가능 특약 0건 = 0원"
+    }
+  ]
+}

@@ -1,0 +1,314 @@
+{
+  "schema_version": "2.0",
+  "id": "c2_02",
+  "service_type": "CASE2",
+  "description": "급성심근경색 3일과 4일 경계 비교",
+  "selected_policies": [
+    "DB 계속받는 3대질병보험"
+  ],
+  "case": {
+    "initial_situation": "급성심근경색으로 현재 3일째 입원, 목표 4일",
+    "disease": "급성심근경색증",
+    "disease_kcd": "I21",
+    "is_inpatient": true,
+    "is_outpatient": false,
+    "surgery": false,
+    "admission_days_current": 3,
+    "admission_days_diagnosed": 4,
+    "treatment_items": [
+      "OTHER"
+    ],
+    "annual_visit_count": 1,
+    "policy_elapsed_days": 730
+  },
+  "demo_assumptions": {
+    "질병입원일당(1일이상180일한도)": {
+      "coverage_amount_per_day": 10000
+    },
+    "허혈심장질환입원일당(4일이상120일한도)": {
+      "coverage_amount_per_day": 20000
+    }
+  },
+  "expected": [
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "질병입원일당(1일이상180일한도)",
+      "status": "eligible",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::질병입원일당(1일이상180일한도)",
+      "estimated_amount": 30000,
+      "calculation": "10,000원 × 3일",
+      "payable_days": 3,
+      "scenario_days": 3,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "질병입원일당(1일이상180일한도)",
+          "field": "coverage_amount_per_day",
+          "amount": 10000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "질병입원일당(1일이상180일한도) 특별약관 1.(보험금의 지급사유)",
+          "page": 60
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 10,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액"
+        },
+        {
+          "step": 3,
+          "title": "지급일수 계산",
+          "detail": "입원 3일 - 공제 0일 = 지급 3일"
+        },
+        {
+          "step": 4,
+          "title": "보험금 계산",
+          "detail": "10,000원 × 3일"
+        },
+        {
+          "step": 5,
+          "title": "최종 예상보험금",
+          "detail": "30,000원"
+        }
+      ]
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "허혈심장질환입원일당(4일이상120일한도)",
+      "status": "boundary_not_met",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::허혈심장질환입원일당(4일이상120일한도)",
+      "estimated_amount": 0,
+      "calculation": null,
+      "gap_days": 1,
+      "payable_days": 0,
+      "scenario_days": 3,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액의 50%(보험계약일로부터 1년미만, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) 또는 보험가입금액의 100%(보험계약일로부터 1년이상, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) / 보험가입금액의 100%(15세미만 계약 또는 갱신형 갱신계약)",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "허혈심장질환입원일당(4일이상120일한도)",
+          "field": "coverage_amount_per_day",
+          "amount": 20000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "허혈심장질환입원일당(4일이상120일한도) (비갱신형/갱신형) 특별약관 1.(보험금의 지급사유)",
+          "page": 99
+        },
+        "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 20,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액의 50%(보험계약일로부터 1년미만, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) 또는 보험가입금액의 100%(보험계약일로부터 1년이상, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) / 보험가입금액의 100%(15세미만 계약 또는 갱신형 갱신계약)"
+        },
+        {
+          "step": 3,
+          "title": "미지급 판정",
+          "detail": "최소 입원일수까지 1일 부족"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "0원"
+        }
+      ]
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "질병입원일당(1일이상180일한도)",
+      "status": "eligible",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::질병입원일당(1일이상180일한도)",
+      "estimated_amount": 40000,
+      "calculation": "10,000원 × 4일",
+      "payable_days": 4,
+      "scenario_days": 4,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "질병입원일당(1일이상180일한도)",
+          "field": "coverage_amount_per_day",
+          "amount": 10000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "질병입원일당(1일이상180일한도) 특별약관 1.(보험금의 지급사유)",
+          "page": 60
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 10,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액"
+        },
+        {
+          "step": 3,
+          "title": "지급일수 계산",
+          "detail": "입원 4일 - 공제 0일 = 지급 4일"
+        },
+        {
+          "step": 4,
+          "title": "보험금 계산",
+          "detail": "10,000원 × 4일"
+        },
+        {
+          "step": 5,
+          "title": "최종 예상보험금",
+          "detail": "40,000원"
+        }
+      ]
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "허혈심장질환입원일당(4일이상120일한도)",
+      "status": "eligible",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::허혈심장질환입원일당(4일이상120일한도)",
+      "estimated_amount": 20000,
+      "calculation": "20,000원 × (4일 - 공제 3일)",
+      "payable_days": 1,
+      "scenario_days": 4,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액의 50%(보험계약일로부터 1년미만, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) 또는 보험가입금액의 100%(보험계약일로부터 1년이상, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) / 보험가입금액의 100%(15세미만 계약 또는 갱신형 갱신계약)",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "허혈심장질환입원일당(4일이상120일한도)",
+          "field": "coverage_amount_per_day",
+          "amount": 20000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "허혈심장질환입원일당(4일이상120일한도) (비갱신형/갱신형) 특별약관 1.(보험금의 지급사유)",
+          "page": 99
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 20,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액의 50%(보험계약일로부터 1년미만, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) 또는 보험가입금액의 100%(보험계약일로부터 1년이상, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) / 보험가입금액의 100%(15세미만 계약 또는 갱신형 갱신계약)"
+        },
+        {
+          "step": 3,
+          "title": "지급일수 계산",
+          "detail": "입원 4일 - 공제 3일 = 지급 1일"
+        },
+        {
+          "step": 4,
+          "title": "보험금 계산",
+          "detail": "20,000원 × (4일 - 공제 3일)"
+        },
+        {
+          "step": 5,
+          "title": "최종 예상보험금",
+          "detail": "20,000원"
+        }
+      ]
+    }
+  ],
+  "must_not_match": [
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "뇌혈관질환입원일당(4일이상120일한도)"
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "허혈심장질환사망(비갱신형/갱신형)",
+      "reason": "실제 사망 사건 없음"
+    }
+  ],
+  "expected_summary": {
+    "eligible_count": 3,
+    "not_met_count": 1
+  },
+  "display_rule": {
+    "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+    "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+    "show_total_as_confirmed_payment": false
+  },
+  "comparison_basis": "HOSPITALIZATION_DAYS",
+  "demo_amount_inputs": [
+    {
+      "label": "질병입원일당(1일이상180일한도)",
+      "field": "coverage_amount_per_day",
+      "amount": 10000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "허혈심장질환입원일당(4일이상120일한도)",
+      "field": "coverage_amount_per_day",
+      "amount": 20000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    }
+  ],
+  "policy_amount_summary": [
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "scenario_days": 3,
+      "estimated_amount": 30000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "질병입원일당(1일이상180일한도)",
+          "calculation": "10,000원 × 3일",
+          "estimated_amount": 30000
+        }
+      ],
+      "total_calculation": "30,000원 = 30,000원"
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "scenario_days": 4,
+      "estimated_amount": 60000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "질병입원일당(1일이상180일한도)",
+          "calculation": "10,000원 × 4일",
+          "estimated_amount": 40000
+        },
+        {
+          "rider": "허혈심장질환입원일당(4일이상120일한도)",
+          "calculation": "20,000원 × (4일 - 공제 3일)",
+          "estimated_amount": 20000
+        }
+      ],
+      "total_calculation": "40,000원 + 20,000원 = 60,000원"
+    }
+  ]
+}

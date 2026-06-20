@@ -1,0 +1,447 @@
+{
+  "schema_version": "2.0",
+  "id": "c1_02",
+  "service_type": "CASE1",
+  "description": "급성심근경색 진단과 5일 입원 시 DB·KB 중복 탐색",
+  "selected_policies": [
+    "DB 계속받는 3대질병보험",
+    "KB 9회주는 암보험Plus"
+  ],
+  "case": {
+    "initial_situation": "급성심근경색 진단 후 5일 입원, 수술 없음",
+    "disease": "급성심근경색증",
+    "disease_kcd": "I21",
+    "is_inpatient": true,
+    "is_outpatient": false,
+    "surgery": false,
+    "admission_days_diagnosed": 5,
+    "treatment_items": [
+      "MRI_MRA",
+      "INJECTION"
+    ],
+    "payment_amount": 680000,
+    "visit_dates": [
+      "2026-06-05"
+    ],
+    "annual_visit_count": 1,
+    "policy_elapsed_days": 730
+  },
+  "demo_assumptions": {
+    "DB 급성심근경색증진단비": {
+      "coverage_amount": 10000000
+    },
+    "DB 질병입원일당": {
+      "coverage_amount_per_day": 10000
+    },
+    "DB 허혈심장질환입원일당": {
+      "coverage_amount_per_day": 20000
+    },
+    "KB 급성심근경색증진단비": {
+      "coverage_amount": 10000000
+    },
+    "KB 허혈성심장질환진단비": {
+      "coverage_amount": 5000000
+    },
+    "KB 허혈성심장질환입원일당": {
+      "coverage_amount_per_day": 20000
+    }
+  },
+  "expected": [
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "급성심근경색증진단비(비갱신형/갱신형)",
+      "status": "eligible",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::급성심근경색증진단비(비갱신형/갱신형)",
+      "estimated_amount": 10000000,
+      "calculation": "10,000,000원 × 100%",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "이 특별약관 보험가입금액의 100% (15세미만 계약 또는 갱신형(갱신) 계약) / 보험계약일로부터 1년미만 50%, 1년이상 100% (15세이상 비갱신형 계약 및 15세이상 갱신형(최초) 계약)",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "DB 급성심근경색증진단비",
+          "field": "coverage_amount",
+          "amount": 10000000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "급성심근경색증진단비(비갱신형/갱신형) 특별약관 1.(보험금의 지급사유)",
+          "page": 88
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 10,000,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "이 특별약관 보험가입금액의 100% (15세미만 계약 또는 갱신형(갱신) 계약) / 보험계약일로부터 1년미만 50%, 1년이상 100% (15세이상 비갱신형 계약 및 15세이상 갱신형(최초) 계약)"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "10,000,000원 × 100%"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "10,000,000원"
+        }
+      ]
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "질병입원일당(1일이상180일한도)",
+      "status": "eligible",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::질병입원일당(1일이상180일한도)",
+      "estimated_amount": 50000,
+      "calculation": "10,000원 × 5일",
+      "payable_days": 5,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "DB 질병입원일당",
+          "field": "coverage_amount_per_day",
+          "amount": 10000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "질병입원일당(1일이상180일한도) 특별약관 1.(보험금의 지급사유)",
+          "page": 60
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 10,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "10,000원 × 5일"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "50,000원"
+        }
+      ]
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "허혈심장질환입원일당(4일이상120일한도)",
+      "status": "eligible",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::허혈심장질환입원일당(4일이상120일한도)",
+      "estimated_amount": 40000,
+      "calculation": "20,000원 × (5일 - 공제 3일)",
+      "payable_days": 2,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액의 50%(보험계약일로부터 1년미만, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) 또는 보험가입금액의 100%(보험계약일로부터 1년이상, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) / 보험가입금액의 100%(15세미만 계약 또는 갱신형 갱신계약)",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "DB 허혈심장질환입원일당",
+          "field": "coverage_amount_per_day",
+          "amount": 20000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "허혈심장질환입원일당(4일이상120일한도) (비갱신형/갱신형) 특별약관 1.(보험금의 지급사유)",
+          "page": 99
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 20,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액의 50%(보험계약일로부터 1년미만, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) 또는 보험가입금액의 100%(보험계약일로부터 1년이상, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) / 보험가입금액의 100%(15세미만 계약 또는 갱신형 갱신계약)"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "20,000원 × (5일 - 공제 3일)"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "40,000원"
+        }
+      ]
+    },
+    {
+      "policy": "KB 9회주는 암보험Plus",
+      "rider": "급성심근경색증진단비",
+      "status": "eligible",
+      "rider_catalog_key": "KB 9회주는 암보험Plus::급성심근경색증진단비",
+      "estimated_amount": 10000000,
+      "calculation": "10,000,000원 × 100%",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "최초의 계약 보험계약일부터 1년미만: 이 특별약관의 보험가입금액 50%, 보험계약일부터 1년이상: 이 특별약관의 보험가입금액 100%; 갱신된 계약: 이 특별약관의 보험가입금액 100%",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "KB 급성심근경색증진단비",
+          "field": "coverage_amount",
+          "amount": 10000000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "급성심근경색증진단비 특별약관 제1조(보험금의 지급사유)",
+          "page": 198
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 10,000,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "최초의 계약 보험계약일부터 1년미만: 이 특별약관의 보험가입금액 50%, 보험계약일부터 1년이상: 이 특별약관의 보험가입금액 100%; 갱신된 계약: 이 특별약관의 보험가입금액 100%"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "10,000,000원 × 100%"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "10,000,000원"
+        }
+      ]
+    },
+    {
+      "policy": "KB 9회주는 암보험Plus",
+      "rider": "허혈성심장질환진단비",
+      "status": "eligible",
+      "rider_catalog_key": "KB 9회주는 암보험Plus::허혈성심장질환진단비",
+      "estimated_amount": 5000000,
+      "calculation": "5,000,000원 × 100%",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "최초의 계약 보험계약일부터 1년미만: 이 특별약관의 보험가입금액 50%, 최초의 계약 보험계약일부터 1년이상: 이 특별약관의 보험가입금액 100%, 갱신된 계약: 이 특별약관의 보험가입금액 100%",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "KB 허혈성심장질환진단비",
+          "field": "coverage_amount",
+          "amount": 5000000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "허혈성심장질환진단비 특별약관 제1조(보험금의 지급사유)",
+          "page": 254
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 5,000,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "최초의 계약 보험계약일부터 1년미만: 이 특별약관의 보험가입금액 50%, 최초의 계약 보험계약일부터 1년이상: 이 특별약관의 보험가입금액 100%, 갱신된 계약: 이 특별약관의 보험가입금액 100%"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "5,000,000원 × 100%"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "5,000,000원"
+        }
+      ]
+    },
+    {
+      "policy": "KB 9회주는 암보험Plus",
+      "rider": "허혈성심장질환입원일당(1일이상180일한도)",
+      "status": "eligible",
+      "rider_catalog_key": "KB 9회주는 암보험Plus::허혈성심장질환입원일당(1일이상180일한도)",
+      "estimated_amount": 100000,
+      "calculation": "20,000원 × 5일",
+      "payable_days": 5,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "KB 허혈성심장질환입원일당",
+          "field": "coverage_amount_per_day",
+          "amount": 20000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "58. 허혈성심장질환입원일당(1일이상180일한도) 제1조(보험금의 지급사유)",
+          "page": 282
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 20,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "20,000원 × 5일"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "100,000원"
+        }
+      ]
+    }
+  ],
+  "must_not_match": [
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "뇌혈관질환입원일당(4일이상120일한도)"
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "허혈심장질환사망(비갱신형/갱신형)",
+      "reason": "사망 사건 없음"
+    },
+    {
+      "policy": "KB 9회주는 암보험Plus",
+      "rider": "질병사망",
+      "reason": "사망 사건 없음"
+    }
+  ],
+  "expected_summary": {
+    "eligible_count": 6,
+    "not_met_count": 0
+  },
+  "display_rule": {
+    "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+    "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+    "show_total_as_confirmed_payment": false
+  },
+  "demo_amount_inputs": [
+    {
+      "label": "DB 급성심근경색증진단비",
+      "field": "coverage_amount",
+      "amount": 10000000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "DB 질병입원일당",
+      "field": "coverage_amount_per_day",
+      "amount": 10000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "DB 허혈심장질환입원일당",
+      "field": "coverage_amount_per_day",
+      "amount": 20000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "KB 급성심근경색증진단비",
+      "field": "coverage_amount",
+      "amount": 10000000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "KB 허혈성심장질환진단비",
+      "field": "coverage_amount",
+      "amount": 5000000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "KB 허혈성심장질환입원일당",
+      "field": "coverage_amount_per_day",
+      "amount": 20000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    }
+  ],
+  "policy_amount_summary": [
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "estimated_amount": 10090000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "급성심근경색증진단비(비갱신형/갱신형)",
+          "calculation": "10,000,000원 × 100%",
+          "estimated_amount": 10000000
+        },
+        {
+          "rider": "질병입원일당(1일이상180일한도)",
+          "calculation": "10,000원 × 5일",
+          "estimated_amount": 50000
+        },
+        {
+          "rider": "허혈심장질환입원일당(4일이상120일한도)",
+          "calculation": "20,000원 × (5일 - 공제 3일)",
+          "estimated_amount": 40000
+        }
+      ],
+      "total_calculation": "10,000,000원 + 50,000원 + 40,000원 = 10,090,000원"
+    },
+    {
+      "policy": "KB 9회주는 암보험Plus",
+      "estimated_amount": 15100000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "급성심근경색증진단비",
+          "calculation": "10,000,000원 × 100%",
+          "estimated_amount": 10000000
+        },
+        {
+          "rider": "허혈성심장질환진단비",
+          "calculation": "5,000,000원 × 100%",
+          "estimated_amount": 5000000
+        },
+        {
+          "rider": "허혈성심장질환입원일당(1일이상180일한도)",
+          "calculation": "20,000원 × 5일",
+          "estimated_amount": 100000
+        }
+      ],
+      "total_calculation": "10,000,000원 + 5,000,000원 + 100,000원 = 15,100,000원"
+    }
+  ]
+}
