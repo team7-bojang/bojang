@@ -1,4 +1,5 @@
 import { ChevronDown, ShieldCheck, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { cn } from '@/lib/utils';
 
@@ -18,16 +19,16 @@ export function AppHeader({ userName = '김보장님' }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-5 sm:px-8">
-        <a href="/" className="flex items-center gap-2 text-primary">
+        <Link to="/" className="flex items-center gap-2 text-primary">
           <ShieldCheck className="size-6" />
           <span className="text-lg font-bold text-ink">보장체크</span>
-        </a>
+        </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
           {NAV_ITEMS.map(item => (
-            <a
+            <button
               key={item.label}
-              href="#"
+              type="button"
               className={cn(
                 'relative rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 item.active ? 'text-primary' : 'text-muted hover:text-ink'
@@ -37,7 +38,7 @@ export function AppHeader({ userName = '김보장님' }: AppHeaderProps) {
               {item.active && (
                 <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-primary" />
               )}
-            </a>
+            </button>
           ))}
         </nav>
 

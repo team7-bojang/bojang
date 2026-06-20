@@ -45,7 +45,6 @@ export function PdfUpload({ onSelect, className }: PdfUploadProps) {
     setFileName(file.name);
     setStatus('uploading');
     setProgress(0);
-    onSelect?.(file);
 
     // TODO: 실제 업로드 연동 시 axios onUploadProgress 값으로 setProgress 교체.
     window.clearInterval(timerRef.current);
@@ -54,6 +53,8 @@ export function PdfUpload({ onSelect, className }: PdfUploadProps) {
         if (prev >= 100) {
           window.clearInterval(timerRef.current);
           setStatus('done');
+          // 업로드 성공 후에만 스토어에 반영 (실패 시 잔류 방지).
+          onSelect?.(file);
           return 100;
         }
         return prev + 8;
