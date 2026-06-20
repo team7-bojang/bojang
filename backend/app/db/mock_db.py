@@ -15,11 +15,26 @@ class InMemoryDB:
         self.reports = []
         self.diseases = []
         self.treatment_types = []
+        self.disease_group_aliases = []
+        self.disease_group_code_rules = []
         self._initialized = False
 
     def initialize_if_needed(self):
         if self._initialized:
             return
+
+        # disease_group_aliases 및 rules 사전 모의 생성
+        self.disease_group_aliases.extend([
+            {"id": 1, "group_id": "disc_disease", "alias": "허리디스크", "source": "service"},
+            {"id": 2, "group_id": "disc_disease", "alias": "목디스크", "source": "service"},
+            {"id": 3, "group_id": "disc_disease", "alias": "디스크", "source": "service"},
+            {"id": 4, "group_id": "fracture", "alias": "골절", "source": "service"},
+        ])
+        
+        self.disease_group_code_rules.extend([
+            {'id': 1, 'group_id': 'disc_disease', 'rule_type': 'include', 'code_start': 'M50', 'code_end': 'M51', 'code_system': 'KCD', 'confidence': 'medium', 'note': '디스크'},
+            {'id': 2, 'group_id': 'fracture', 'rule_type': 'include', 'code_start': 'S02', 'code_end': 'S92', 'code_system': 'KCD', 'confidence': 'policy_review_required', 'note': '골절'},
+        ])
 
         # treatment_types 사전 생성
         preset_treatments = [
@@ -402,5 +417,9 @@ class MockSupabaseClient:
             return MockQueryBuilder(table_name, db_instance.diseases)
         elif table_name == "treatment_types":
             return MockQueryBuilder(table_name, db_instance.treatment_types)
+        elif table_name == "disease_group_aliases":
+            return MockQueryBuilder(table_name, db_instance.disease_group_aliases)
+        elif table_name == "disease_group_code_rules":
+            return MockQueryBuilder(table_name, db_instance.disease_group_code_rules)
         else:
             raise ValueError(f"Unknown table: {table_name}")

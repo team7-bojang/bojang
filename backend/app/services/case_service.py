@@ -126,96 +126,160 @@ def create_case(
     disease_kcd_candidates = []
     disease_match_confidence = "high"
 
-    # 키워드 추출
-    import re
+    # 1) 입력어 내 부위(장기) 및 일상어 매핑 추출
+    # 대표적인 신체 부위 및 장기 키워드 매핑 사전
+    BODY_PARTS = ["손목", "발목", "허리", "목", "뇌", "위", "폐", "가슴", "어깨", "무릎", "심장", "대장", "간"]
+    body_part = None
+    for bp in BODY_PARTS:
+        if bp in initial_situation:
+            body_part = bp
+            break
 
-    words = re.findall(r"[가-힣a-zA-Z0-9]+", initial_situation)
-    keywords = []
-
-    # 1. 2글자 이상인 텍스트에서 간단히 조사 및 치료 관련어 제거
-    josa_suffixes = [
-        "은",
-        "는",
-        "이",
-        "가",
-        "을",
-        "를",
-        "에",
-        "에서",
-        "에게",
-        "의",
-        "으로",
-        "로",
-        "와",
-        "과",
-        "하고",
-        "했다",
-        "해요",
-        "했습니다",
-        "해서",
-        "했음",
-        "입원",
-        "통원",
-        "수술",
-        "치료",
-        "다녀왔어",
-        "방문",
-    ]
-    for w in words:
-        if len(w) < 2:
-            continue
-        cleaned = w
-        for josa in josa_suffixes:
-            if w.endswith(josa) and len(w) > len(josa):
-                candidate = w[: -len(josa)]
-                if len(candidate) >= 2:
-                    cleaned = candidate
-                    break
-        keywords.append(cleaned)
-
-    # 2. disease_group_aliases의 alias를 매칭하여 키워드에 추가
+    # 일상어 매핑을 통한 질병 그룹(group_id) 추출
+    matched_group_ids = []
     try:
-        aliases_res = db.table("disease_group_aliases").select("alias").execute()
-        db_aliases = [row["alias"] for row in aliases_res.data or []]
-        for alias in db_aliases:
+        aliases_res = db.table("disease_group_aliases").select("group_id, alias").execute()
+        for row in aliases_res.data or []:
+            alias = row["alias"]
             if alias in initial_situation:
-                keywords.append(alias)
+                matched_group_ids.append(row["group_id"])
     except Exception as e:
         print(f"[CaseService] Failed to query disease_group_aliases: {e}")
+    matched_group_ids = list(set(matched_group_ids))
 
-    keywords = list(set(keywords))
-
-    # 3. diseases 테이블 조회하여 후보군 수집
-    seen_kcds = set()
-    for kw in keywords:
-        if len(kw) < 2:
-            continue
+    # 2) 질병 그룹 코드 룰을 바탕으로 KCD 범위 수집
+    allowed_kcd_ranges = []
+    if matched_group_ids:
         try:
-            res = (
-                db.table("diseases")
-                .select("kcd, name")
-                .ilike("search_text", f"%{kw}%")
-                .limit(4)
-                .execute()
-            )
+            rules_res = db.table("disease_group_code_rules").select("*").in_("group_id", matched_group_ids).execute()
+            for rule in rules_res.data or []:
+                if rule["rule_type"] == "include":
+                    allowed_kcd_ranges.append((rule["code_start"], rule["code_end"]))
+        except Exception as e:
+            print(f"[CaseService] Failed to query disease_group_code_rules: {e}")
+
+    # 3) diseases 테이블 조회하여 후보군 필터링 및 수집
+    candidates_raw = []
+    
+    # 시나리오 A: 부위 키워드가 있는 경우
+    if body_part:
+        try:
+            # 부위 키워드로 diseases 조회
+            res = db.table("diseases").select("*").ilike("search_text", f"%{body_part}%").execute()
+            
+            # KCD 범위가 있다면 해당 범위로 필터링, 없으면 전체 매칭
             for item in res.data or []:
                 kcd = item["kcd"]
-                if kcd not in seen_kcds:
-                    seen_kcds.add(kcd)
-                    disease_kcd_candidates.append({"kcd": kcd, "name": item["name"]})
-            if len(disease_kcd_candidates) >= 4:
-                break
+                if allowed_kcd_ranges:
+                    # KCD 코드가 범위 내에 속하는지 체크 (단순 접두사 비교 또는 범위)
+                    in_range = False
+                    for start, end in allowed_kcd_ranges:
+                        kcd_clean = kcd[:3]
+                        if end:
+                            if start <= kcd_clean <= end:
+                                in_range = True
+                                break
+                        else:
+                            if kcd.startswith(start):
+                                in_range = True
+                                break
+                    if in_range:
+                        candidates_raw.append(item)
+                else:
+                    candidates_raw.append(item)
         except Exception as e:
-            print(f"[CaseService] Failed to query diseases for keyword {kw}: {e}")
+            print(f"[CaseService] Failed to query diseases by body part: {e}")
 
-    disease_kcd_candidates = disease_kcd_candidates[:4]
+    # 시나리오 B: 부위 키워드가 없고 질병 그룹만 있는 경우
+    elif allowed_kcd_ranges:
+        try:
+            # 해당 KCD 범위의 대표 질병들 수집
+            for start, end in allowed_kcd_ranges:
+                query = db.table("diseases").select("*")
+                if end:
+                    res = query.ilike("kcd", f"{start[0]}%").limit(20).execute()
+                    for item in res.data or []:
+                        kcd_clean = item["kcd"][:3]
+                        if start <= kcd_clean <= end:
+                            candidates_raw.append(item)
+                else:
+                    res = query.ilike("kcd", f"{start}%").limit(5).execute()
+                    candidates_raw.extend(res.data or [])
+        except Exception as e:
+            print(f"[CaseService] Failed to query diseases by range rules: {e}")
 
-    print(f"[create_case] initial_situation: {initial_situation}")
-    print(f"[create_case] extracted keywords: {keywords}")
-    print(f"[create_case] candidates count: {len(disease_kcd_candidates)}")
-    print(f"[create_case] candidates: {disease_kcd_candidates}")
+    # 시나리오 C: 아무것도 잡히지 않은 경우 기본 형태소 및 단어 매칭
+    if not candidates_raw:
+        # 기존 형태소 키워드 쿼리 폴백
+        words = re.findall(r"[가-힣a-zA-Z0-9]+", initial_situation)
+        keywords = []
+        josa_suffixes = ["은", "는", "이", "가", "을", "를", "에", "에서", "에게", "의", "으로", "로", "와", "과", "하고", "했다", "해요", "했습니다", "해서", "했음", "입원", "통원", "수술", "치료", "다녀왔어", "방문"]
+        for w in words:
+            if len(w) < 2:
+                continue
+            cleaned = w
+            for josa in josa_suffixes:
+                if w.endswith(josa) and len(w) > len(josa):
+                    candidate = w[: -len(josa)]
+                    if len(candidate) >= 2:
+                        cleaned = candidate
+                        break
+            keywords.append(cleaned)
+        keywords = list(set(keywords))
+        
+        seen_kcds = set()
+        for kw in keywords:
+            if len(kw) < 2:
+                continue
+            try:
+                res = db.table("diseases").select("*").ilike("search_text", f"%{kw}%").limit(5).execute()
+                for item in res.data or []:
+                    if item["kcd"] not in seen_kcds:
+                        seen_kcds.add(item["kcd"])
+                        candidates_raw.append(item)
+            except Exception as e:
+                print(f"[CaseService] Fallback diseases query failed: {e}")
 
-    # 4. 신뢰도 및 질병명 세팅
+    # 4) 사용자 친화적인 이름 치환 및 중복 제거
+    FRIENDLY_NAMES = {
+        "S62": "손목 골절",
+        "S63": "손목 염좌",
+        "S60": "손목 타박상",
+        "S635": "손목 인대 손상",
+        "G56": "손목터널증후군",
+        "M51": "허리디스크",
+        "S335": "요추 염좌 (허리 삠)",
+        "I63": "뇌경색증",
+        "J30": "알레르기성 비염",
+        "C16": "위암",
+        "C34": "폐암",
+        "I60": "지주막하출혈",
+        "I61": "뇌내출혈"
+    }
+
+    seen_kcds = set()
+    for item in candidates_raw:
+        kcd = item["kcd"]
+        if kcd not in seen_kcds:
+            seen_kcds.add(kcd)
+            # 이름 변환: 사전에 정의된 친근한 이름이 있으면 쓰고, 없으면 괄호 안 이름 추출 시도, 그마저도 없으면 원래 이름
+            name = FRIENDLY_NAMES.get(kcd)
+            if not name:
+                orig_name = item["name"]
+                match = re.search(r"\(([^)]+)\)", orig_name)
+                if match:
+                    name = match.group(1)
+                else:
+                    name = orig_name
+            disease_kcd_candidates.append({"kcd": kcd, "name": name})
+
+    # 정렬 및 5개 한도 제한 (가장 매치 확률이 높은 것 위주)
+    if body_part:
+        disease_kcd_candidates.sort(key=lambda x: body_part not in x["name"])
+        
+    disease_kcd_candidates = disease_kcd_candidates[:5]
+
+    # 5) 최종 신뢰도 및 대표 질병명 세팅
     if len(disease_kcd_candidates) > 1:
         disease_match_confidence = "need_user_confirmation"
         disease_kcd = disease_kcd_candidates[0]["kcd"]
