@@ -882,7 +882,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                         </div>
                     </div>
 
-                    <button onclick="submitPresets()" class="btn-preset-submit">보험 등록 및 챗봇 실행</button>
+                    <button id="btn-preset-submit" onclick="submitPresets()" class="btn-preset-submit">보험 등록 및 챗봇 실행</button>
                 </div>
             </div>
 
@@ -1148,8 +1148,9 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
 
         // Submit presets
-        // Submit presets
+        let isSubmittingPresets = false;
         async function submitPresets() {
+            if (isSubmittingPresets) return;
             if (selectedPresetIds.length === 0) {
                 alert('가입 보험을 최소 1개 이상 선택해 주세요.');
                 return;
@@ -1158,6 +1159,14 @@ HTML_CONTENT = """<!DOCTYPE html>
                 alert('CASE2 (추가보장 비교) 서비스는 1개의 보험 상품만 선택할 수 있습니다.');
                 return;
             }
+
+            const btn = document.getElementById('btn-preset-submit');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = '보험 등록 및 분석 세션 초기화 중...';
+            }
+            isSubmittingPresets = true;
+
             try {
                 const res = await fetchAPI('/policies/select', {
                     method: 'POST',
@@ -1185,6 +1194,12 @@ HTML_CONTENT = """<!DOCTYPE html>
                 }
             } catch (err) {
                 alert('보험 프리셋 설정에 실패했습니다: ' + err.message);
+            } finally {
+                isSubmittingPresets = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = '보험 등록 및 챗봇 실행';
+                }
             }
         }
 

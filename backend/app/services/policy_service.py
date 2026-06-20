@@ -1,9 +1,10 @@
-"""보험 등록·조회 + 업로드 시 parsing 파이프라인 호출 (F-01)."""
-
+import threading
 import uuid
 
 from app.core.errors import NotFoundError
 from app.db import get_client
+
+_select_presets_lock = threading.Lock()
 
 
 def get_presets() -> list[dict]:
@@ -24,71 +25,72 @@ def select_presets(user_id: str, preset_ids: list[str]) -> list[str]:
         if not res_p.data:
             raise NotFoundError(f"존재하지 않는 preset id가 포함되어 있습니다: {pid}")
 
-    for pid in preset_ids:
-        # 1. Preset 상품 조회
-        res_policy = db.table("policies").select("*").eq("id", pid).execute()
-        if not res_policy.data:
-            continue
-        preset_policy = res_policy.data[0]
+    with _select_presets_lock:
+        for pid in preset_ids:
+            # 1. Preset 상품 조회
+            res_policy = db.table("policies").select("*").eq("id", pid).execute()
+            if not res_policy.data:
+                continue
+            preset_policy = res_policy.data[0]
 
-        # 중복 방지: 이미 복제된 상품이 존재하는지 체크 (uq_policies_user_name_insurer 제약조건 방지)
-        res_existing = (
-            db.table("policies")
-            .select("id")
-            .eq("user_id", user_id)
-            .eq("name", preset_policy["name"])
-            .eq("insurer", preset_policy["insurer"])
-            .eq("is_preset", False)
-            .execute()
-        )
-        if res_existing.data:
-            registered_policy_ids.append(res_existing.data[0]["id"])
-            continue
+            # 중복 방지: 이미 복제된 상품이 존재하는지 체크 (uq_policies_user_name_insurer 제약조건 방지)
+            res_existing = (
+                db.table("policies")
+                .select("id")
+                .eq("user_id", user_id)
+                .eq("name", preset_policy["name"])
+                .eq("insurer", preset_policy["insurer"])
+                .eq("is_preset", False)
+                .execute()
+            )
+            if res_existing.data:
+                registered_policy_ids.append(res_existing.data[0]["id"])
+                continue
 
-        # 2. 상품 복제 (is_preset=False, user_id 할당)
-        new_policy_id = str(uuid.uuid4())
-        cloned_policy = {
-            "id": new_policy_id,
-            "name": preset_policy["name"],
-            "insurer": preset_policy["insurer"],
-            "type": preset_policy["type"],
-            "is_preset": False,
-            "pdf_path": preset_policy.get("pdf_path"),
-        }
-        # mock_db 및 real db에 user_id 저장을 위해 cases나 임의 필드 처리
-        # 여기서는 policies 테이블에 user_id 칼럼이 SQL상 정의되어 있지 않지만,
-        # meta 나 select를 위해 python mock_db에서 user_id로 구분이 가능하도록
-        # meta에 보관하거나, mock_db는 동적 필드를 지원하므로
-        # cloned_policy["user_id"] = user_id 형태로 처리
-        cloned_policy["user_id"] = user_id
-        db.table("policies").insert(cloned_policy).execute()
+            # 2. 상품 복제 (is_preset=False, user_id 할당)
+            new_policy_id = str(uuid.uuid4())
+            cloned_policy = {
+                "id": new_policy_id,
+                "name": preset_policy["name"],
+                "insurer": preset_policy["insurer"],
+                "type": preset_policy["type"],
+                "is_preset": False,
+                "pdf_path": preset_policy.get("pdf_path"),
+            }
+            # mock_db 및 real db에 user_id 저장을 위해 cases나 임의 필드 처리
+            # 여기서는 policies 테이블에 user_id 칼럼이 SQL상 정의되어 있지 않지만,
+            # meta 나 select를 위해 python mock_db에서 user_id로 구분이 가능하도록
+            # meta에 보관하거나, mock_db는 동적 필드를 지원하므로
+            # cloned_policy["user_id"] = user_id 형태로 처리
+            cloned_policy["user_id"] = user_id
+            db.table("policies").insert(cloned_policy).execute()
 
-        # 3. 연결된 특약(riders) 복제
-        res_riders = db.table("riders").select("*").eq("policy_id", pid).execute()
+            # 3. 연결된 특약(riders) 복제
+            res_riders = db.table("riders").select("*").eq("policy_id", pid).execute()
 
-        riders_to_insert = []
-        chunks_to_insert = []
+            riders_to_insert = []
+            chunks_to_insert = []
 
-        for r in res_riders.data or []:
-            new_rider = r.copy()
-            new_rider_id = str(uuid.uuid4())
-            new_rider["id"] = new_rider_id
-            new_rider["policy_id"] = new_policy_id
-            new_rider["verified"] = True
-            riders_to_insert.append(new_rider)
+            for r in res_riders.data or []:
+                new_rider = r.copy()
+                new_rider_id = str(uuid.uuid4())
+                new_rider["id"] = new_rider_id
+                new_rider["policy_id"] = new_policy_id
+                new_rider["verified"] = True
+                riders_to_insert.append(new_rider)
 
-            # chunker를 사용해 rider_chunks 생성
-            from app.rag.chunker import chunk_rider
+                # chunker를 사용해 rider_chunks 생성
+                from app.rag.chunker import chunk_rider
 
-            chunks = chunk_rider(new_rider)
-            chunks_to_insert.extend(chunks)
+                chunks = chunk_rider(new_rider)
+                chunks_to_insert.extend(chunks)
 
-        if riders_to_insert:
-            db.table("riders").insert(riders_to_insert).execute()
-        if chunks_to_insert:
-            db.table("rider_chunks").insert(chunks_to_insert).execute()
+            if riders_to_insert:
+                db.table("riders").insert(riders_to_insert).execute()
+            if chunks_to_insert:
+                db.table("rider_chunks").insert(chunks_to_insert).execute()
 
-        registered_policy_ids.append(new_policy_id)
+            registered_policy_ids.append(new_policy_id)
 
     return registered_policy_ids
 
