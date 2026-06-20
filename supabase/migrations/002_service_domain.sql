@@ -20,6 +20,11 @@ create table if not exists cases (
     claimed_policy_ids       jsonb        not null default '[]',  -- 이미 청구한 policies.id 배열
     policy_elapsed_days      integer,                             -- 면책·감액 판정용 (보험계약일~현재 일수). null → "확인 불가" 처리
     coverage_amounts         jsonb        not null default '[]',  -- 보장별 가입금액 묶음 [{rider_id,amount,amount_source}]. amount_source: 데모가정(화면 "가입금액 기준 예시" 라벨 강제)/실증권(사용자 증권 입력값). judge() 정액 calc 계산 시 참조. 미입력 보장은 calc=null (v1.5)
+    hospitalization_type     varchar(10),                         -- 'INPATIENT' | 'OUTPATIENT'
+    additional_treatments    text[]       default '{}',           -- 치료 항목 배열 (체크리스트)
+    payment_amount           integer,                             -- 환자 실부담 결제 금액 (원)
+    visit_dates              date[]       default '{}',           -- 방문 날짜 배열, 청구 3년 이내 판별용
+    annual_visit_count       integer,                             -- 연간 진료 횟수, 특약 한도 판별용
     created_at               timestamptz  not null default now()  -- 마이페이지 이력 정렬 기준
 );
 
