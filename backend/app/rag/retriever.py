@@ -102,18 +102,18 @@ class Retriever:
             if is_silsil:
                 # 상해 상황인데 질병 실손이거나, 질병 상황인데 상해 실손이면 가산점 배제
                 if is_injury_query and "질병" in rider_name:
-                    keyword_score -= 10.0
+                    keyword_score -= 1.0
                 elif is_disease_query and "상해" in rider_name:
-                    keyword_score -= 10.0
+                    keyword_score -= 1.0
                 else:
                     has_hosp = any(w in query for w in ["입원", "치료"])
                     has_outpatient = any(w in query for w in ["통원", "치료", "외래"])
                     if "입원" in rider_name and has_hosp:
-                        keyword_score += 12.0
+                        keyword_score += 1.2
                     elif "통원" in rider_name and has_outpatient:
-                        keyword_score += 12.0
+                        keyword_score += 1.2
                     else:
-                        keyword_score += 4.0
+                        keyword_score += 0.4
 
             # 질병 도메인별 그룹 가산점
             # 뇌혈관질환 그룹
@@ -138,7 +138,7 @@ class Retriever:
                 w in rider_name or w in content for w in ["뇌혈관", "뇌졸중", "뇌출혈"]
             )
             if has_brain_query and has_brain_rider:
-                keyword_score += 15.0
+                keyword_score += 1.5
 
             # 암 그룹
             cancer_keywords = [
@@ -154,7 +154,7 @@ class Retriever:
             has_cancer_query = any(w in query.lower() for w in cancer_keywords)
             has_cancer_rider = any(w in rider_name or w in content for w in ["암", "악성신생물"])
             if has_cancer_query and has_cancer_rider:
-                keyword_score += 15.0
+                keyword_score += 1.5
 
             # 척추/디스크 그룹
             spine_keywords = ["디스크", "추간판", "척추", "허리디스크", "m50", "m51"]
@@ -163,17 +163,17 @@ class Retriever:
                 w in rider_name or w in content for w in ["디스크", "추간판", "척추"]
             )
             if has_spine_query and has_spine_rider:
-                keyword_score += 15.0
+                keyword_score += 1.5
 
             # 질병 관련 특약 가산점 (질병 상황 시 일반 질병 특약 매칭 보정)
             is_disease_rider = "질병" in rider_name
             if is_disease_query and is_disease_rider:
                 if not is_silsil:
-                    keyword_score += 15.0
+                    keyword_score += 1.5
 
             # 특정 "진단비" 메인 특약 가산점 (질환 진단 쿼리 시 진단비/진단자금 특약 보정)
             if is_disease_query and any(w in rider_name for w in ["진단비", "진단자금", "진단금"]):
-                keyword_score += 5.0
+                keyword_score += 0.5
 
             # 일반 암진단비 / 일반 3대질병진단비 보정 가산점 (특정 부위/한정 암 제외)
             if any(w in rider_name for w in ["암진단비", "암진단자금"]) and not any(
@@ -191,7 +191,7 @@ class Retriever:
                     "식도",
                 ]
             ):
-                keyword_score += 4.0
+                keyword_score += 0.4
 
             # 특정 신체부위/질환 한정 특약에 대한 키워드 페널티 (일반 암진단비 누락 방지)
             for limit_kw in [
@@ -211,11 +211,11 @@ class Retriever:
             ]:
                 if limit_kw in rider_name or limit_kw in content:
                     if limit_kw not in query:
-                        keyword_score -= 8.0
+                        keyword_score -= 0.8
 
             for word in query_words:
                 if word in content or word in rider_name:
-                    keyword_score += 0.5
+                    keyword_score += 0.05
                     # 핵심 도메인 키워드 추가 가중치
                     if word in [
                         "디스크",
@@ -227,7 +227,7 @@ class Retriever:
                         "수술",
                         "통원",
                     ]:
-                        keyword_score += 2.0
+                        keyword_score += 0.2
 
             total_score = sim_score + keyword_score
             scored_chunks.append((chunk, total_score))
