@@ -282,29 +282,29 @@ export default function App() {
         setCurrentCaseId(data.case_id);
 
         // 질환 정보 임시 업데이트
+        let parsedCurrent = 3;
+        let parsedDiag = 7;
+        if (text.includes('14일')) {
+          parsedCurrent = 14;
+          parsedDiag = 14;
+        } else if (text.includes('30일')) {
+          parsedCurrent = 30;
+          parsedDiag = 30;
+        } else if (text.includes('5일')) {
+          parsedCurrent = 5;
+          parsedDiag = 5;
+        } else if (text.includes('3일')) {
+          parsedCurrent = 3;
+          parsedDiag = text.includes('7일') ? 7 : 3;
+        }
+
         setExtractedInfo(prev => ({
           ...prev,
-          disease_name: text.includes('뇌경색')
-            ? '뇌경색증'
-            : text.includes('위암')
-              ? '위암'
-              : '기타 추간판 장애 (허리디스크)',
-          disease_kcd: text.includes('뇌경색') ? 'I63' : text.includes('위암') ? 'C16' : 'M51',
-          surgery: text.includes('수술'),
-          current_days: text.includes('30일')
-            ? 30
-            : text.includes('14일')
-              ? 14
-              : text.includes('5일')
-                ? 5
-                : 3,
-          diag_days: text.includes('30일')
-            ? 30
-            : text.includes('14일')
-              ? 14
-              : text.includes('5일')
-                ? 5
-                : 3,
+          disease_name: data.disease_name || (text.includes('뇌경색') ? '뇌경색증' : '기타 추간판 장애 (허리디스크)'),
+          disease_kcd: data.disease_kcd || (text.includes('뇌경색') ? 'I63' : 'M51'),
+          surgery: data.surgery !== undefined ? data.surgery : text.includes('수술'),
+          current_days: parsedCurrent,
+          diag_days: parsedDiag,
         }));
 
         // 챗봇 분석 결과 추천 버블 추가
@@ -312,29 +312,43 @@ export default function App() {
           data.claim_status === 'BEFORE_CLAIM'
             ? '아직 청구하지 않으신 상태'
             : '이미 청구해 보신 상태';
-        const botMsg: Message = {
-          id: generateId(),
-          sender: 'bot',
-          text: `상황을 확인했어요. 의도 분석 결과, 고객님은 [${statusText}]로 판별됩니다.\n\n${data.message}\n\n분석을 진행할 자료의 입력 방식을 아래에서 골라주세요.`,
-          timestamp: new Date(),
-          actions: (
-            <div className="flex gap-2 mt-3 flex-wrap">
-              <button
-                onClick={() => handleSelectInputMethod(data.case_id, 'PAYMENT')}
-                className="btn-action bg-accent text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 shadow-md cursor-pointer"
-              >
-                💳 결제 문자/카드내역 기반 (빠른 분석)
-              </button>
-              <button
-                onClick={() => handleSelectInputMethod(data.case_id, 'MEDICAL_DETAIL_STATEMENT')}
-                className="btn-action bg-gray-800 text-gray-200 border border-gray-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-700 shadow-md cursor-pointer"
-              >
-                📄 세부산정내역서 파일 기반 (정확한 분석)
-              </button>
-            </div>
-          ),
-        };
-        setChatMessages(prev => [...prev, botMsg]);
+
+        if (serviceType === 'CASE2') {
+          // CASE2: 영수증 입력 단계 없이 바로 의료 정보 검수 폼으로 연결
+          const botMsg: Message = {
+            id: generateId(),
+            sender: 'bot',
+            text: `상황을 확인했어요. 추가 보장 및 조건 비교를 진행하기 위해 아래의 진단 및 치료 정보를 검수해 주세요. 특히 '의사 권고 입원일수'가 맞는지 확인해 주세요.`,
+            timestamp: new Date(),
+            actions: renderVerificationForm(),
+          };
+          setChatMessages(prev => [...prev, botMsg]);
+        } else {
+          // CASE1: 기존의 영수증/내역서 입력 방식 분기 노출
+          const botMsg: Message = {
+            id: generateId(),
+            sender: 'bot',
+            text: `상황을 확인했어요. 의도 분석 결과, 고객님은 [${statusText}]로 판별됩니다.\n\n${data.message}\n\n분석을 진행할 자료의 입력 방식을 아래에서 골라주세요.`,
+            timestamp: new Date(),
+            actions: (
+              <div className="flex gap-2 mt-3 flex-wrap">
+                <button
+                  onClick={() => handleSelectInputMethod(data.case_id, 'PAYMENT')}
+                  className="btn-action bg-accent text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 shadow-md cursor-pointer"
+                >
+                  💳 결제 문자/카드내역 기반 (빠른 분석)
+                </button>
+                <button
+                  onClick={() => handleSelectInputMethod(data.case_id, 'MEDICAL_DETAIL_STATEMENT')}
+                  className="btn-action bg-gray-800 text-gray-200 border border-gray-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-700 shadow-md cursor-pointer"
+                >
+                  📄 세부산정내역서 파일 기반 (정확한 분석)
+                </button>
+              </div>
+            ),
+          };
+          setChatMessages(prev => [...prev, botMsg]);
+        }
       }
     } catch (err: unknown) {
       console.error(err);
@@ -491,6 +505,22 @@ export default function App() {
               />
             </div>
           </div>
+          {serviceType === 'CASE2' && (
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">의사 권고 입원일수 (일)</label>
+              <input
+                type="number"
+                value={extractedInfo.diag_days}
+                onChange={e =>
+                  setExtractedInfo({
+                    ...extractedInfo,
+                    diag_days: parseInt(e.target.value) || 0,
+                  })
+                }
+                className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-gray-300 focus:border-accent outline-none"
+              />
+            </div>
+          )}
           <div className="flex items-center gap-2 mt-1">
             <input
               type="checkbox"
@@ -557,13 +587,21 @@ export default function App() {
           setReport(resReport.data.data.body);
 
           // 5. 조건별 비교 데이터 로드 (POST /analysis/compare)
+          const compareScenarios =
+            serviceType === 'CASE2'
+              ? [
+                  { days: extractedInfo.current_days, name: `현재 입원 (${extractedInfo.current_days}일)` },
+                  { days: extractedInfo.diag_days, name: `의사 권고 (${extractedInfo.diag_days}일)` },
+                ]
+              : [
+                  { days: 3, name: '통상입원 (3일)' },
+                  { days: 14, name: '장기입원 (14일)' },
+                  { days: 30, name: '집중입원 (30일)' },
+                ];
+
           const compareRes = await api.post('/api/v1/analysis/compare', {
             case_id: currentCaseId,
-            scenarios: [
-              { days: 3, name: '통상입원 (3일)' },
-              { days: 14, name: '장기입원 (14일)' },
-              { days: 30, name: '집중입원 (30일)' },
-            ],
+            scenarios: compareScenarios,
           });
           if (compareRes.data.success) {
             setCompareData(compareRes.data.data);
