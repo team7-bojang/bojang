@@ -38,3 +38,6 @@ logs/
 Thumbs.db
 .idea/
 *.swp
+
+# ─────────────── Scratch Scripts ───────────────
+scratch/

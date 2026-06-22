@@ -1596,8 +1596,11 @@ HTML_CONTENT = """<!DOCTYPE html>
                     const res = await fetchAPI(`/cases/${activeCaseId}/dashboard`);
                     if (res.success) {
                         const dbVal = res.data.dashboard;
+                        const msgText = (serviceType === 'CASE2') 
+                            ? '좋아요. 제가 이해한 내용을 한 번 정리해볼게요.\n맞는지 확인한 뒤 분석을 시작할 수 있어요.'
+                            : '내용 확인을 위해 대시보드로 넘어갈게요.';
                         addBotMessage(
-                            '내용 확인을 위해 대시보드로 넘어갈게요.',
+                            msgText,
                             renderVerifyForm(dbVal)
                         );
                         // 대시보드 탭 활성화 및 렌더링
@@ -1966,6 +1969,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             const disease_name = data.disease_name || '기타 추간판 장애 (허리디스크)';
             const disease_kcd = data.disease_kcd || 'M51';
             const current_days = data.admission_days_current || 0;
+            const diagnosed_days = data.admission_days_diagnosed || current_days || 0;
             const policy_elapsed_days = data.policy_elapsed_days || 800;
             const surgery = data.surgery ? 'checked' : '';
             const is_inpt = data.is_inpatient ? 'checked' : '';
@@ -2002,6 +2006,14 @@ HTML_CONTENT = """<!DOCTYPE html>
                     return names[v] || v;
                 }).join(', ') : "없음";
 
+            const isCase2 = (serviceType === 'CASE2');
+            const diagnosedDaysFieldHtml = isCase2 ? `
+                <div class="verify-form-group" style="flex:1;">
+                    <label>의사 권고 입원일수 (일)</label>
+                    <input type="number" class="verify-input" name="diagnosed_days" value="${diagnosed_days}">
+                </div>
+            ` : `<input type="hidden" name="diagnosed_days" value="${current_days}">`;
+
             return `
                 <div class="verify-card" id="${formId}">
                     <div class="verify-form-group">
@@ -2022,9 +2034,10 @@ HTML_CONTENT = """<!DOCTYPE html>
                     </div>
                     <div style="display:flex; gap:0.5rem; margin-top:0.25rem;">
                         <div class="verify-form-group" style="flex:1;">
-                            <label>치료(입원) 일수 (일)</label>
+                            <label>${isCase2 ? '현재 입원일수 (일)' : '치료(입원) 일수 (일)'}</label>
                             <input type="number" class="verify-input" name="current_days" value="${current_days}">
                         </div>
+                        ${diagnosedDaysFieldHtml}
                         <div class="verify-form-group" style="flex:1;">
                             <label>가입 후 경과일 (일)</label>
                             <input type="number" class="verify-input" name="policy_elapsed_days" value="${policy_elapsed_days}">
@@ -2059,6 +2072,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             if (!form) return;
 
             const current_days = parseInt(form.querySelector('[name="current_days"]').value) || 0;
+            const diagnosed_days = parseInt(form.querySelector('[name="diagnosed_days"]')?.value) || current_days || 0;
             const policy_elapsed_days = parseInt(form.querySelector('[name="policy_elapsed_days"]').value) || 0;
             const surgery = form.querySelector('[name="surgery"]').checked;
             const disease_kcd = form.querySelector('[name="disease_kcd"]').value;
@@ -2081,7 +2095,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                         disease_name,
                         surgery,
                         admission_days_current: current_days,
-                        admission_days_diagnosed: current_days,
+                        admission_days_diagnosed: diagnosed_days,
                         policy_elapsed_days,
                         is_inpatient,
                         is_outpatient,
@@ -2098,7 +2112,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 });
 
                 // 3. POST /analysis/compare (v2.1)
-                const targetDays = current_days > 3 ? 30 : 14;
+                const targetDays = (serviceType === 'CASE2') ? diagnosed_days : (current_days > 3 ? 30 : 14);
                 const compareRes = await fetchAPI('/analysis/compare', {
                     method: 'POST',
                     body: {
