@@ -179,6 +179,19 @@
   transform-origin: bottom;
 }
 
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility animate-marquee {
+  animation: marquee-scroll 40s linear infinite;
+}
+
 @layer base {
   * {
     border-color: var(--color-line);
@@ -300,7 +313,8 @@
 
   @media (prefers-reduced-motion: reduce) {
     .animate-result-enter,
-    .animate-coverage-bar-rise {
+    .animate-coverage-bar-rise,
+    .animate-marquee {
       animation: none;
     }
   }
