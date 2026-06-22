@@ -18,8 +18,7 @@ export function AuthForm() {
   const switchToLoginWithMessage = useAuthModalStore(state => state.switchToLoginWithMessage);
   const close = useAuthModalStore(state => state.close);
 
-  // AUTH_COPY[mode]의 유니온 타입에서 heroHeadline을 optional로 접근하기 위해 캐스팅
-  const copy = AUTH_COPY[mode] as (typeof AUTH_COPY)[typeof mode] & { heroHeadline?: string };
+  const copy = AUTH_COPY[mode];
   const isSignup = mode === 'signup';
 
   const [showPassword, setShowPassword] = useState(false);

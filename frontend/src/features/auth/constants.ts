@@ -1,6 +1,6 @@
 import type { AuthCopy, AuthMode } from './types';
 
-export const AUTH_COPY = {
+export const AUTH_COPY: Record<AuthMode, AuthCopy> = {
   login: {
     title: '다시 오신 걸 환영합니다',
     description: '저장된 보험 정보와 분석 내역을 이어서 확인하세요.',
@@ -16,4 +16,4 @@ export const AUTH_COPY = {
     switchLabel: '로그인',
     heroHeadline: '보험금 청구 가능성을\n놓치지 않게 확인하세요',
   },
-} satisfies Record<AuthMode, AuthCopy>;
+};
