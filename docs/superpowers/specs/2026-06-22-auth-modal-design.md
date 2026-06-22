@@ -59,7 +59,9 @@ interface AuthModalState {
 - `@radix-ui/react-dialog` 의 `Root`/`Portal`/`Overlay`/`Content`로 구성
 - `open`은 store의 `isOpen`, `onOpenChange`(false)는 store `close()` 연결 → ESC·바깥 클릭 닫기 자동
 - 내부에 `AuthForm` 렌더 (`key={mode}` 로 모드 전환 시 폼 리셋)
-- 컴팩트 카드 레이아웃. **Hero(마케팅 패널)는 모달에서 제외** — `AUTH_COPY`의 title/description이 모달 헤더 역할
+- 컴팩트 카드 레이아웃. **Hero 마케팅 패널(혜택 그리드 등)은 제외**하되, **회원가입 모드에서는 Hero 헤드라인 카피를 모달 상단에 노출**:
+  > 보험금 청구 가능성을<br>놓치지 않게 확인하세요
+- 로그인 모드는 기존 `AUTH_COPY.login`의 title/description만 사용 (컴팩트 유지)
 - Dialog `Title`/`Description`로 a11y 라벨 제공 (`AUTH_COPY` 재사용)
 
 ### 3. `features/auth/components/AuthForm.tsx` (수정)
@@ -81,8 +83,11 @@ interface AuthModalState {
 ### 5. 라우팅 / 정리
 
 - `App.tsx`: `/login` `/signup` 라우트 제거. 루트에 `<AuthModal />` 1회 마운트
-- 삭제: `pages/AuthPage.tsx`, `features/auth/components/AuthHero.tsx`, `features/auth/components/AuthHeader.tsx` (서로만 참조, 외부 의존 없음)
-- `features/auth/constants.ts`: `AUTH_COPY`의 `switchTo`(경로) 필드 제거, `AuthCopy` 타입에서도 제거. `switchLabel`/`switchText`는 모드 전환 버튼용으로 유지
+- 삭제: `pages/AuthPage.tsx`, `features/auth/components/AuthHero.tsx`, `features/auth/components/AuthHeader.tsx` (서로만 참조, 외부 의존 없음). 단, **삭제 전 `AuthHero`의 헤드라인 카피("보험금 청구 가능성을 / 놓치지 않게 확인하세요")를 `AUTH_COPY.signup`으로 이전**
+- `features/auth/constants.ts`:
+  - `AUTH_COPY`의 `switchTo`(경로) 필드 제거, `AuthCopy` 타입에서도 제거
+  - `AuthCopy`에 선택 필드 `heroHeadline?: string` 추가하고 `signup`에만 위 카피 설정 (로그인은 미설정 → 모달에서 미노출)
+  - `switchLabel`/`switchText`는 모드 전환 버튼용으로 유지
 - (선택) `/login` 직접 진입 대비 catch 처리는 이번 범위 밖 — 필요 시 추후
 
 ## 의존성
