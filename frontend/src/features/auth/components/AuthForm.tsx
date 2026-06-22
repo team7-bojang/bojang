@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, UserRound } from 'lucide-react';
+import { useState } from 'react';
+import { useForm, type Resolver } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,10 +27,10 @@ export function AuthForm() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isValid },
   } = useForm<AuthFormValues>({
     resolver: zodResolver(getAuthSchema(mode)) as unknown as Resolver<AuthFormValues>,
-    mode: 'onTouched',
+    mode: 'onChange',
     defaultValues: { name: '', email: '', password: '' },
   });
 
@@ -74,11 +74,6 @@ export function AuthForm() {
         <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary text-white">
           {isSignup ? <UserRound className="size-6" /> : <LockKeyhole className="size-6" />}
         </div>
-        {isSignup && copy.heroHeadline && (
-          <p className="mt-4 whitespace-pre-line text-xl font-black leading-7 text-ink">
-            {copy.heroHeadline}
-          </p>
-        )}
         <h2 className="mt-2 text-2xl font-black text-ink">{copy.title}</h2>
         <p className="mt-2 text-sm leading-6 text-muted">{copy.description}</p>
       </div>
@@ -161,7 +156,7 @@ export function AuthForm() {
           </p>
         )}
 
-        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || !isValid}>
           {isSubmitting ? '처리 중...' : copy.submit}
           {!isSubmitting && <ArrowRight />}
         </Button>
