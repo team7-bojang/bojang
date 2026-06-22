@@ -13,7 +13,14 @@ export function AuthModal() {
   const copy = AUTH_COPY[mode];
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={open => (open ? undefined : close())}>
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={isOpen => {
+        if (!isOpen) {
+          close();
+        }
+      }}
+    >
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-card bg-surface p-6 shadow-xl ring-1 ring-line focus:outline-none sm:p-7">
@@ -25,6 +32,7 @@ export function AuthModal() {
           >
             <X className="size-4" />
           </Dialog.Close>
+          {/* key={mode}: 모드 전환 시 폼·에러 상태 완전 초기화 */}
           <AuthForm key={mode} />
         </Dialog.Content>
       </Dialog.Portal>

@@ -1,6 +1,7 @@
-import { ChevronDown, ShieldCheck, User } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { UserMenu } from '@/components/common/UserMenu';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -10,12 +11,8 @@ const NAV_ITEMS = [
   { label: '고객센터', active: false },
 ];
 
-interface AppHeaderProps {
-  userName?: string;
-}
-
-/** 상단 글로벌 헤더 (로고 · 내비게이션 · 사용자). */
-export function AppHeader({ userName = '김보장님' }: AppHeaderProps) {
+/** 상단 글로벌 헤더 (로고 · 내비게이션 · 사용자 영역). */
+export function AppHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-5 sm:px-8">
@@ -42,16 +39,7 @@ export function AppHeader({ userName = '김보장님' }: AppHeaderProps) {
           ))}
         </nav>
 
-        <button
-          type="button"
-          className="flex items-center gap-2 rounded-full px-2 py-1.5 transition-colors hover:bg-canvas"
-        >
-          <span className="flex size-8 items-center justify-center rounded-full bg-primary-tint text-primary">
-            <User className="size-4" />
-          </span>
-          <span className="text-sm font-semibold text-ink">{userName}</span>
-          <ChevronDown className="size-4 text-muted" />
-        </button>
+        <UserMenu />
       </div>
     </header>
   );
