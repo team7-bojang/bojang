@@ -5,7 +5,7 @@
 """
 
 from app.core.constants import JudgeStatus
-from app.core.errors import NotFoundError
+from app.core.errors import ForbiddenError, NotFoundError
 from app.db import get_client
 from app.judge import judge
 from app.rag.explainer import explain
@@ -21,10 +21,15 @@ def search_analysis(user_id: str, case_id: str) -> dict:
     if not res_case.data:
         raise NotFoundError("해당 상황 정보(Case)를 찾을 수 없습니다.")
     case_data = res_case.data[0]
+    if case_data.get("user_id") != user_id:
+        raise ForbiddenError("다른 사용자의 case에 접근할 수 없습니다.")
 
-    # 2. 내 가입 보험 목록 조회
+    # 2. case 생성 시 사용자가 선택한 보험만 조회
     res_my = db.table("policies").select("*").eq("user_id", user_id).execute()
     my_policies = res_my.data or []
+    selected_policy_ids = set(case_data.get("policy_ids") or [])
+    if selected_policy_ids:
+        my_policies = [p for p in my_policies if p["id"] in selected_policy_ids]
     policy_ids = [p["id"] for p in my_policies]
     policy_names = {p["id"]: p["name"] for p in my_policies}
 
@@ -36,8 +41,9 @@ def search_analysis(user_id: str, case_id: str) -> dict:
     query = f"{case_data.get('disease_name', '')} {case_data.get('disease_kcd', '')}"
     if case_data.get("surgery"):
         query += " 수술"
-    if case_data.get("current_days"):
-        query += f" {case_data['current_days']}일 입원"
+    admission_days_current = case_data.get("admission_days_current", case_data.get("current_days"))
+    if admission_days_current:
+        query += f" {admission_days_current}일 입원"
 
     retriever = Retriever()
     chunks = retriever.search(query, policy_ids=policy_ids, k=15)
@@ -49,9 +55,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
     missed_count = 0
 
     # 기존에 저장된 해당 case_id의 이전 분석 결과가 있다면 클리어 (중복 방지)
-    db.table("analysis_results").select("*").eq(
-        "case_id", case_id
-    ).execute()  # (Mock DB 특성상 조회용)
+    db.table("analysis_results").select("*").eq("case_id", case_id).execute()  # (Mock DB 특성상 조회용)
 
     for chunk in chunks:
         rider = chunk.get("riders")
@@ -67,8 +71,8 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         judge_case = {
             "disease_kcd": case_data.get("disease_kcd", ""),
             "surgery": bool(case_data.get("surgery", False)),
-            "diag_days": int(case_data.get("diag_days") or 0),
-            "current_days": int(case_data.get("current_days") or 0),
+            "diag_days": int(case_data.get("admission_days_diagnosed", case_data.get("diag_days")) or 0),
+            "current_days": int(admission_days_current or 0),
             "policy_elapsed_days": case_data.get("policy_elapsed_days"),
         }
 
@@ -170,10 +174,15 @@ def compare_scenarios(user_id: str, case_id: str, scenarios: list[dict]) -> dict
     if not res_case.data:
         raise NotFoundError("해당 상황 정보(Case)를 찾을 수 없습니다.")
     case_data = res_case.data[0]
+    if case_data.get("user_id") != user_id:
+        raise ForbiddenError("다른 사용자의 case에 접근할 수 없습니다.")
 
-    # 2. 내 가입 보험 목록 조회
+    # 2. case 생성 시 사용자가 선택한 보험만 조회
     res_my = db.table("policies").select("*").eq("user_id", user_id).execute()
     my_policies = res_my.data or []
+    selected_policy_ids = set(case_data.get("policy_ids") or [])
+    if selected_policy_ids:
+        my_policies = [p for p in my_policies if p["id"] in selected_policy_ids]
     policy_ids = [p["id"] for p in my_policies]
     policy_names = {p["id"]: p["name"] for p in my_policies}
 
@@ -198,13 +207,13 @@ def compare_scenarios(user_id: str, case_id: str, scenarios: list[dict]) -> dict
 
             temp_case = {
                 "disease_kcd": case_data.get("disease_kcd", ""),
-                "surgery": surgery
-                if surgery is not None
-                else bool(case_data.get("surgery", False)),
-                "diag_days": days if days is not None else int(case_data.get("diag_days") or 0),
+                "surgery": surgery if surgery is not None else bool(case_data.get("surgery", False)),
+                "diag_days": days
+                if days is not None
+                else int(case_data.get("admission_days_diagnosed", case_data.get("diag_days")) or 0),
                 "current_days": days
                 if days is not None
-                else int(case_data.get("current_days") or 0),
+                else int(case_data.get("admission_days_current", case_data.get("current_days")) or 0),
                 "policy_elapsed_days": case_data.get("policy_elapsed_days"),
             }
 
@@ -239,8 +248,6 @@ def compare_scenarios(user_id: str, case_id: str, scenarios: list[dict]) -> dict
             )
 
         if has_applicable_scenario:
-            comparison_results.append(
-                {"policy": policy_name, "rider": r["name"], "outcomes": scenario_outcomes}
-            )
+            comparison_results.append({"policy": policy_name, "rider": r["name"], "outcomes": scenario_outcomes})
 
     return {"case_id": case_id, "scenarios": scenarios, "comparisons": comparison_results}

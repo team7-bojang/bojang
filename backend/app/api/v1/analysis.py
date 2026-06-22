@@ -33,19 +33,13 @@ class CompareRequest(BaseModel):
 @require_auth
 def search_analysis(body: SearchRequest):
     """상황 기준 보장 교차 검색 (RAG + 룰 엔진 연동) (SCR-04)."""
-    try:
-        data = analysis_service.search_analysis(g.user_id, body.case_id)
-        return response.ok(data)
-    except Exception as e:
-        return response.fail("server_error", str(e), 500)
+    data = analysis_service.search_analysis(g.user_id, body.case_id)
+    return response.ok(data)
 
 
 @bp.post("/analysis/compare")
 @require_auth
 def compare_scenarios(body: CompareRequest):
     """조건별 비교 분석 (SCR-05)."""
-    try:
-        data = analysis_service.compare_scenarios(g.user_id, body.case_id, body.scenarios)
-        return response.ok(data)
-    except Exception as e:
-        return response.fail("server_error", str(e), 500)
+    data = analysis_service.compare_scenarios(g.user_id, body.case_id, body.scenarios)
+    return response.ok(data)

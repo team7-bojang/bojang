@@ -47,24 +47,19 @@ def create_report(user_id: str, case_id: str) -> dict:
     if "뇌" in disease_name or "암" in disease_name:
         checklist.append(
             {
-                "task": (
-                    "전문의 진단명이 기재된 '진단서' 및 "
-                    "'조직검사결과지' 또는 '영상판독서' 챙기기"
-                ),
+                "task": ("전문의 진단명이 기재된 '진단서' 및 '조직검사결과지' 또는 '영상판독서' 챙기기"),
                 "done": False,
             }
         )
     if case.get("surgery"):
         checklist.append(
             {
-                "task": (
-                    "수술 일자 및 수술명 정보가 포함된 "
-                    "'수술확인서' 또는 '진단서' 발급 받기"
-                ),
+                "task": ("수술 일자 및 수술명 정보가 포함된 '수술확인서' 또는 '진단서' 발급 받기"),
                 "done": False,
             }
         )
-    if case.get("current_days") and case["current_days"] > 0:
+    admission_days_current = case.get("admission_days_current", case.get("current_days"))
+    if admission_days_current and admission_days_current > 0:
         checklist.append({"task": "입원 기간이 명시된 '입퇴원확인서' 챙기기", "done": False})
 
     # 소멸시효 문구
@@ -86,8 +81,7 @@ def create_report(user_id: str, case_id: str) -> dict:
             "disease_kcd": case.get("disease_kcd"),
             "disease_name": case.get("disease_name"),
             "surgery": case.get("surgery"),
-            "current_days": case.get("current_days"),
-            "initial_situation": case.get("initial_situation"),
+            "admission_days_current": admission_days_current,
         },
         "eligible_covers": eligible_covers,
         "missed_covers": missed_covers,
