@@ -495,23 +495,111 @@ git commit -m "feat(frontend): 인증 라우트 제거하고 AuthModal 마운트
 
 ---
 
-### Task 7: `AppHeader` 에 로그인 트리거 연결
+### Task 7: 세션 기반 사용자 영역 (`UserMenu`) 분리 + 헤더 연결
 
-`AppHeader` 의 하드코딩 사용자 영역을 "로그인" 버튼으로 교체한다.
+헤더의 사용자 표시 영역을 `components/common/UserMenu.tsx` 로 분리한다(랜딩·로그인 등 모든 화면에서 재사용). 세션 상태에 따라 **비로그인 → 로그인 모달 트리거**, **로그인 → 사용자 이름 표시**로 분기한다. 세션은 `useAuthSession` 훅으로 구독한다.
 
 **Files:**
+- Create: `frontend/src/features/auth/hooks/useAuthSession.ts`
+- Create: `frontend/src/components/common/UserMenu.tsx`
 - Modify: `frontend/src/features/home/components/AppHeader.tsx`
 
-- [ ] **Step 1: `AppHeader` 수정**
+- [ ] **Step 1: `useAuthSession` 훅 작성**
 
-`User`·`ChevronDown` 아이콘과 `userName` props 를 제거하고, 우측에 "로그인" 버튼을 둔다. 전체를 다음으로 교체한다:
+`frontend/src/features/auth/hooks/useAuthSession.ts` 생성. 마운트 시 현재 세션을 읽고 이후 `onAuthStateChange` 로 갱신한다. 언마운트 시 구독 해제.
+
+```ts
+import { useEffect, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
+
+import { supabase } from '@/lib/supabase';
+
+/** Supabase 인증 세션 구독. UI에서 로그인 상태/사용자 정보를 얻는다. */
+export function useAuthSession() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  return { user, loading };
+}
+```
+
+- [ ] **Step 2: 타입체크**
+
+Run: `pnpm --dir frontend build`
+Expected: PASS (새 미사용 훅 — 에러 없음).
+
+- [ ] **Step 3: `UserMenu` 작성**
+
+`frontend/src/components/common/UserMenu.tsx` 생성. 로딩 중에는 깜빡임 방지로 `null`. 비로그인은 "로그인" 버튼(모달 트리거), 로그인은 아바타 + 이름(메타데이터 `name`, 없으면 email). 로그아웃/드롭다운은 이번 범위 밖.
+
+```tsx
+import { User } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { useAuthSession } from '@/features/auth/hooks/useAuthSession';
+import { useAuthModalStore } from '@/features/auth/store/authModalStore';
+
+/** 헤더 우측 사용자 영역. 세션 유무에 따라 로그인 버튼 / 사용자 이름 표시. */
+export function UserMenu() {
+  const { user, loading } = useAuthSession();
+  const openAuth = useAuthModalStore(state => state.openAuth);
+
+  if (loading) {
+    return null;
+  }
+
+  if (!user) {
+    return (
+      <Button type="button" size="sm" onClick={() => openAuth('login')}>
+        로그인
+      </Button>
+    );
+  }
+
+  const name = (user.user_metadata?.name as string | undefined) ?? user.email ?? '사용자';
+
+  return (
+    <div className="flex items-center gap-2 rounded-full px-2 py-1.5">
+      <span className="flex size-8 items-center justify-center rounded-full bg-primary-tint text-primary">
+        <User className="size-4" />
+      </span>
+      <span className="text-sm font-semibold text-ink">{name}</span>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 4: `AppHeader` 수정**
+
+하드코딩 사용자 버튼(`userName` props, `User`·`ChevronDown` import 포함)을 제거하고 우측에 `<UserMenu />` 를 렌더한다. 전체를 다음으로 교체한다:
 
 ```tsx
 import { ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-import { useAuthModalStore } from '@/features/auth/store/authModalStore';
+import { UserMenu } from '@/components/common/UserMenu';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -521,10 +609,8 @@ const NAV_ITEMS = [
   { label: '고객센터', active: false },
 ];
 
-/** 상단 글로벌 헤더 (로고 · 내비게이션 · 로그인). */
+/** 상단 글로벌 헤더 (로고 · 내비게이션 · 사용자 영역). */
 export function AppHeader() {
-  const openAuth = useAuthModalStore(state => state.openAuth);
-
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-5 sm:px-8">
@@ -551,33 +637,31 @@ export function AppHeader() {
           ))}
         </nav>
 
-        <Button type="button" size="sm" onClick={() => openAuth('login')}>
-          로그인
-        </Button>
+        <UserMenu />
       </div>
     </header>
   );
 }
 ```
 
-- [ ] **Step 2: 잔존 참조 확인**
+- [ ] **Step 5: 잔존 참조 확인**
 
 `AppHeader` 를 `userName` props 와 함께 쓰는 곳이 없는지 확인한다.
 Run: `git -C C:\Users\sara0\Project\bojang grep -n "AppHeader" -- frontend/src`
 Expected: `HomePage.tsx` 의 import 와 `<AppHeader />`(props 없음) 사용만 보인다. props 를 넘기는 곳이 있으면 제거한다.
 
-- [ ] **Step 3: 타입체크 + lint**
+- [ ] **Step 6: 타입체크 + lint**
 
 Run: `pnpm --dir frontend build`
 Expected: PASS.
 Run: `pnpm --dir frontend lint`
 Expected: 신규 에러 없음.
 
-- [ ] **Step 4: 커밋**
+- [ ] **Step 7: 커밋**
 
 ```bash
-git add frontend/src/features/home/components/AppHeader.tsx
-git commit -m "feat(frontend): 헤더 로그인 버튼으로 인증 모달 트리거"
+git add frontend/src/features/auth/hooks/useAuthSession.ts frontend/src/components/common/UserMenu.tsx frontend/src/features/home/components/AppHeader.tsx
+git commit -m "feat(frontend): 세션 기반 UserMenu 분리하고 헤더에 연결"
 ```
 
 ---
@@ -599,9 +683,10 @@ Expected: 기존 경고(`button.tsx` react-refresh) 외 신규 에러·경고 �
 - [ ] **Step 3: 수동 확인 (`pnpm --dir frontend dev`)**
 
 브라우저(http://localhost:5173)에서 확인:
-- 헤더 "로그인" 클릭 → 모달 오픈
+- 비로그인 시 헤더 우측에 "로그인" 버튼 표시 → 클릭 시 모달 오픈
 - 로그인 모드: 빈 값/잘못된 이메일/짧은 비밀번호 → 필드별 에러 노출
 - "회원가입" 링크 클릭 → 회원가입 모드 전환(폼 리셋), 상단에 헤드라인 "보험금 청구 가능성을 / 놓치지 않게 확인하세요" 노출
 - 회원가입 성공 → 로그인 모드로 전환 + 안내 메시지 표시
+- 로그인 성공 → 모달 닫힘, 헤더 우측이 사용자 이름 표시로 전환
 - ESC·바깥 클릭·X 버튼으로 모달 닫힘
 ```
