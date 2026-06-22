@@ -88,6 +88,7 @@ function generateId(): string {
 export default function App() {
   // ── States ──
   const [step, setStep] = useState<number>(0); // 0: 보험선택, 1: 챗봇진행, 2: 분석완료
+  const [serviceType, setServiceType] = useState<'CASE1' | 'CASE2'>('CASE1');
   const [presets, setPresets] = useState<Preset[]>([]);
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -157,16 +158,32 @@ export default function App() {
 
   // ── Step 0: 가입할 보험 선택 ──
   const handleTogglePreset = (id: string) => {
-    if (selectedPresets.includes(id)) {
-      setSelectedPresets(selectedPresets.filter(x => x !== id));
+    if (serviceType === 'CASE2') {
+      // CASE2는 단일 보험만 선택 가능하므로 라디오 버튼처럼 동작
+      setSelectedPresets([id]);
     } else {
-      setSelectedPresets([...selectedPresets, id]);
+      if (selectedPresets.includes(id)) {
+        setSelectedPresets(selectedPresets.filter(x => x !== id));
+      } else {
+        setSelectedPresets([...selectedPresets, id]);
+      }
+    }
+  };
+
+  const handleSelectServiceType = (type: 'CASE1' | 'CASE2') => {
+    setServiceType(type);
+    if (type === 'CASE2' && selectedPresets.length > 1) {
+      setSelectedPresets([selectedPresets[0]]);
     }
   };
 
   const handleRegisterPolicies = async () => {
     if (selectedPresets.length === 0) {
       alert('최소 하나 이상의 보험을 선택해주세요.');
+      return;
+    }
+    if (serviceType === 'CASE2' && selectedPresets.length > 1) {
+      alert('추가 보장 비교(CASE2)는 단일 보험 상품 1개만 선택해야 합니다.');
       return;
     }
     setLoading(true);
@@ -177,11 +194,15 @@ export default function App() {
       if (res.data.success) {
         setStep(1);
         // 첫 웰컴 메시지 추가
+        const welcomeText =
+          serviceType === 'CASE1'
+            ? '안녕하세요! 가입하신 보험을 바탕으로 청구 가능한 특약을 찾아 드릴게요. 지금 어떤 치료나 질환 상황을 겪으셨나요?\n\n(예: "허리디스크 수술하고 30일 입원했어요", "뇌경색 3일 입원했는데 보장받을 수 있을까요?")'
+            : '안녕하세요! 단일 보험의 추가 보장 및 조건 비교를 도와드릴게요. 지금 겪으신 치료 상황이나 분석할 의사 권고 사항을 말씀해 주세요.\n\n(예: "뇌경색으로 3일 입원했는데 의사가 7일 입원을 권고했어요.")';
         setChatMessages([
           {
             id: 'welcome',
             sender: 'bot',
-            text: '안녕하세요! 가입하신 보험을 바탕으로 청구 가능한 특약을 찾아 드릴게요. 지금 어떤 치료나 질환 상황을 겪으셨나요?\n\n(예: "허리디스크 수술하고 30일 입원했어요", "뇌경색 3일 입원했는데 보장받을 수 있을까요?")',
+            text: welcomeText,
             timestamp: new Date(),
           },
         ]);
@@ -213,7 +234,11 @@ export default function App() {
 
     try {
       // POST /cases 호출
-      const res = await api.post('/api/v1/cases', { initial_situation: text });
+      const res = await api.post('/api/v1/cases', {
+        service_type: serviceType,
+        policy_ids: selectedPresets,
+        initial_situation: text,
+      });
       if (res.data.success) {
         const data = res.data.data;
 
@@ -577,6 +602,7 @@ export default function App() {
   // ── Helper: 챗봇 대화 리셋 ──
   const handleReset = () => {
     setStep(0);
+    setServiceType('CASE1');
     setPresets([]);
     setSelectedPresets([]);
     setChatMessages([]);
@@ -613,10 +639,41 @@ export default function App() {
             <div className="preset-card glass">
               <h2 className="preset-title">보장 분석을 위한 내 가입 보험 설정</h2>
               <p className="preset-desc">
-                가지고 계신 보험 상품을 선택해주세요. 해당 약관의 원문 데이터를 기반으로 숨겨진 청구
-                보장 및 특약을 RAG 탐색합니다.
+                분석할 서비스 종류를 선택하고, 가입하신 보험 상품을 등록해주세요. 해당 약관의 원문 데이터를 기반으로 특약을 분석합니다.
               </p>
 
+              {/* 서비스 유형 선택 */}
+              <div className="section-label">1. 분석 서비스 유형 선택</div>
+              <div className="service-select-container">
+                <div
+                  className={`service-card glass ${serviceType === 'CASE1' ? 'selected' : ''}`}
+                  onClick={() => handleSelectServiceType('CASE1')}
+                >
+                  <div className="service-card-radio"></div>
+                  <div className="service-card-header">
+                    <span className="service-card-icon">🔍</span>
+                    <h3 className="service-card-title">청구가능보험 찾기 (CASE1)</h3>
+                  </div>
+                  <p className="service-card-desc">
+                    다중 보험 교차 검색 및 결제내역/세부산정내역서 기반 지급 가능 특약 탐색
+                  </p>
+                </div>
+                <div
+                  className={`service-card glass ${serviceType === 'CASE2' ? 'selected' : ''}`}
+                  onClick={() => handleSelectServiceType('CASE2')}
+                >
+                  <div className="service-card-radio"></div>
+                  <div className="service-card-header">
+                    <span className="service-card-icon">📊</span>
+                    <h3 className="service-card-title">추가보장 비교 (CASE2)</h3>
+                  </div>
+                  <p className="service-card-desc">
+                    단일 보험 입원기간·가입기간 비교 및 시뮬레이션 기반 추가 보장 탐색 (보험 1개 제한)
+                  </p>
+                </div>
+              </div>
+
+              <div className="section-label">2. 내 가입 보험 상품 선택</div>
               {loading ? (
                 <div className="loader-container">
                   <div className="spinner"></div>
