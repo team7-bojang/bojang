@@ -1,14 +1,27 @@
 """GET/PATCH /cases/{case_id}/dashboard 계약 테스트 (API 명세서 v2.6 4-12/4-13)."""
 
+import datetime as dt
+
 import jwt
 
+from app.config import settings
 from app.db import get_client
 
 OWNER_ID = "00000000-0000-0000-0000-000000000000"  # require_auth 디버그 폴백 사용자
+_OTHER_USER_JWT_SECRET = "dashboard-test-secret"  # noqa: S105 - 테스트 전용 더미 시크릿
 
 
-def _other_user_auth_header() -> dict:
-    token = jwt.encode({"sub": "11111111-1111-1111-1111-111111111111"}, "x", algorithm="HS256")
+def _other_user_auth_header(monkeypatch) -> dict:
+    """실제 JWT 검증(_verify_supabase_jwt)을 통과하는, 소유자가 다른 사용자의 토큰."""
+    monkeypatch.setattr(settings, "supabase_jwt_secret", _OTHER_USER_JWT_SECRET)
+    now = dt.datetime.now(dt.UTC)
+    payload = {
+        "sub": "11111111-1111-1111-1111-111111111111",
+        "aud": settings.supabase_jwt_audience,
+        "exp": now + dt.timedelta(hours=1),
+        "iat": now,
+    }
+    token = jwt.encode(payload, _OTHER_USER_JWT_SECRET, algorithm="HS256")
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -68,10 +81,10 @@ def test_get_dashboard_404_when_case_missing(client):
     assert res.get_json()["error"]["code"] == "not_found"
 
 
-def test_get_dashboard_403_for_other_users_case(client):
+def test_get_dashboard_403_for_other_users_case(client, monkeypatch):
     case_id = _create_case()
 
-    res = client.get(f"/api/v1/cases/{case_id}/dashboard", headers=_other_user_auth_header())
+    res = client.get(f"/api/v1/cases/{case_id}/dashboard", headers=_other_user_auth_header(monkeypatch))
 
     assert res.status_code == 403
     assert res.get_json()["error"]["code"] == "forbidden"
@@ -140,13 +153,13 @@ def test_patch_dashboard_rejects_invalid_visit_date(client):
     assert res.get_json()["error"]["code"] == "validation_error"
 
 
-def test_patch_dashboard_403_for_other_users_case(client):
+def test_patch_dashboard_403_for_other_users_case(client, monkeypatch):
     case_id = _create_case()
 
     res = client.patch(
         f"/api/v1/cases/{case_id}/dashboard",
         json={"annual_visit_count": 1},
-        headers=_other_user_auth_header(),
+        headers=_other_user_auth_header(monkeypatch),
     )
 
     assert res.status_code == 403
