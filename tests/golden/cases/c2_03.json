@@ -1,0 +1,313 @@
+{
+  "schema_version": "2.0",
+  "id": "c2_03",
+  "service_type": "CASE2",
+  "description": "당뇨성 신증 5일과 10일 비교",
+  "selected_policies": [
+    "교보생명 New내생애맞춤건강보험"
+  ],
+  "case": {
+    "initial_situation": "당뇨성 신증으로 현재 5일째 입원, 권고기간 10일",
+    "disease": "당뇨성 신증",
+    "disease_kcd": "E112",
+    "is_inpatient": true,
+    "is_outpatient": false,
+    "surgery": false,
+    "admission_days_current": 5,
+    "admission_days_diagnosed": 10,
+    "treatment_items": [
+      "INJECTION"
+    ],
+    "annual_visit_count": 2,
+    "policy_elapsed_days": 730
+  },
+  "demo_assumptions": {
+    "26대생활습관병 입원비": {
+      "coverage_amount_per_day": 30000
+    },
+    "당뇨 관련 주요질환 입원급여금": {
+      "coverage_amount_per_day": 20000
+    }
+  },
+  "expected": [
+    {
+      "policy": "교보생명 New내생애맞춤건강보험",
+      "rider": "26대생활습관병 입원비",
+      "status": "eligible",
+      "rider_catalog_key": "교보생명 New내생애맞춤건강보험::26대생활습관병 입원비",
+      "estimated_amount": 150000,
+      "calculation": "30,000원 × 5일",
+      "payable_days": 5,
+      "scenario_days": 5,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "26대생활습관병 입원비",
+          "field": "coverage_amount_per_day",
+          "amount": 30000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "제6조(보험금의 지급사유) 2.",
+          "page": 199
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 30,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액"
+        },
+        {
+          "step": 3,
+          "title": "지급일수 계산",
+          "detail": "입원 5일 - 공제 0일 = 지급 5일"
+        },
+        {
+          "step": 4,
+          "title": "보험금 계산",
+          "detail": "30,000원 × 5일"
+        },
+        {
+          "step": 5,
+          "title": "최종 예상보험금",
+          "detail": "150,000원"
+        }
+      ]
+    },
+    {
+      "policy": "교보생명 New내생애맞춤건강보험",
+      "rider": "당뇨 관련 주요질환 입원급여금",
+      "status": "eligible",
+      "rider_catalog_key": "교보생명 New내생애맞춤건강보험::당뇨 관련 주요질환 입원급여금",
+      "estimated_amount": 100000,
+      "calculation": "20,000원 × 5일",
+      "payable_days": 5,
+      "scenario_days": 5,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액 (1년 미만 50%, 1년 이후 100%)",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "당뇨 관련 주요질환 입원급여금",
+          "field": "coverage_amount_per_day",
+          "amount": 20000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "제10조(보험금의 지급사유) 제6호 및 제21항~제27항",
+          "page": 659
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 20,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액 (1년 미만 50%, 1년 이후 100%)"
+        },
+        {
+          "step": 3,
+          "title": "지급일수 계산",
+          "detail": "입원 5일 - 공제 0일 = 지급 5일"
+        },
+        {
+          "step": 4,
+          "title": "보험금 계산",
+          "detail": "20,000원 × 5일"
+        },
+        {
+          "step": 5,
+          "title": "최종 예상보험금",
+          "detail": "100,000원"
+        }
+      ]
+    },
+    {
+      "policy": "교보생명 New내생애맞춤건강보험",
+      "rider": "26대생활습관병 입원비",
+      "status": "eligible",
+      "rider_catalog_key": "교보생명 New내생애맞춤건강보험::26대생활습관병 입원비",
+      "estimated_amount": 300000,
+      "calculation": "30,000원 × 10일",
+      "payable_days": 10,
+      "scenario_days": 10,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "26대생활습관병 입원비",
+          "field": "coverage_amount_per_day",
+          "amount": 30000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "제6조(보험금의 지급사유) 2.",
+          "page": 199
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 30,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액"
+        },
+        {
+          "step": 3,
+          "title": "지급일수 계산",
+          "detail": "입원 10일 - 공제 0일 = 지급 10일"
+        },
+        {
+          "step": 4,
+          "title": "보험금 계산",
+          "detail": "30,000원 × 10일"
+        },
+        {
+          "step": 5,
+          "title": "최종 예상보험금",
+          "detail": "300,000원"
+        }
+      ]
+    },
+    {
+      "policy": "교보생명 New내생애맞춤건강보험",
+      "rider": "당뇨 관련 주요질환 입원급여금",
+      "status": "eligible",
+      "rider_catalog_key": "교보생명 New내생애맞춤건강보험::당뇨 관련 주요질환 입원급여금",
+      "estimated_amount": 200000,
+      "calculation": "20,000원 × 10일",
+      "payable_days": 10,
+      "scenario_days": 10,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액 (1년 미만 50%, 1년 이후 100%)",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "당뇨 관련 주요질환 입원급여금",
+          "field": "coverage_amount_per_day",
+          "amount": 20000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "제10조(보험금의 지급사유) 제6호 및 제21항~제27항",
+          "page": 659
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 20,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액 (1년 미만 50%, 1년 이후 100%)"
+        },
+        {
+          "step": 3,
+          "title": "지급일수 계산",
+          "detail": "입원 10일 - 공제 0일 = 지급 10일"
+        },
+        {
+          "step": 4,
+          "title": "보험금 계산",
+          "detail": "20,000원 × 10일"
+        },
+        {
+          "step": 5,
+          "title": "최종 예상보험금",
+          "detail": "200,000원"
+        }
+      ]
+    }
+  ],
+  "must_not_match": [],
+  "expected_summary": {
+    "eligible_count": 4,
+    "not_met_count": 0
+  },
+  "display_rule": {
+    "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+    "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+    "show_total_as_confirmed_payment": false
+  },
+  "comparison_basis": "HOSPITALIZATION_DAYS",
+  "demo_amount_inputs": [
+    {
+      "label": "26대생활습관병 입원비",
+      "field": "coverage_amount_per_day",
+      "amount": 30000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "당뇨 관련 주요질환 입원급여금",
+      "field": "coverage_amount_per_day",
+      "amount": 20000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    }
+  ],
+  "policy_amount_summary": [
+    {
+      "policy": "교보생명 New내생애맞춤건강보험",
+      "scenario_days": 5,
+      "estimated_amount": 250000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "26대생활습관병 입원비",
+          "calculation": "30,000원 × 5일",
+          "estimated_amount": 150000
+        },
+        {
+          "rider": "당뇨 관련 주요질환 입원급여금",
+          "calculation": "20,000원 × 5일",
+          "estimated_amount": 100000
+        }
+      ],
+      "total_calculation": "150,000원 + 100,000원 = 250,000원"
+    },
+    {
+      "policy": "교보생명 New내생애맞춤건강보험",
+      "scenario_days": 10,
+      "estimated_amount": 500000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "26대생활습관병 입원비",
+          "calculation": "30,000원 × 10일",
+          "estimated_amount": 300000
+        },
+        {
+          "rider": "당뇨 관련 주요질환 입원급여금",
+          "calculation": "20,000원 × 10일",
+          "estimated_amount": 200000
+        }
+      ],
+      "total_calculation": "300,000원 + 200,000원 = 500,000원"
+    }
+  ]
+}

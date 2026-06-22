@@ -1,0 +1,62 @@
+{
+  "schema_version": "2.0",
+  "case_required": [
+    "id",
+    "service_type",
+    "description",
+    "selected_policies",
+    "case",
+    "expected",
+    "must_not_match",
+    "demo_assumptions"
+  ],
+  "expected_required": [
+    "policy",
+    "rider",
+    "status",
+    "estimated_amount",
+    "calculation",
+    "amount_basis"
+  ],
+  "allowed_status": [
+    "eligible",
+    "claimed",
+    "boundary_not_met",
+    "waiting_period_not_met",
+    "verification_required",
+    "not_applicable",
+    "potential"
+  ],
+  "amount_policy": {
+    "meaning": "데모 가입금액 기준 예상금액",
+    "fixed_benefit": "coverage_amount × payable_days × reduction.rate",
+    "indemnity": "covered_amount × reimbursement_rate",
+    "not_eligible": 0,
+    "confirmed_payment_forbidden": true
+  },
+  "field_guide": {
+    "schema_version": "골든셋 구조 버전",
+    "id": "시나리오 고유 ID",
+    "service_type": "CASE1 보장 탐색 또는 CASE2 조건 비교",
+    "description": "시나리오 요약",
+    "selected_policies": "분석 대상 보험 상품 목록",
+    "case": "사용자가 입력하거나 챗봇이 수집한 상황 정보",
+    "demo_assumptions": "예상금액 계산용 임시 가입금액",
+    "expected": "백엔드가 반환해야 하는 특약별 정답 결과",
+    "must_not_match": "검색 결과에 포함되면 오탐인 특약",
+    "expected_summary": "기대 결과 개수 또는 빈 결과 요약",
+    "display_rule": "프론트 금액 표시와 안내 문구 규칙",
+    "demo_amount_inputs": "계산에 대입한 데모 보험가입금액·병원비와 출처 구분",
+    "policy_amount_summary": "보험별 또는 비교 일수별 최종 예상보험금 합계",
+    "calculation_steps": "입력값·약관 기준·공제·감액·최종금액의 순서별 계산 과정",
+    "calculation_breakdown": "보험별 합계에 포함된 특약별 계산 내역",
+    "total_calculation": "특약별 예상금액을 합산한 보험별 계산식",
+    "comparison_basis": "입원일수·가입기간·복합 등 비교 기준",
+    "estimated_amount": "데모 가입금액 기준 예상금액. 지급 대상이 아니면 0",
+    "calculation": "예상금액 계산식",
+    "payable_days": "공제일수를 반영한 실제 지급 계산 일수",
+    "gap_days": "지급 경계조건까지 부족한 일수",
+    "reduction": "가입 초기 감액 적용 여부·비율·적용 기간",
+    "rider_catalog_key": "rider_catalog.json의 근거 특약 조회 키"
+  }
+}

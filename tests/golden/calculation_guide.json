@@ -1,0 +1,1999 @@
+[
+  {
+    "case_id": "c2_01",
+    "description": "뇌경색 3일 퇴원과 7일 입원 비교",
+    "demo_amount_inputs": [
+      {
+        "label": "질병입원일당(1일이상180일한도)",
+        "field": "coverage_amount_per_day",
+        "amount": 10000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "뇌혈관질환입원일당(4일이상120일한도)",
+        "field": "coverage_amount_per_day",
+        "amount": 20000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "rider_calculations": [
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "질병입원일당(1일이상180일한도)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "지급일수 계산",
+            "detail": "입원 3일 - 공제 0일 = 지급 3일"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "10,000원 × 3일"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "30,000원"
+          }
+        ],
+        "estimated_amount": 30000
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "뇌혈관질환입원일당(4일이상120일한도)",
+        "status": "boundary_not_met",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 20,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액의 100% (1년미만 경과기간은 50%)"
+          },
+          {
+            "step": 3,
+            "title": "미지급 판정",
+            "detail": "최소 입원일수까지 1일 부족"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "질병입원일당(1일이상180일한도)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "지급일수 계산",
+            "detail": "입원 7일 - 공제 0일 = 지급 7일"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "10,000원 × 7일"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "70,000원"
+          }
+        ],
+        "estimated_amount": 70000
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "뇌혈관질환입원일당(4일이상120일한도)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 20,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액의 100% (1년미만 경과기간은 50%)"
+          },
+          {
+            "step": 3,
+            "title": "지급일수 계산",
+            "detail": "입원 7일 - 공제 3일 = 지급 4일"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "20,000원 × (7일 - 공제 3일)"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "80,000원"
+          }
+        ],
+        "estimated_amount": 80000
+      }
+    ],
+    "policy_totals": [
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "scenario_days": 3,
+        "estimated_amount": 30000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "질병입원일당(1일이상180일한도)",
+            "calculation": "10,000원 × 3일",
+            "estimated_amount": 30000
+          }
+        ],
+        "total_calculation": "30,000원 = 30,000원"
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "scenario_days": 7,
+        "estimated_amount": 150000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "질병입원일당(1일이상180일한도)",
+            "calculation": "10,000원 × 7일",
+            "estimated_amount": 70000
+          },
+          {
+            "rider": "뇌혈관질환입원일당(4일이상120일한도)",
+            "calculation": "20,000원 × (7일 - 공제 3일)",
+            "estimated_amount": 80000
+          }
+        ],
+        "total_calculation": "70,000원 + 80,000원 = 150,000원"
+      }
+    ]
+  },
+  {
+    "case_id": "c2_02",
+    "description": "급성심근경색 3일과 4일 경계 비교",
+    "demo_amount_inputs": [
+      {
+        "label": "질병입원일당(1일이상180일한도)",
+        "field": "coverage_amount_per_day",
+        "amount": 10000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "허혈심장질환입원일당(4일이상120일한도)",
+        "field": "coverage_amount_per_day",
+        "amount": 20000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "rider_calculations": [
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "질병입원일당(1일이상180일한도)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "지급일수 계산",
+            "detail": "입원 3일 - 공제 0일 = 지급 3일"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "10,000원 × 3일"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "30,000원"
+          }
+        ],
+        "estimated_amount": 30000
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "허혈심장질환입원일당(4일이상120일한도)",
+        "status": "boundary_not_met",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 20,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액의 50%(보험계약일로부터 1년미만, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) 또는 보험가입금액의 100%(보험계약일로부터 1년이상, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) / 보험가입금액의 100%(15세미만 계약 또는 갱신형 갱신계약)"
+          },
+          {
+            "step": 3,
+            "title": "미지급 판정",
+            "detail": "최소 입원일수까지 1일 부족"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "질병입원일당(1일이상180일한도)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "지급일수 계산",
+            "detail": "입원 4일 - 공제 0일 = 지급 4일"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "10,000원 × 4일"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "40,000원"
+          }
+        ],
+        "estimated_amount": 40000
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "허혈심장질환입원일당(4일이상120일한도)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 20,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액의 50%(보험계약일로부터 1년미만, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) 또는 보험가입금액의 100%(보험계약일로부터 1년이상, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) / 보험가입금액의 100%(15세미만 계약 또는 갱신형 갱신계약)"
+          },
+          {
+            "step": 3,
+            "title": "지급일수 계산",
+            "detail": "입원 4일 - 공제 3일 = 지급 1일"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "20,000원 × (4일 - 공제 3일)"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "20,000원"
+          }
+        ],
+        "estimated_amount": 20000
+      }
+    ],
+    "policy_totals": [
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "scenario_days": 3,
+        "estimated_amount": 30000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "질병입원일당(1일이상180일한도)",
+            "calculation": "10,000원 × 3일",
+            "estimated_amount": 30000
+          }
+        ],
+        "total_calculation": "30,000원 = 30,000원"
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "scenario_days": 4,
+        "estimated_amount": 60000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "질병입원일당(1일이상180일한도)",
+            "calculation": "10,000원 × 4일",
+            "estimated_amount": 40000
+          },
+          {
+            "rider": "허혈심장질환입원일당(4일이상120일한도)",
+            "calculation": "20,000원 × (4일 - 공제 3일)",
+            "estimated_amount": 20000
+          }
+        ],
+        "total_calculation": "40,000원 + 20,000원 = 60,000원"
+      }
+    ]
+  },
+  {
+    "case_id": "c2_03",
+    "description": "당뇨성 신증 5일과 10일 비교",
+    "demo_amount_inputs": [
+      {
+        "label": "26대생활습관병 입원비",
+        "field": "coverage_amount_per_day",
+        "amount": 30000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "당뇨 관련 주요질환 입원급여금",
+        "field": "coverage_amount_per_day",
+        "amount": 20000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "rider_calculations": [
+      {
+        "policy": "교보생명 New내생애맞춤건강보험",
+        "rider": "26대생활습관병 입원비",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 30,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "지급일수 계산",
+            "detail": "입원 5일 - 공제 0일 = 지급 5일"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "30,000원 × 5일"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "150,000원"
+          }
+        ],
+        "estimated_amount": 150000
+      },
+      {
+        "policy": "교보생명 New내생애맞춤건강보험",
+        "rider": "당뇨 관련 주요질환 입원급여금",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 20,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액 (1년 미만 50%, 1년 이후 100%)"
+          },
+          {
+            "step": 3,
+            "title": "지급일수 계산",
+            "detail": "입원 5일 - 공제 0일 = 지급 5일"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "20,000원 × 5일"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "100,000원"
+          }
+        ],
+        "estimated_amount": 100000
+      },
+      {
+        "policy": "교보생명 New내생애맞춤건강보험",
+        "rider": "26대생활습관병 입원비",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 30,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "지급일수 계산",
+            "detail": "입원 10일 - 공제 0일 = 지급 10일"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "30,000원 × 10일"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "300,000원"
+          }
+        ],
+        "estimated_amount": 300000
+      },
+      {
+        "policy": "교보생명 New내생애맞춤건강보험",
+        "rider": "당뇨 관련 주요질환 입원급여금",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 20,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액 (1년 미만 50%, 1년 이후 100%)"
+          },
+          {
+            "step": 3,
+            "title": "지급일수 계산",
+            "detail": "입원 10일 - 공제 0일 = 지급 10일"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "20,000원 × 10일"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "200,000원"
+          }
+        ],
+        "estimated_amount": 200000
+      }
+    ],
+    "policy_totals": [
+      {
+        "policy": "교보생명 New내생애맞춤건강보험",
+        "scenario_days": 5,
+        "estimated_amount": 250000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "26대생활습관병 입원비",
+            "calculation": "30,000원 × 5일",
+            "estimated_amount": 150000
+          },
+          {
+            "rider": "당뇨 관련 주요질환 입원급여금",
+            "calculation": "20,000원 × 5일",
+            "estimated_amount": 100000
+          }
+        ],
+        "total_calculation": "150,000원 + 100,000원 = 250,000원"
+      },
+      {
+        "policy": "교보생명 New내생애맞춤건강보험",
+        "scenario_days": 10,
+        "estimated_amount": 500000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "26대생활습관병 입원비",
+            "calculation": "30,000원 × 10일",
+            "estimated_amount": 300000
+          },
+          {
+            "rider": "당뇨 관련 주요질환 입원급여금",
+            "calculation": "20,000원 × 10일",
+            "estimated_amount": 200000
+          }
+        ],
+        "total_calculation": "300,000원 + 200,000원 = 500,000원"
+      }
+    ]
+  },
+  {
+    "case_id": "c2_04",
+    "description": "가입 90일 미만 중증 갑상선암 면책·유사암 감액",
+    "demo_amount_inputs": [
+      {
+        "label": "중증 갑상선암 진단자금",
+        "field": "coverage_amount",
+        "amount": 10000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "유사암 진단자금",
+        "field": "coverage_amount",
+        "amount": 2000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "암진단자금",
+        "field": "coverage_amount",
+        "amount": 10000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "rider_calculations": [
+      {
+        "policy": "한화생명 e암보험(비갱신형)",
+        "rider": "중증 갑상선암 진단자금",
+        "status": "waiting_period_not_met",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "별표 1 '보험금 지급기준표' 참조"
+          },
+          {
+            "step": 3,
+            "title": "미지급 판정",
+            "detail": "가입기간 구간이 90일 미만이므로 정확한 잔여일수는 표시하지 않음"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      },
+      {
+        "policy": "한화생명 e암보험(비갱신형)",
+        "rider": "유사암 진단자금",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 2,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "별표 1 '보험금 지급기준표' 참조"
+          },
+          {
+            "step": 3,
+            "title": "가입기간 감액",
+            "detail": "가입 후 89일, 약관상 지급률 50% 적용"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "2,000,000원 × 50%"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "1,000,000원"
+          }
+        ],
+        "estimated_amount": 1000000
+      },
+      {
+        "policy": "한화생명 e암보험(비갱신형)",
+        "rider": "암진단자금",
+        "status": "not_applicable",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "별표 1 '보험금 지급기준표' 참조"
+          },
+          {
+            "step": 3,
+            "title": "미지급 판정",
+            "detail": "갑상선암은 일반 암진단자금 대상에서 제외"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      }
+    ],
+    "policy_totals": [
+      {
+        "policy": "한화생명 e암보험(비갱신형)",
+        "estimated_amount": 1000000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "유사암 진단자금",
+            "calculation": "2,000,000원 × 50%",
+            "estimated_amount": 1000000
+          }
+        ],
+        "total_calculation": "1,000,000원 = 1,000,000원"
+      }
+    ]
+  },
+  {
+    "case_id": "c2_05",
+    "description": "가입 1년 미만 뇌경색 진단과 5일 입원 감액",
+    "demo_amount_inputs": [
+      {
+        "label": "뇌혈관질환진단비(비갱신형/갱신형)",
+        "field": "coverage_amount",
+        "amount": 10000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "뇌혈관질환입원일당(4일이상120일한도)",
+        "field": "coverage_amount_per_day",
+        "amount": 20000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "질병입원일당(1일이상180일한도)",
+        "field": "coverage_amount_per_day",
+        "amount": 10000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "뇌졸중진단비(비갱신형/갱신형)",
+        "field": "coverage_amount",
+        "amount": 10000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "rider_calculations": [
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "뇌혈관질환진단비(비갱신형/갱신형)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "이 특별약관 보험가입금액의 100% (경과기간 1년 이상) 또는 50% (보험계약일로부터 1년 미만, 15세이상 비갱신형 및 15세이상 갱신형(최초) 계약 한정)"
+          },
+          {
+            "step": 3,
+            "title": "가입기간 감액",
+            "detail": "가입 후 364일, 약관상 지급률 50% 적용"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "10,000,000원 × 50%"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "5,000,000원"
+          }
+        ],
+        "estimated_amount": 5000000
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "뇌졸중진단비(비갱신형/갱신형)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액의 100% (경과기간 1년 이상) 또는 50% (보험계약일로부터 1년 미만, 15세이상 비갱신형 및 15세이상 갱신형(최초) 계약 한정)"
+          },
+          {
+            "step": 3,
+            "title": "가입기간 감액",
+            "detail": "가입 후 364일, 약관상 지급률 50% 적용. 뇌경색(I63)은 뇌졸중 범위에 포함됨"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "10,000,000원 × 50%"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "5,000,000원"
+          }
+        ],
+        "estimated_amount": 5000000
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "뇌혈관질환입원일당(4일이상120일한도)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 20,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액의 100% (1년미만 경과기간은 50%)"
+          },
+          {
+            "step": 3,
+            "title": "가입기간 감액",
+            "detail": "가입 후 364일, 약관상 지급률 50% 적용"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "20,000원 × (5일 - 공제 3일) × 50%"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "20,000원"
+          }
+        ],
+        "estimated_amount": 20000
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "질병입원일당(1일이상180일한도)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "10,000원 × 5일"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "50,000원"
+          }
+        ],
+        "estimated_amount": 50000
+      }
+    ],
+    "policy_totals": [
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "estimated_amount": 5070000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "뇌혈관질환진단비(비갱신형/갱신형)",
+            "calculation": "10,000,000원 × 50%",
+            "estimated_amount": 5000000
+          },
+          {
+            "rider": "뇌혈관질환입원일당(4일이상120일한도)",
+            "calculation": "20,000원 × (5일 - 공제 3일) × 50%",
+            "estimated_amount": 20000
+          },
+          {
+            "rider": "질병입원일당(1일이상180일한도)",
+            "calculation": "10,000원 × 5일",
+            "estimated_amount": 50000
+          }
+        ],
+        "total_calculation": "5,000,000원 + 20,000원 + 50,000원 = 5,070,000원"
+      }
+    ]
+  },
+  {
+    "case_id": "c1_01",
+    "description": "갑상선암 진단 통원 시 3개 보험 중복 탐색",
+    "demo_amount_inputs": [
+      {
+        "label": "DB 갑상선암진단비",
+        "field": "coverage_amount",
+        "amount": 3000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "KB 갑상선암(초기제외)진단비",
+        "field": "coverage_amount",
+        "amount": 3000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "한화 유사암 진단자금",
+        "field": "coverage_amount",
+        "amount": 2000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "rider_calculations": [
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "갑상선암진단비(비갱신형/갱신형)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 3,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "① 15세이상 비갱신형 계약 및 15세이상 갱신형(최초) 계약: 보험계약일로부터 1년미만 보험가입금액의 50%, 보험계약일로부터 1년이상 보험가입금액의 100% / ② 15세미만 계약 또는 갱신형(갱신) 계약: 보험가입금액의 100%"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "3,000,000원 × 100%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "3,000,000원"
+          }
+        ],
+        "estimated_amount": 3000000
+      },
+      {
+        "policy": "KB 9회주는 암보험Plus",
+        "rider": "갑상선암(초기제외)진단비",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 3,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "최초의 계약 보험계약일부터 1년미만: 보험가입금액의 50%, 보험계약일부터 1년이상: 보험가입금액의 100%, 갱신된 계약: 보험가입금액의 100%"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "3,000,000원 × 100%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "3,000,000원"
+          }
+        ],
+        "estimated_amount": 3000000
+      },
+      {
+        "policy": "한화생명 e암보험(비갱신형)",
+        "rider": "유사암 진단자금",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 2,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "별표 1 '보험금 지급기준표' 참조"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "2,000,000원 × 100%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "2,000,000원"
+          }
+        ],
+        "estimated_amount": 2000000
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "암직접치료입원일당(요양병원제외)(1일이상180일한도)",
+        "status": "not_applicable",
+        "steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "제자리암·경계성종양·기타피부암·갑상선암으로 입원 시 보험가입금액의 10%, 암으로 입원 시 보험가입금액의 100%"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "입원 아님"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      },
+      {
+        "policy": "한화생명 e암보험(비갱신형)",
+        "rider": "암진단자금",
+        "status": "not_applicable",
+        "steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "별표 1 '보험금 지급기준표' 참조"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "갑상선암은 유사암"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      }
+    ],
+    "policy_totals": [
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "estimated_amount": 3000000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "갑상선암진단비(비갱신형/갱신형)",
+            "calculation": "3,000,000원 × 100%",
+            "estimated_amount": 3000000
+          }
+        ],
+        "total_calculation": "3,000,000원 = 3,000,000원"
+      },
+      {
+        "policy": "KB 9회주는 암보험Plus",
+        "estimated_amount": 3000000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "갑상선암(초기제외)진단비",
+            "calculation": "3,000,000원 × 100%",
+            "estimated_amount": 3000000
+          }
+        ],
+        "total_calculation": "3,000,000원 = 3,000,000원"
+      },
+      {
+        "policy": "한화생명 e암보험(비갱신형)",
+        "estimated_amount": 2000000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "유사암 진단자금",
+            "calculation": "2,000,000원 × 100%",
+            "estimated_amount": 2000000
+          }
+        ],
+        "total_calculation": "2,000,000원 = 2,000,000원"
+      }
+    ]
+  },
+  {
+    "case_id": "c1_02",
+    "description": "급성심근경색 진단과 5일 입원 시 DB·KB 중복 탐색",
+    "demo_amount_inputs": [
+      {
+        "label": "DB 급성심근경색증진단비",
+        "field": "coverage_amount",
+        "amount": 10000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "DB 질병입원일당",
+        "field": "coverage_amount_per_day",
+        "amount": 10000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "DB 허혈심장질환입원일당",
+        "field": "coverage_amount_per_day",
+        "amount": 20000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "KB 급성심근경색증진단비",
+        "field": "coverage_amount",
+        "amount": 10000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "KB 허혈성심장질환진단비",
+        "field": "coverage_amount",
+        "amount": 5000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "KB 허혈성심장질환입원일당",
+        "field": "coverage_amount_per_day",
+        "amount": 20000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "rider_calculations": [
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "급성심근경색증진단비(비갱신형/갱신형)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "이 특별약관 보험가입금액의 100% (15세미만 계약 또는 갱신형(갱신) 계약) / 보험계약일로부터 1년미만 50%, 1년이상 100% (15세이상 비갱신형 계약 및 15세이상 갱신형(최초) 계약)"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "10,000,000원 × 100%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "10,000,000원"
+          }
+        ],
+        "estimated_amount": 10000000
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "질병입원일당(1일이상180일한도)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "10,000원 × 5일"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "50,000원"
+          }
+        ],
+        "estimated_amount": 50000
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "rider": "허혈심장질환입원일당(4일이상120일한도)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 20,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액의 50%(보험계약일로부터 1년미만, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) 또는 보험가입금액의 100%(보험계약일로부터 1년이상, 15세이상 비갱신형 및 15세이상 갱신형 최초계약) / 보험가입금액의 100%(15세미만 계약 또는 갱신형 갱신계약)"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "20,000원 × (5일 - 공제 3일)"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "40,000원"
+          }
+        ],
+        "estimated_amount": 40000
+      },
+      {
+        "policy": "KB 9회주는 암보험Plus",
+        "rider": "급성심근경색증진단비",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "최초의 계약 보험계약일부터 1년미만: 이 특별약관의 보험가입금액 50%, 보험계약일부터 1년이상: 이 특별약관의 보험가입금액 100%; 갱신된 계약: 이 특별약관의 보험가입금액 100%"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "10,000,000원 × 100%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "10,000,000원"
+          }
+        ],
+        "estimated_amount": 10000000
+      },
+      {
+        "policy": "KB 9회주는 암보험Plus",
+        "rider": "허혈성심장질환진단비",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 5,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "최초의 계약 보험계약일부터 1년미만: 이 특별약관의 보험가입금액 50%, 최초의 계약 보험계약일부터 1년이상: 이 특별약관의 보험가입금액 100%, 갱신된 계약: 이 특별약관의 보험가입금액 100%"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "5,000,000원 × 100%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "5,000,000원"
+          }
+        ],
+        "estimated_amount": 5000000
+      },
+      {
+        "policy": "KB 9회주는 암보험Plus",
+        "rider": "허혈성심장질환입원일당(1일이상180일한도)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 20,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "20,000원 × 5일"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "100,000원"
+          }
+        ],
+        "estimated_amount": 100000
+      }
+    ],
+    "policy_totals": [
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "estimated_amount": 10090000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "급성심근경색증진단비(비갱신형/갱신형)",
+            "calculation": "10,000,000원 × 100%",
+            "estimated_amount": 10000000
+          },
+          {
+            "rider": "질병입원일당(1일이상180일한도)",
+            "calculation": "10,000원 × 5일",
+            "estimated_amount": 50000
+          },
+          {
+            "rider": "허혈심장질환입원일당(4일이상120일한도)",
+            "calculation": "20,000원 × (5일 - 공제 3일)",
+            "estimated_amount": 40000
+          }
+        ],
+        "total_calculation": "10,000,000원 + 50,000원 + 40,000원 = 10,090,000원"
+      },
+      {
+        "policy": "KB 9회주는 암보험Plus",
+        "estimated_amount": 15100000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "급성심근경색증진단비",
+            "calculation": "10,000,000원 × 100%",
+            "estimated_amount": 10000000
+          },
+          {
+            "rider": "허혈성심장질환진단비",
+            "calculation": "5,000,000원 × 100%",
+            "estimated_amount": 5000000
+          },
+          {
+            "rider": "허혈성심장질환입원일당(1일이상180일한도)",
+            "calculation": "20,000원 × 5일",
+            "estimated_amount": 100000
+          }
+        ],
+        "total_calculation": "10,000,000원 + 5,000,000원 + 100,000원 = 15,100,000원"
+      }
+    ]
+  },
+  {
+    "case_id": "c1_03",
+    "description": "손목골절 수술·7일 입원·깁스 시 정액과 실손 중복 탐색",
+    "demo_amount_inputs": [
+      {
+        "label": "갱신형 골절수술비Ⅱ",
+        "field": "coverage_amount",
+        "amount": 500000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "갱신형 일반상해입원일당",
+        "field": "coverage_amount_per_day",
+        "amount": 30000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "갱신형 깁스치료비",
+        "field": "coverage_amount",
+        "amount": 200000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "현대 급여 covered_amount",
+        "field": "covered_amount",
+        "amount": 700000,
+        "source": "demo_medical_bill",
+        "note": "실제 진료비 세부산정내역서 대신 테스트를 위해 가정한 보상대상 의료비"
+      },
+      {
+        "label": "현대 비급여 covered_amount",
+        "field": "covered_amount",
+        "amount": 500000,
+        "source": "demo_medical_bill",
+        "note": "실제 진료비 세부산정내역서 대신 테스트를 위해 가정한 보상대상 의료비"
+      }
+    ],
+    "rider_calculations": [
+      {
+        "policy": "메리츠 상해안심보험",
+        "rider": "갱신형 골절수술비Ⅱ보장 특별약관",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 500,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험증권에 기재된 이 특별약관의 보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "수술 1회 × 500,000원"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "500,000원"
+          }
+        ],
+        "estimated_amount": 500000
+      },
+      {
+        "policy": "메리츠 상해안심보험",
+        "rider": "갱신형 일반상해입원일당(1일이상)보장 특별약관",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 30,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "30,000원 × 7일"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "210,000원"
+          }
+        ],
+        "estimated_amount": 210000
+      },
+      {
+        "policy": "메리츠 상해안심보험",
+        "rider": "갱신형 깁스치료비보장 특별약관",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 200,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "깁스치료 1회 × 200,000원"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "200,000원"
+          }
+        ],
+        "estimated_amount": 200000
+      },
+      {
+        "policy": "현대해상 Hi실손의료비보험",
+        "rider": "상해급여실손의료비(갱신형) - 입원",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 진료비 중 보상대상 의료비: 700,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "입원 본인부담금(일부본인부담금 + 전액본인부담금)의 80%, 연간 보험가입금액 한도 내"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "급여 대상금액 700,000원 × 80%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "560,000원"
+          }
+        ],
+        "estimated_amount": 560000
+      },
+      {
+        "policy": "현대해상 Hi실손의료비보험",
+        "rider": "상해비급여실손의료비(갱신형) - 입원",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 진료비 중 보상대상 의료비: 500,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "입원 비급여 의료비(비급여 병실료 제외) 본인부담금의 70%, 연간 보험가입금액 한도 내"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "비급여 대상금액 500,000원 × 70%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "350,000원"
+          }
+        ],
+        "estimated_amount": 350000
+      },
+      {
+        "policy": "메리츠 상해안심보험",
+        "rider": "갱신형 골절(치아파절제외)진단비Ⅱ보장 특별약관",
+        "status": "not_applicable",
+        "steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액 (1사고당)"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "현재 시나리오 정답셋 기준 별도 확인 대상으로 유지"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      }
+    ],
+    "policy_totals": [
+      {
+        "policy": "메리츠 상해안심보험",
+        "estimated_amount": 910000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "갱신형 골절수술비Ⅱ보장 특별약관",
+            "calculation": "수술 1회 × 500,000원",
+            "estimated_amount": 500000
+          },
+          {
+            "rider": "갱신형 일반상해입원일당(1일이상)보장 특별약관",
+            "calculation": "30,000원 × 7일",
+            "estimated_amount": 210000
+          },
+          {
+            "rider": "갱신형 깁스치료비보장 특별약관",
+            "calculation": "깁스치료 1회 × 200,000원",
+            "estimated_amount": 200000
+          }
+        ],
+        "total_calculation": "500,000원 + 210,000원 + 200,000원 = 910,000원"
+      },
+      {
+        "policy": "현대해상 Hi실손의료비보험",
+        "estimated_amount": 910000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "상해급여실손의료비(갱신형) - 입원",
+            "calculation": "급여 대상금액 700,000원 × 80%",
+            "estimated_amount": 560000
+          },
+          {
+            "rider": "상해비급여실손의료비(갱신형) - 입원",
+            "calculation": "비급여 대상금액 500,000원 × 70%",
+            "estimated_amount": 350000
+          }
+        ],
+        "total_calculation": "560,000원 + 350,000원 = 910,000원"
+      }
+    ]
+  },
+  {
+    "case_id": "c1_04",
+    "description": "손목 부상 후 골절 확정·응급실 통원",
+    "demo_amount_inputs": [
+      {
+        "label": "골절진단비",
+        "field": "coverage_amount",
+        "amount": 300000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "상해 응급실내원비",
+        "field": "coverage_amount",
+        "amount": 100000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "rider_calculations": [
+      {
+        "policy": "메리츠 상해안심보험",
+        "rider": "갱신형 골절(치아파절제외)진단비Ⅱ보장 특별약관",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 300,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액 (1사고당)"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "골절 진단 1회 × 300,000원"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "300,000원"
+          }
+        ],
+        "estimated_amount": 300000
+      },
+      {
+        "policy": "메리츠 상해안심보험",
+        "rider": "갱신형 상해 응급실내원비(응급)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 100,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "응급실 내원 1회 × 100,000원"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "100,000원"
+          }
+        ],
+        "estimated_amount": 100000
+      },
+      {
+        "policy": "메리츠 상해안심보험",
+        "rider": "갱신형 상해MRI/CT검사비(급여,연간1회한)보장 특별약관",
+        "status": "not_applicable",
+        "steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "XRAY는 MRI/CT가 아님"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      },
+      {
+        "policy": "메리츠 상해안심보험",
+        "rider": "갱신형 일반상해입원일당(1일이상)보장 특별약관",
+        "status": "not_applicable",
+        "steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "입원 아님"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      },
+      {
+        "policy": "메리츠 상해안심보험",
+        "rider": "갱신형 골절수술비Ⅱ보장 특별약관",
+        "status": "not_applicable",
+        "steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "보험증권에 기재된 이 특별약관의 보험가입금액"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "수술 안 함"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      }
+    ],
+    "policy_totals": [
+      {
+        "policy": "메리츠 상해안심보험",
+        "estimated_amount": 400000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "갱신형 골절(치아파절제외)진단비Ⅱ보장 특별약관",
+            "calculation": "골절 진단 1회 × 300,000원",
+            "estimated_amount": 300000
+          },
+          {
+            "rider": "갱신형 상해 응급실내원비(응급)",
+            "calculation": "응급실 내원 1회 × 100,000원",
+            "estimated_amount": 100000
+          }
+        ],
+        "total_calculation": "300,000원 + 100,000원 = 400,000원"
+      }
+    ]
+  },
+  {
+    "case_id": "c1_05",
+    "description": "대장 용종 내시경 제거 후 진단비 탐색",
+    "demo_amount_inputs": [
+      {
+        "label": "대장 양성종양 및 용종 진단비",
+        "field": "coverage_amount",
+        "amount": 100000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "rider_calculations": [
+      {
+        "policy": "KB 9회주는 암보험Plus",
+        "rider": "대장 양성종양 및 용종 진단비(연간1회한)",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 100,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액(경과기간에 따라 50% 또는 100%)"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "진단 1회 × 100,000원"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "100,000원"
+          }
+        ],
+        "estimated_amount": 100000
+      },
+      {
+        "policy": "KB 9회주는 암보험Plus",
+        "rider": "통합암진단비Ⅱ(유사암제외)",
+        "status": "not_applicable",
+        "steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "암구분별 해당 보장의 보험가입금액 (특정소액암진단비Ⅱ: 최초계약 1년미만 50%, 최초계약 1년이상 100%, 갱신계약 100%; 생식기암 및 비뇨기관암진단비(자궁,전립선,방광제외)·소화기관암진단비·혈액암진단비·두경부암진단비·11대특정암진단비·폐암진단비·간암,담낭암,기타담도암 및 췌장암진단비·3대특정고액암진단비: 해당 보장의 보험가입금액 100%)"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "용종은 암이 아님"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      },
+      {
+        "policy": "KB 9회주는 암보험Plus",
+        "rider": "질병입원일당(1일이상)",
+        "status": "not_applicable",
+        "steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "입원 아님"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      }
+    ],
+    "policy_totals": [
+      {
+        "policy": "KB 9회주는 암보험Plus",
+        "estimated_amount": 100000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "대장 양성종양 및 용종 진단비(연간1회한)",
+            "calculation": "진단 1회 × 100,000원",
+            "estimated_amount": 100000
+          }
+        ],
+        "total_calculation": "100,000원 = 100,000원"
+      }
+    ]
+  },
+  {
+    "case_id": "c1_06",
+    "description": "당뇨 외래 진단보험금 탐색",
+    "demo_amount_inputs": [
+      {
+        "label": "당뇨병 진단보험금",
+        "field": "coverage_amount",
+        "amount": 1000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "rider_calculations": [
+      {
+        "policy": "교보생명 New내생애맞춤건강보험",
+        "rider": "당뇨병(당화혈색소 기준) 진단보험금",
+        "status": "eligible",
+        "steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 1,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "갱신계약에서는 \"당뇨병(당화혈색소 기준) 진단보험금\"과 \"당뇨병 보장계약\"의 이미 납입한 보험료(갱신전 계약의 이미 납입한 보험료는 포함하지 않음) 중에서 큰 금액을 지급"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "데모 진단보험금 1,000,000원"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "1,000,000원"
+          }
+        ],
+        "estimated_amount": 1000000
+      },
+      {
+        "policy": "교보생명 New내생애맞춤건강보험",
+        "rider": "26대생활습관병 입원비",
+        "status": "not_applicable",
+        "steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "입원 아님"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      },
+      {
+        "policy": "교보생명 New내생애맞춤건강보험",
+        "rider": "당뇨 관련 주요질환 입원급여금",
+        "status": "not_applicable",
+        "steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "보험가입금액 (1년 미만 50%, 1년 이후 100%)"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "입원 아님"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ],
+        "estimated_amount": 0
+      }
+    ],
+    "policy_totals": [
+      {
+        "policy": "교보생명 New내생애맞춤건강보험",
+        "estimated_amount": 1000000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "당뇨병(당화혈색소 기준) 진단보험금",
+            "calculation": "데모 진단보험금 1,000,000원",
+            "estimated_amount": 1000000
+          }
+        ],
+        "total_calculation": "1,000,000원 = 1,000,000원"
+      }
+    ]
+  },
+  {
+    "case_id": "c1_07",
+    "description": "대상포진 통원 시 선택 보험에서 결과 0건",
+    "demo_amount_inputs": [],
+    "rider_calculations": [],
+    "policy_totals": [
+      {
+        "policy": "메리츠 상해안심보험",
+        "estimated_amount": 0,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "note": "현재 시나리오에서 지급 가능으로 판정된 특약 없음",
+        "calculation_breakdown": [],
+        "total_calculation": "지급 가능 특약 0건 = 0원"
+      },
+      {
+        "policy": "DB 계속받는 3대질병보험",
+        "estimated_amount": 0,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "note": "현재 시나리오에서 지급 가능으로 판정된 특약 없음",
+        "calculation_breakdown": [],
+        "total_calculation": "지급 가능 특약 0건 = 0원"
+      }
+    ]
+  }
+]

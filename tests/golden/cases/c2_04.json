@@ -1,0 +1,234 @@
+{
+  "schema_version": "2.0",
+  "id": "c2_04",
+  "service_type": "CASE2",
+  "description": "가입 90일 미만 중증 갑상선암 면책·유사암 감액",
+  "selected_policies": [
+    "한화생명 e암보험(비갱신형)"
+  ],
+  "case": {
+    "initial_situation": "중증 갑상선암 진단 후 외래 진료",
+    "disease": "중증 갑상선암",
+    "disease_kcd": "C73",
+    "is_inpatient": false,
+    "is_outpatient": true,
+    "surgery": false,
+    "admission_days_current": null,
+    "admission_days_diagnosed": null,
+    "treatment_items": [],
+    "annual_visit_count": 1,
+    "policy_elapsed_days": 89
+  },
+  "demo_assumptions": {
+    "중증 갑상선암 진단자금": {
+      "coverage_amount": 10000000
+    },
+    "유사암 진단자금": {
+      "coverage_amount": 2000000
+    },
+    "암진단자금": {
+      "coverage_amount": 10000000
+    }
+  },
+  "expected": [
+    {
+      "policy": "한화생명 e암보험(비갱신형)",
+      "rider": "중증 갑상선암 진단자금",
+      "status": "waiting_period_not_met",
+      "rider_catalog_key": "한화생명 e암보험(비갱신형)::중증 갑상선암 진단자금",
+      "estimated_amount": 0,
+      "calculation": null,
+      "note": "가입기간 구간이 90일 미만이므로 정확한 잔여일수는 표시하지 않음",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "별표 1 '보험금 지급기준표' 참조",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "중증 갑상선암 진단자금",
+          "field": "coverage_amount",
+          "amount": 10000000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "제13조(보험금의 지급사유) 제3호, 제14조(보험금 지급에 관한 세부규정) ⑨⑫",
+          "page": 30
+        },
+        "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 10,000,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "별표 1 '보험금 지급기준표' 참조"
+        },
+        {
+          "step": 3,
+          "title": "미지급 판정",
+          "detail": "가입기간 구간이 90일 미만이므로 정확한 잔여일수는 표시하지 않음"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "0원"
+        }
+      ]
+    },
+    {
+      "policy": "한화생명 e암보험(비갱신형)",
+      "rider": "유사암 진단자금",
+      "status": "eligible",
+      "rider_catalog_key": "한화생명 e암보험(비갱신형)::유사암 진단자금",
+      "estimated_amount": 1000000,
+      "calculation": "2,000,000원 × 50%",
+      "reduction": {
+        "applied": true,
+        "rate": 0.5,
+        "until_elapsed_days": 730
+      },
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "별표 1 '보험금 지급기준표' 참조",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "유사암 진단자금",
+          "field": "coverage_amount",
+          "amount": 2000000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "제13조(보험금의 지급사유) 제5호, 제14조(보험금 지급에 관한 세부규정) ①⑨⑫",
+          "page": 30
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 2,000,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "별표 1 '보험금 지급기준표' 참조"
+        },
+        {
+          "step": 3,
+          "title": "가입기간 감액",
+          "detail": "가입 후 89일, 약관상 지급률 50% 적용"
+        },
+        {
+          "step": 4,
+          "title": "보험금 계산",
+          "detail": "2,000,000원 × 50%"
+        },
+        {
+          "step": 5,
+          "title": "최종 예상보험금",
+          "detail": "1,000,000원"
+        }
+      ]
+    },
+    {
+      "policy": "한화생명 e암보험(비갱신형)",
+      "rider": "암진단자금",
+      "status": "not_applicable",
+      "rider_catalog_key": "한화생명 e암보험(비갱신형)::암진단자금",
+      "estimated_amount": 0,
+      "calculation": null,
+      "note": "갑상선암은 일반 암진단자금 대상에서 제외",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "별표 1 '보험금 지급기준표' 참조",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "암진단자금",
+          "field": "coverage_amount",
+          "amount": 10000000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "제13조(보험금의 지급사유) 제2호, 제14조(보험금 지급에 관한 세부규정) ⑨⑩⑪",
+          "page": 30
+        },
+        "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 10,000,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "별표 1 '보험금 지급기준표' 참조"
+        },
+        {
+          "step": 3,
+          "title": "미지급 판정",
+          "detail": "갑상선암은 일반 암진단자금 대상에서 제외"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "0원"
+        }
+      ]
+    }
+  ],
+  "must_not_match": [],
+  "expected_summary": {
+    "eligible_count": 1,
+    "not_met_count": 2
+  },
+  "display_rule": {
+    "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+    "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+    "show_total_as_confirmed_payment": false
+  },
+  "comparison_basis": "POLICY_ELAPSED",
+  "demo_amount_inputs": [
+    {
+      "label": "중증 갑상선암 진단자금",
+      "field": "coverage_amount",
+      "amount": 10000000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "유사암 진단자금",
+      "field": "coverage_amount",
+      "amount": 2000000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "암진단자금",
+      "field": "coverage_amount",
+      "amount": 10000000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    }
+  ],
+  "policy_amount_summary": [
+    {
+      "policy": "한화생명 e암보험(비갱신형)",
+      "estimated_amount": 1000000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "유사암 진단자금",
+          "calculation": "2,000,000원 × 50%",
+          "estimated_amount": 1000000
+        }
+      ],
+      "total_calculation": "1,000,000원 = 1,000,000원"
+    }
+  ]
+}

@@ -1,0 +1,408 @@
+{
+  "schema_version": "2.0",
+  "id": "c1_03",
+  "service_type": "CASE1",
+  "description": "손목골절 수술·7일 입원·깁스 시 정액과 실손 중복 탐색",
+  "selected_policies": [
+    "메리츠 상해안심보험",
+    "현대해상 Hi실손의료비보험"
+  ],
+  "case": {
+    "initial_situation": "손목골절 수술 후 7일 입원, 엑스레이와 깁스",
+    "disease": "손목골절",
+    "disease_kcd": "S62",
+    "is_inpatient": true,
+    "is_outpatient": false,
+    "surgery": true,
+    "admission_days_diagnosed": 7,
+    "treatment_items": [
+      "XRAY",
+      "CAST"
+    ],
+    "payment_amount": 1200000,
+    "visit_dates": [
+      "2026-06-01"
+    ],
+    "annual_visit_count": 1,
+    "policy_elapsed_days": 730
+  },
+  "demo_assumptions": {
+    "갱신형 골절수술비Ⅱ": {
+      "coverage_amount": 500000
+    },
+    "갱신형 일반상해입원일당": {
+      "coverage_amount_per_day": 30000
+    },
+    "갱신형 깁스치료비": {
+      "coverage_amount": 200000
+    },
+    "현대 급여 covered_amount": 700000,
+    "현대 비급여 covered_amount": 500000
+  },
+  "expected": [
+    {
+      "policy": "메리츠 상해안심보험",
+      "rider": "갱신형 골절수술비Ⅱ보장 특별약관",
+      "status": "eligible",
+      "rider_catalog_key": "메리츠 상해안심보험::갱신형 골절수술비Ⅱ보장 특별약관",
+      "estimated_amount": 500000,
+      "calculation": "수술 1회 × 500,000원",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험증권에 기재된 이 특별약관의 보험가입금액",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "갱신형 골절수술비Ⅱ",
+          "field": "coverage_amount",
+          "amount": 500000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "갱신형 골절수술비Ⅱ보장 특별약관 제1조(보험금의 지급사유)",
+          "page": 90
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 500,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험증권에 기재된 이 특별약관의 보험가입금액"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "수술 1회 × 500,000원"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "500,000원"
+        }
+      ]
+    },
+    {
+      "policy": "메리츠 상해안심보험",
+      "rider": "갱신형 일반상해입원일당(1일이상)보장 특별약관",
+      "status": "eligible",
+      "rider_catalog_key": "메리츠 상해안심보험::갱신형 일반상해입원일당(1일이상)보장 특별약관",
+      "estimated_amount": 210000,
+      "calculation": "30,000원 × 7일",
+      "payable_days": 7,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "갱신형 일반상해입원일당",
+          "field": "coverage_amount_per_day",
+          "amount": 30000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "갱신형 일반상해입원일당(1일이상)보장 특별약관 제1조(보험금의 지급사유)",
+          "page": 68
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 30,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "30,000원 × 7일"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "210,000원"
+        }
+      ]
+    },
+    {
+      "policy": "메리츠 상해안심보험",
+      "rider": "갱신형 깁스치료비보장 특별약관",
+      "status": "eligible",
+      "rider_catalog_key": "메리츠 상해안심보험::갱신형 깁스치료비보장 특별약관",
+      "estimated_amount": 200000,
+      "calculation": "깁스치료 1회 × 200,000원",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "갱신형 깁스치료비",
+          "field": "coverage_amount",
+          "amount": 200000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "갱신형 깁스치료비보장 특별약관 제1조(보험금의 지급사유)",
+          "page": 131
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 200,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "깁스치료 1회 × 200,000원"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "200,000원"
+        }
+      ]
+    },
+    {
+      "policy": "현대해상 Hi실손의료비보험",
+      "rider": "상해급여실손의료비(갱신형) - 입원",
+      "status": "eligible",
+      "rider_catalog_key": "현대해상 Hi실손의료비보험::상해급여실손의료비(갱신형) - 입원",
+      "estimated_amount": 560000,
+      "calculation": "급여 대상금액 700,000원 × 80%",
+      "amount_basis": {
+        "coverage_kind": "실손",
+        "policy_rule": "입원 본인부담금(일부본인부담금 + 전액본인부담금)의 80%, 연간 보험가입금액 한도 내",
+        "claim_formula": "covered_amount * 0.8",
+        "demo_input": {
+          "label": "현대 급여 covered_amount",
+          "field": "covered_amount",
+          "amount": 700000,
+          "source": "demo_medical_bill"
+        },
+        "policy_source": {
+          "article": "Ⅰ. 상해급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 입원",
+          "page": 37
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 진료비 중 보상대상 의료비: 700,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "입원 본인부담금(일부본인부담금 + 전액본인부담금)의 80%, 연간 보험가입금액 한도 내"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "급여 대상금액 700,000원 × 80%"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "560,000원"
+        }
+      ]
+    },
+    {
+      "policy": "현대해상 Hi실손의료비보험",
+      "rider": "상해비급여실손의료비(갱신형) - 입원",
+      "status": "eligible",
+      "rider_catalog_key": "현대해상 Hi실손의료비보험::상해비급여실손의료비(갱신형) - 입원",
+      "estimated_amount": 350000,
+      "calculation": "비급여 대상금액 500,000원 × 70%",
+      "amount_basis": {
+        "coverage_kind": "실손",
+        "policy_rule": "입원 비급여 의료비(비급여 병실료 제외) 본인부담금의 70%, 연간 보험가입금액 한도 내",
+        "claim_formula": "covered_amount * 0.7",
+        "demo_input": {
+          "label": "현대 비급여 covered_amount",
+          "field": "covered_amount",
+          "amount": 500000,
+          "source": "demo_medical_bill"
+        },
+        "policy_source": {
+          "article": "1. 상해비급여실손의료비(갱신형)보장 제1조(보험금의 지급사유) — 입원",
+          "page": 67
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 진료비 중 보상대상 의료비: 500,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "입원 비급여 의료비(비급여 병실료 제외) 본인부담금의 70%, 연간 보험가입금액 한도 내"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "비급여 대상금액 500,000원 × 70%"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "350,000원"
+        }
+      ]
+    },
+    {
+      "policy": "메리츠 상해안심보험",
+      "rider": "갱신형 골절(치아파절제외)진단비Ⅱ보장 특별약관",
+      "status": "not_applicable",
+      "rider_catalog_key": "메리츠 상해안심보험::갱신형 골절(치아파절제외)진단비Ⅱ보장 특별약관",
+      "estimated_amount": 0,
+      "calculation": null,
+      "note": "현재 시나리오 정답셋 기준 별도 확인 대상으로 유지",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액 (1사고당)",
+        "claim_formula": null,
+        "demo_input": null,
+        "policy_source": {
+          "article": "갱신형 골절(치아파절제외)진단비Ⅱ보장 특별약관 제1조(보험금의 지급사유)",
+          "page": 89
+        },
+        "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액 (1사고당)"
+        },
+        {
+          "step": 2,
+          "title": "미지급 판정",
+          "detail": "현재 시나리오 정답셋 기준 별도 확인 대상으로 유지"
+        },
+        {
+          "step": 3,
+          "title": "최종 예상보험금",
+          "detail": "0원"
+        }
+      ]
+    }
+  ],
+  "must_not_match": [
+    {
+      "policy": "메리츠 상해안심보험",
+      "rider": "갱신형 일반상해사망보장 특별약관",
+      "reason": "사망 사건 없음"
+    }
+  ],
+  "expected_summary": {
+    "eligible_count": 5,
+    "not_met_count": 1
+  },
+  "display_rule": {
+    "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+    "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+    "show_total_as_confirmed_payment": false
+  },
+  "demo_amount_inputs": [
+    {
+      "label": "갱신형 골절수술비Ⅱ",
+      "field": "coverage_amount",
+      "amount": 500000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "갱신형 일반상해입원일당",
+      "field": "coverage_amount_per_day",
+      "amount": 30000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "갱신형 깁스치료비",
+      "field": "coverage_amount",
+      "amount": 200000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "현대 급여 covered_amount",
+      "field": "covered_amount",
+      "amount": 700000,
+      "source": "demo_medical_bill",
+      "note": "실제 진료비 세부산정내역서 대신 테스트를 위해 가정한 보상대상 의료비"
+    },
+    {
+      "label": "현대 비급여 covered_amount",
+      "field": "covered_amount",
+      "amount": 500000,
+      "source": "demo_medical_bill",
+      "note": "실제 진료비 세부산정내역서 대신 테스트를 위해 가정한 보상대상 의료비"
+    }
+  ],
+  "policy_amount_summary": [
+    {
+      "policy": "메리츠 상해안심보험",
+      "estimated_amount": 910000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "갱신형 골절수술비Ⅱ보장 특별약관",
+          "calculation": "수술 1회 × 500,000원",
+          "estimated_amount": 500000
+        },
+        {
+          "rider": "갱신형 일반상해입원일당(1일이상)보장 특별약관",
+          "calculation": "30,000원 × 7일",
+          "estimated_amount": 210000
+        },
+        {
+          "rider": "갱신형 깁스치료비보장 특별약관",
+          "calculation": "깁스치료 1회 × 200,000원",
+          "estimated_amount": 200000
+        }
+      ],
+      "total_calculation": "500,000원 + 210,000원 + 200,000원 = 910,000원"
+    },
+    {
+      "policy": "현대해상 Hi실손의료비보험",
+      "estimated_amount": 910000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "상해급여실손의료비(갱신형) - 입원",
+          "calculation": "급여 대상금액 700,000원 × 80%",
+          "estimated_amount": 560000
+        },
+        {
+          "rider": "상해비급여실손의료비(갱신형) - 입원",
+          "calculation": "비급여 대상금액 500,000원 × 70%",
+          "estimated_amount": 350000
+        }
+      ],
+      "total_calculation": "560,000원 + 350,000원 = 910,000원"
+    }
+  ]
+}
