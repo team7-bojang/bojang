@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_key: str = ""
     database_url: str = ""
+    # Supabase JWT 검증(HS256 대칭키). 대시보드 Settings → API → JWT Secret.
+    supabase_jwt_secret: str = ""
+    supabase_jwt_audience: str = "authenticated"
 
     # ── LLM ──
     openai_api_key: str = ""
