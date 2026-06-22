@@ -13,6 +13,8 @@ interface Message {
 interface Preset {
   id: string;
   name: string;
+  insurer?: string;
+  type?: string;
   [key: string]: unknown;
 }
 
@@ -50,8 +52,30 @@ interface ChecklistItem {
   task: string;
 }
 
+interface Evidence {
+  article: string;
+  page: number;
+  quote: string;
+  [key: string]: unknown;
+}
+
+interface AnalysisResult {
+  policy: string;
+  status: string;
+  rider: string;
+  calc?: string;
+  gap_days?: number;
+  explanation: string;
+  missed?: boolean;
+  evidence: Evidence;
+  [key: string]: unknown;
+}
+
 interface Report {
+  summary: ExtractedInfo;
   checklist: ChecklistItem[];
+  statute_of_limitations?: string;
+  disclaimer?: string;
   [key: string]: unknown;
 }
 
@@ -88,7 +112,7 @@ export default function App() {
 
   // Report States
   const [report, setReport] = useState<Report | null>(null);
-  const [analysisResults, setAnalysisResults] = useState<unknown[]>([]);
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([]);
   const [analysisSummary, setAnalysisSummary] = useState<{
     eligible_count: number;
     missed_count: number;
@@ -99,7 +123,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'eligible' | 'missed' | 'compare' | 'checklist'>(
     'eligible'
   );
-  const [selectedCover, setSelectedCover] = useState<unknown>(null);
+  const [selectedCover, setSelectedCover] = useState<AnalysisResult | null>(null);
   const [compareData, setCompareData] = useState<CompareData | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -122,7 +146,7 @@ export default function App() {
     try {
       const res = await api.get('/api/v1/policies/presets');
       if (res.data.success) {
-        setPresets(res.data.data);
+        setPresets(res.data.data.presets);
       }
     } catch (err: unknown) {
       console.error('보험 프리셋 목록을 불러오지 못했습니다.', err);
