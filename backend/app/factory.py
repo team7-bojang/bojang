@@ -34,6 +34,7 @@ def create_app() -> OpenAPI:
     register_v1(app)  # /api/v1/* 도메인 라우트 + /health
 
     # 도메인 예외(AppError) → 설계서 §2-5 에러 코드 규약에 맞춘 공통 응답 봉투로 변환
+    # 이 핸들러가 없으면 require_auth 의 AuthError 등이 500(HTML)으로 새어 나간다.
     @app.errorhandler(AppError)
     def handle_app_error(err: AppError):
         return response.fail(err.code, err.message, err.http_status)
