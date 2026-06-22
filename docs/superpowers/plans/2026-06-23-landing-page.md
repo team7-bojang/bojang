@@ -16,6 +16,12 @@
 - 색상은 기존 토큰(`primary`, `primary-soft`, `primary-tint`, `canvas`, `surface`, `ink`, `muted`, `line`, `success`, `success-tint`)만 사용. 새 색상 도입 금지.
 - 커밋 메시지는 한국어 Conventional Commits, scope `frontend`.
 
+**커밋 전략(페이지 단위):** 태스크마다 커밋하지 않고 **3페이지 단위로 3커밋**한다. 각 태스크에서
+`pnpm lint && pnpm build`로 검증만 하고, 아래 페이지 경계에서만 커밋한다.
+- **커밋 1 — 1페이지(히어로 + 라우팅):** Task 1 · 3 · 4 · 5 완료 후 (Task 5 끝에서 커밋)
+- **커밋 2 — 2페이지(시나리오 마퀴):** Task 2 · 6 완료 후 (Task 6 끝에서 커밋)
+- **커밋 3 — 3페이지(핵심 가치 + footer + 조립):** Task 7 · 8 · 9 완료 후 (Task 9 끝에서 커밋)
+
 ---
 
 ## File Structure
@@ -119,12 +125,9 @@ Run: `pnpm dev` 후 브라우저에서
 - `http://localhost:5173/home` → 기존 보험 등록 화면 표시
 Expected: 위 두 경로가 의도대로 렌더.
 
-- [ ] **Step 6: 커밋**
+- [ ] **Step 6: 커밋 보류**
 
-```bash
-git add frontend/src/pages/LandingPage.tsx frontend/src/App.tsx frontend/src/pages/ResultPage.tsx
-git commit -m "feat(frontend): 랜딩페이지 라우트 추가 및 기존 홈을 /home으로 이동"
-```
+이 태스크는 1페이지 그룹에 속한다. **커밋하지 않고** Task 5 끝의 페이지 단위 커밋에서 함께 올린다.
 
 ---
 
@@ -166,12 +169,9 @@ export const SCENARIOS: Scenario[] = [
 Run: `pnpm lint && pnpm build`
 Expected: 통과.
 
-- [ ] **Step 3: 커밋**
+- [ ] **Step 3: 커밋 보류**
 
-```bash
-git add frontend/src/features/landing/data/scenarios.ts
-git commit -m "feat(frontend): 랜딩 시나리오 데이터 모듈 추가"
-```
+이 태스크는 2페이지 그룹에 속한다. **커밋하지 않고** Task 6 끝의 페이지 단위 커밋에서 함께 올린다.
 
 ---
 
@@ -239,12 +239,9 @@ export function RotatingHeadline({ className }: RotatingHeadlineProps) {
 Run: `pnpm lint && pnpm build`
 Expected: 통과.
 
-- [ ] **Step 3: 커밋**
+- [ ] **Step 3: 커밋 보류**
 
-```bash
-git add frontend/src/features/landing/components/RotatingHeadline.tsx
-git commit -m "feat(frontend): 회전 헤드라인 컴포넌트 추가"
-```
+1페이지 그룹. **커밋하지 않고** Task 5 끝의 페이지 단위 커밋에서 함께 올린다.
 
 ---
 
@@ -583,12 +580,9 @@ Expected: 통과.
 청구가능 탭은 결과에서 금액이 0→612,000원 카운트업, 추가보장찾기 탭은 결과에서 두 막대가
 차오르는지 확인. 탭 전환 시 흐름이 홈부터 재시작하는지 확인.
 
-- [ ] **Step 5: 커밋**
+- [ ] **Step 5: 커밋 보류**
 
-```bash
-git add frontend/src/features/landing/components/useCountUp.ts frontend/src/features/landing/components/HeroFlowAnimation.tsx
-git commit -m "feat(frontend): 히어로 흐름 미니 UI 애니메이션 추가 (케이스 탭 선택)"
-```
+1페이지 그룹. **커밋하지 않고** Task 5 끝의 페이지 단위 커밋에서 함께 올린다.
 
 ---
 
@@ -656,12 +650,23 @@ export function HeroSection() {
 Run: `pnpm lint && pnpm build`
 Expected: 통과.
 
-- [ ] **Step 3: 커밋**
+- [ ] **Step 3: 1페이지 커밋 (Task 1·3·4·5 일괄)**
+
+1페이지(히어로 + 라우팅) 작업을 한 번에 커밋한다.
 
 ```bash
-git add frontend/src/features/landing/components/HeroSection.tsx
-git commit -m "feat(frontend): 랜딩 히어로 섹션 추가"
+git add frontend/src/App.tsx \
+  frontend/src/pages/ResultPage.tsx \
+  frontend/src/pages/LandingPage.tsx \
+  frontend/src/features/landing/components/RotatingHeadline.tsx \
+  frontend/src/features/landing/components/useCountUp.ts \
+  frontend/src/features/landing/components/HeroFlowAnimation.tsx \
+  frontend/src/features/landing/components/HeroSection.tsx
+git commit -m "feat(frontend): 랜딩 히어로 섹션 및 라우트 추가"
 ```
+
+(주의: 이 시점에 Task 2의 `scenarios.ts`가 미리 작성돼 있을 수 있다. 위 `git add`는 1페이지
+파일만 명시하므로 `scenarios.ts`는 스테이징되지 않고 2페이지 커밋에서 올라간다.)
 
 ---
 
@@ -777,10 +782,15 @@ Expected: 통과.
 
 `pnpm dev`에서 ScenarioSection을 임시로 확인할 수 있으나, LandingPage 조립(Task 9) 후 함께 확인해도 된다. 최소한 빌드 통과를 확인한다.
 
-- [ ] **Step 6: 커밋**
+- [ ] **Step 6: 2페이지 커밋 (Task 2·6 일괄)**
+
+2페이지(시나리오 마퀴) 작업을 한 번에 커밋한다. Task 2의 데이터 모듈도 함께 올린다.
 
 ```bash
-git add frontend/src/features/landing/components/ScenarioCard.tsx frontend/src/features/landing/components/ScenarioSection.tsx frontend/src/index.css
+git add frontend/src/features/landing/data/scenarios.ts \
+  frontend/src/features/landing/components/ScenarioCard.tsx \
+  frontend/src/features/landing/components/ScenarioSection.tsx \
+  frontend/src/index.css
 git commit -m "feat(frontend): 시나리오 무한 마퀴 섹션 추가"
 ```
 
@@ -860,12 +870,9 @@ export function ValueSection() {
 Run: `pnpm lint && pnpm build`
 Expected: 통과.
 
-- [ ] **Step 3: 커밋**
+- [ ] **Step 3: 커밋 보류**
 
-```bash
-git add frontend/src/features/landing/components/ValueSection.tsx
-git commit -m "feat(frontend): 핵심 가치 3카드 섹션 추가"
-```
+3페이지 그룹. **커밋하지 않고** Task 9 끝의 페이지 단위 커밋에서 함께 올린다.
 
 ---
 
@@ -922,12 +929,9 @@ export function LandingFooter() {
 Run: `pnpm lint && pnpm build`
 Expected: 통과.
 
-- [ ] **Step 3: 커밋**
+- [ ] **Step 3: 커밋 보류**
 
-```bash
-git add frontend/src/features/landing/components/LandingFooter.tsx
-git commit -m "feat(frontend): 랜딩 footer 추가"
-```
+3페이지 그룹. **커밋하지 않고** Task 9 끝의 페이지 단위 커밋에서 함께 올린다.
 
 ---
 
@@ -984,11 +988,15 @@ Expected: 통과.
 - OS의 "동작 줄이기(reduce motion)" 설정 시 애니메이션 정지
 Expected: 모두 정상.
 
-- [ ] **Step 4: 커밋**
+- [ ] **Step 4: 3페이지 커밋 (Task 7·8·9 일괄)**
+
+3페이지(핵심 가치 + footer + 최종 조립) 작업을 한 번에 커밋한다.
 
 ```bash
-git add frontend/src/pages/LandingPage.tsx
-git commit -m "feat(frontend): 랜딩페이지 섹션 조립 및 완성"
+git add frontend/src/features/landing/components/ValueSection.tsx \
+  frontend/src/features/landing/components/LandingFooter.tsx \
+  frontend/src/pages/LandingPage.tsx
+git commit -m "feat(frontend): 핵심 가치·footer 섹션 추가 및 랜딩페이지 완성"
 ```
 
 ---
