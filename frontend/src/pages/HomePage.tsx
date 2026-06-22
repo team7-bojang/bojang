@@ -6,7 +6,7 @@ import { Stepper } from '@/components/common/Stepper';
 import { Button } from '@/components/ui/button';
 import { useCaseStore, type UploadedPdf } from '@/features/case/store/caseStore';
 import { Chatbot } from '@/features/home/components/Chatbot';
-import { AppHeader } from '@/features/home/components/AppHeader';
+import { AppHeader } from '@/components/common/AppHeader';
 import { PdfUpload } from '@/features/home/components/PdfUpload';
 import { PolicySelector } from '@/features/insurance/components/PolicySelector';
 import { POLICIES } from '@/features/insurance/data/policies';

@@ -6,7 +6,7 @@ import {
   payableBenefits,
 } from '@/features/result/mocks/resultData';
 import { Button } from '@/components/ui/button';
-import { AppHeader } from '@/features/home/components/AppHeader';
+import { AppHeader } from '@/components/common/AppHeader';
 import { AdditionalCoverageResult } from '@/features/result/components/AdditionalCoverageResult';
 import { AmountTiles } from '@/features/result/components/AmountTiles';
 import { AnalysisModal } from '@/features/result/components/AnalysisModal';

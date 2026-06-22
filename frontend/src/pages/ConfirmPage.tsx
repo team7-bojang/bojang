@@ -12,7 +12,7 @@ import { DiagnosisSection } from '@/features/confirm/components/DiagnosisSection
 import { PolicyEnrollmentSection } from '@/features/confirm/components/PolicyEnrollmentSection';
 import { TreatmentSection } from '@/features/confirm/components/TreatmentSection';
 import { VisitSection } from '@/features/confirm/components/VisitSection';
-import { AppHeader } from '@/features/home/components/AppHeader';
+import { AppHeader } from '@/components/common/AppHeader';
 import { INSURERS } from '@/features/insurance/data/insurers';
 import { POLICIES } from '@/features/insurance/data/policies';
 import type { CaseDashboard } from '@/types/case';
