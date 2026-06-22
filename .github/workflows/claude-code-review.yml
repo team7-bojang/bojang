@@ -22,13 +22,16 @@ jobs:
 
       - name: Run Claude Code Review
         uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
+        # 턴 한도 도달 등으로 리뷰가 중단돼도 워크플로를 실패로 처리하지 않고 안전 종료한다.
+        # (리뷰 미완료는 경고 수준일 뿐 PR 자체의 문제가 아니므로 빨간 X를 띄우지 않음)
+        continue-on-error: true
         with:
           # Claude 구독(OAuth) 토큰. `claude setup-token` 으로 발급 후
           # 저장소 Settings > Secrets > Actions 에 CLAUDE_CODE_OAUTH_TOKEN 으로 등록.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # 리뷰 실행 비용 제어 + 리뷰 게시에 필요한 도구 허용.
           # 이 도구들이 없으면 Claude가 리뷰를 로그에만 남기고 PR에는 댓글을 못 단다.
-          claude_args: '--max-turns 15 --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"'
+          claude_args: '--max-turns 30 --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"'
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
