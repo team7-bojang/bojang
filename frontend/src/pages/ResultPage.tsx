@@ -143,7 +143,7 @@ export function ResultPage() {
         {isAdditionalCoverageCase ? (
           <AdditionalCoverageResult
             data={additionalCoverageResult}
-            onRestart={() => navigate('/')}
+            onRestart={() => navigate('/home')}
           />
         ) : (
           <>
@@ -170,10 +170,10 @@ export function ResultPage() {
             <ResultNotice />
 
             <div className="mt-8 grid gap-3 sm:mx-auto sm:max-w-2xl sm:grid-cols-2">
-              <Button type="button" variant="outline" size="lg" onClick={() => navigate('/')}>
+              <Button type="button" variant="outline" size="lg" onClick={() => navigate('/home')}>
                 처음으로 돌아가기
               </Button>
-              <Button type="button" size="lg" onClick={() => navigate('/')}>
+              <Button type="button" size="lg" onClick={() => navigate('/home')}>
                 <RotateCcw />
                 새로운 상황 분석하기
               </Button>
