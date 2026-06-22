@@ -33,7 +33,7 @@ def get_presets():
         return response.fail("server_error", str(e), 500)
 
 
-@bp.post("/policies/select")
+@bp.post("/policies/select", security=[{"jwt": []}])
 @require_auth
 def select_presets(body: SelectPresetRequest):
     """선탑재 상품 등록 (SCR-01)."""
@@ -50,7 +50,7 @@ def select_presets(body: SelectPresetRequest):
         return response.fail("server_error", str(e), 500)
 
 
-@bp.post("/policies/upload")
+@bp.post("/policies/upload", security=[{"jwt": []}])
 @require_auth
 def upload_policy():
     """약관 PDF 업로드 및 분석 (SCR-02)."""
@@ -68,7 +68,7 @@ def upload_policy():
         return response.fail("server_error", str(e), 500)
 
 
-@bp.get("/policies/my")
+@bp.get("/policies/my", security=[{"jwt": []}])
 @require_auth
 def get_my_policies():
     """내 보험·특약 목록 조회 (SCR-01)."""
