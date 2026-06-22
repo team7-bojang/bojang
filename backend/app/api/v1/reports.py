@@ -13,7 +13,7 @@ from app.auth import require_auth
 from app.core import response
 from app.services import report_service
 
-bp = APIBlueprint("reports", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="reports")], abp_security=[{"jwt": []}])
+bp = APIBlueprint("reports", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="reports")])
 
 
 class ReportCreateRequest(BaseModel):

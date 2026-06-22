@@ -16,9 +16,7 @@ from app.auth import require_auth
 from app.core import response
 from app.services import analysis_service
 
-bp = APIBlueprint(
-    "analysis", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="analysis")], abp_security=[{"jwt": []}]
-)
+bp = APIBlueprint("analysis", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="analysis")])
 
 
 # 요청용 Pydantic 모델
