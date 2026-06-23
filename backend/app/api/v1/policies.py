@@ -7,7 +7,9 @@ from app.auth import require_auth
 from app.core import response
 from app.services import policy_service
 
-bp = APIBlueprint("policies", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="policies")])
+bp = APIBlueprint(
+    "policies", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="policies")], abp_security=[{"jwt": []}]
+)
 
 
 # 요청/응답용 임시 Pydantic 모델 정의 (flask-openapi3 자동 문서화용)
@@ -24,6 +26,7 @@ class SourceQuery(BaseModel):
 
 
 @bp.get("/policies/presets")
+@require_auth
 def get_presets():
     """선탑재 상품 목록 조회 (SCR-01)."""
     try:
@@ -33,15 +36,16 @@ def get_presets():
         return response.fail("server_error", str(e), 500)
 
 
-@bp.post("/policies/select", security=[{"jwt": []}])
+@bp.post("/policies/select")
 @require_auth
 def select_presets(body: SelectPresetRequest):
     """선탑재 상품 등록 (SCR-01)."""
     try:
         if not body.preset_ids:
             return response.fail("validation_error", "preset_ids가 빈 배열입니다.", 400)
-        
+
         from app.core.errors import NotFoundError
+
         policy_ids = policy_service.select_presets(g.user_id, body.preset_ids)
         return response.ok({"registered_policy_ids": policy_ids}, 201)
     except NotFoundError as nf_err:
@@ -50,7 +54,7 @@ def select_presets(body: SelectPresetRequest):
         return response.fail("server_error", str(e), 500)
 
 
-@bp.post("/policies/upload", security=[{"jwt": []}])
+@bp.post("/policies/upload")
 @require_auth
 def upload_policy():
     """약관 PDF 업로드 및 분석 (SCR-02)."""
@@ -68,7 +72,7 @@ def upload_policy():
         return response.fail("server_error", str(e), 500)
 
 
-@bp.get("/policies/my", security=[{"jwt": []}])
+@bp.get("/policies/my")
 @require_auth
 def get_my_policies():
     """내 보험·특약 목록 조회 (SCR-01)."""
@@ -80,6 +84,7 @@ def get_my_policies():
 
 
 @bp.get("/policies/<string:id>/source")
+@require_auth
 def get_policy_source(path: PolicyPath, query: SourceQuery):
     """약관 원문 조회 (SCR-02)."""
     try:
