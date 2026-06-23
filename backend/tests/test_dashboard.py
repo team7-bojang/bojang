@@ -46,7 +46,12 @@ def _create_case(**overrides) -> str:
         **overrides,
     }
     res = db.table("cases").insert(case).execute()
-    return res.data[0]["id"]
+    data = res.data
+    if isinstance(data, list) and len(data) > 0:
+        return data[0].get("id")
+    elif isinstance(data, dict):
+        return data.get("id")
+    return None
 
 
 def test_get_dashboard_returns_nine_items(client):

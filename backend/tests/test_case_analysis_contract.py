@@ -24,7 +24,12 @@ def _create_policy(user_id: str = OWNER_ID, name: str = None) -> str:
         )
         .execute()
     )
-    return res.data[0]["id"]
+    data = res.data
+    if isinstance(data, list) and len(data) > 0:
+        return data[0].get("id")
+    elif isinstance(data, dict):
+        return data.get("id")
+    return None
 
 
 def test_create_case_rejects_other_users_policy(client):
