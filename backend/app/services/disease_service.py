@@ -1,6 +1,8 @@
 """질병 검색 서비스 (SCR-03)."""
 
-# KCD 질병 데이터 사전
+from app.db import get_client
+
+# KCD 질병 데이터 사전 (Fallback 용)
 _KCD_DATA = [
     {"kcd": "I63", "name": "뇌경색증"},
     {"kcd": "I60", "name": "지주막하출혈"},
@@ -14,14 +16,55 @@ _KCD_DATA = [
 ]
 
 
-def search_diseases(query: str) -> list[dict]:
-    """검색어와 일치하는 질병명 및 KCD 코드를 반환합니다."""
-    if not query:
-        return _KCD_DATA
+def search_diseases(query: str, limit: int = 5, offset: int = 0) -> dict:
+    """검색어와 일치하는 질병명 및 KCD 코드를 페이징하여 반환합니다."""
+    client = get_client()
+    try:
+        if not query:
+            res = (
+                client.table("diseases")
+                .select("kcd, name", count="exact")
+                .range(offset, offset + limit - 1)
+                .execute()
+            )
+            total = res.count or 0
+            results = res.data or []
+        else:
+            res = (
+                client.table("diseases")
+                .select("kcd, name", count="exact")
+                .or_(f"name.ilike.%{query}%,kcd.ilike.%{query}%,search_text.ilike.%{query}%")
+                .range(offset, offset + limit - 1)
+                .execute()
+            )
+            total = res.count or 0
+            results = res.data or []
 
-    results = []
-    for item in _KCD_DATA:
-        if query.lower() in item["name"].lower() or query.lower() in item["kcd"].lower():
-            results.append(item)
+        has_more = (offset + limit) < total
+        return {
+            "results": results,
+            "total": total,
+            "offset": offset,
+            "has_more": has_more
+        }
+    except Exception as e:
+        print(f"[DiseaseService] Failed to fetch diseases from Supabase: {e}")
+        # Local fallback
+        if not query:
+            filtered = _KCD_DATA
+        else:
+            filtered = [
+                item
+                for item in _KCD_DATA
+                if query.lower() in item["name"].lower() or query.lower() in item["kcd"].lower()
+            ]
+        total = len(filtered)
+        results = filtered[offset : offset + limit]
+        has_more = (offset + limit) < total
+        return {
+            "results": results,
+            "total": total,
+            "offset": offset,
+            "has_more": has_more
+        }
 
-    return results

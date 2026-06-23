@@ -28,7 +28,7 @@ def get_presets():
     """선탑재 상품 목록 조회 (SCR-01)."""
     try:
         data = policy_service.get_presets()
-        return response.ok(data)
+        return response.ok({"presets": data})
     except Exception as e:
         return response.fail("server_error", str(e), 500)
 
@@ -38,8 +38,14 @@ def get_presets():
 def select_presets(body: SelectPresetRequest):
     """선탑재 상품 등록 (SCR-01)."""
     try:
+        if not body.preset_ids:
+            return response.fail("validation_error", "preset_ids가 빈 배열입니다.", 400)
+        
+        from app.core.errors import NotFoundError
         policy_ids = policy_service.select_presets(g.user_id, body.preset_ids)
-        return response.ok({"policy_ids": policy_ids}, 201)
+        return response.ok({"registered_policy_ids": policy_ids}, 201)
+    except NotFoundError as nf_err:
+        return response.fail("not_found", str(nf_err), 404)
     except Exception as e:
         return response.fail("server_error", str(e), 500)
 

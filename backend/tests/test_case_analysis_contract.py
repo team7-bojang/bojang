@@ -79,7 +79,7 @@ def test_search_analysis_uses_selected_policies_and_new_admission_columns(monkey
 
     captured = {}
 
-    def fake_search(self, query, policy_ids=None, trigger_type=None, k=5):
+    def fake_search(self, query, policy_ids=None, trigger_type=None, k=5, **kwargs):
         captured["query"] = query
         captured["policy_ids"] = policy_ids
         return [

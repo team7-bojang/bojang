@@ -21,6 +21,9 @@ def _other_user_auth_header(monkeypatch) -> dict:
         "exp": now + dt.timedelta(hours=1),
         "iat": now,
     }
+    if settings.supabase_url:
+        payload["iss"] = f"{settings.supabase_url.rstrip('/')}/auth/v1"
+        
     token = jwt.encode(payload, _OTHER_USER_JWT_SECRET, algorithm="HS256")
     return {"Authorization": f"Bearer {token}"}
 

@@ -7,7 +7,20 @@ claim_rule 분기·waiting_period 우선순위만 고정한다.
 from app.judge import Rider, judge
 from app.judge.types import Case
 
-_JUDGEMENT_KEYS = {"status", "gap_days", "matched_boundary", "calc", "reduction", "limit_note"}
+_JUDGEMENT_KEYS = {
+    "status",
+    "gap_days",
+    "matched_boundary",
+    "calc",
+    "reduction",
+    "limit_note",
+    "payable_days",
+    "subscribed_amount",
+    "expected_amount",
+    "reduced_amount",
+    "additional_amount",
+    "reason",
+}
 
 
 def _case(**over) -> Case:
@@ -47,7 +60,7 @@ def test_judgement_contract_shape():
 
 def test_waiting_period_not_met_has_priority():
     # 면책 90일, 가입 후 30일 경과 → 미경과
-    result = judge(_case(policy_elapsed_days=30), _rider(waiting_period_days=90))
+    result = judge(_case(policy_elapsed_days=30), _rider(waiting_period_days=90, unit_amount=10000))
     assert result["status"] == "waiting_period_not_met"
     assert result["gap_days"] == 60
 
