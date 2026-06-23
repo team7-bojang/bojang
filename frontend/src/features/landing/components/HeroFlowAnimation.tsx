@@ -18,7 +18,7 @@ const STEP_HOLD_MS: Record<StepKey, number> = {
 
 // 케이스별 탭 정의.
 const CASES: { key: CaseKey; label: string }[] = [
-  { key: 'case1', label: '청구가능' },
+  { key: 'case1', label: '청구가능보험 찾기' },
   { key: 'case2', label: '추가보장찾기' },
 ];
 
@@ -124,7 +124,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
             type="button"
             onClick={() => selectCase(key)}
             className={cn(
-              'flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors',
+              'flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors',
               caseKey === key ? 'bg-surface text-primary shadow-sm' : 'text-muted hover:text-ink'
             )}
             aria-pressed={caseKey === key}
@@ -134,7 +134,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
         ))}
       </div>
 
-      <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-primary">
+      <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-primary">
         <span className="font-tossface">✨</span>
         {STEP_LABEL[step]}
       </div>
@@ -154,11 +154,11 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
                 <span className="font-tossface flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-tint text-base">
                   🤖
                 </span>
-                <p className="rounded-2xl rounded-tl-sm bg-primary-tint/40 px-3 py-2 text-xs leading-5 text-ink">
+                <p className="rounded-2xl rounded-tl-sm bg-primary-tint/40 px-3 py-2 text-sm leading-5 text-ink">
                   어떤 상황인지 편하게 적어주세요 🙂
                 </p>
               </div>
-              <div className="ml-auto max-w-[80%] rounded-2xl rounded-tr-sm bg-primary px-3 py-2 text-xs leading-5 text-white">
+              <div className="ml-auto max-w-[80%] rounded-2xl rounded-tr-sm bg-primary px-3 py-2 text-sm leading-5 text-white">
                 {typed}
                 <span className="ml-0.5 inline-block w-0.5 animate-pulse bg-white/80">&nbsp;</span>
               </div>
@@ -174,7 +174,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
               ].map(([label, value]) => (
                 <div
                   key={label}
-                  className="flex items-center justify-between rounded-xl border border-line bg-primary-tint/20 px-3 py-2 text-xs"
+                  className="flex items-center justify-between rounded-xl border border-line bg-primary-tint/20 px-3 py-2 text-sm"
                 >
                   <span className="text-muted">{label}</span>
                   <span className="font-semibold text-ink">{value}</span>
@@ -187,7 +187,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
           {step === 'result' && caseKey === 'case1' && (
             <div className="flex flex-col gap-3">
               <div className="rounded-xl bg-primary-tint/30 px-4 py-4 text-center">
-                <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-success">
+                <div className="flex items-center justify-center gap-1.5 text-sm font-bold text-success">
                   <span className="font-tossface">✅</span>
                   청구 가능 보장 2건을 찾았어요
                 </div>
@@ -200,7 +200,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
               {['입원일당 특약', '질병수술비 특약'].map(name => (
                 <div
                   key={name}
-                  className="flex items-center justify-between rounded-xl border border-line px-3 py-2 text-xs"
+                  className="flex items-center justify-between rounded-xl border border-line px-3 py-2 text-sm"
                 >
                   <span className="font-medium text-ink">{name}</span>
                   <span className="font-semibold text-primary">청구 가능</span>
@@ -212,7 +212,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
           {/* 결과 — Case2: 추가 보장 찾기 (성장 막대 그래프) */}
           {step === 'result' && caseKey === 'case2' && (
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+              <div className="flex items-center gap-1.5 text-sm font-bold text-primary">
                 <span className="font-tossface">📈</span>
                 조건을 채우면 더 받을 수 있어요
               </div>
@@ -228,7 +228,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
                     />
                   </div>
                   <span className="text-[10px] font-semibold text-muted">현재</span>
-                  <span className="text-xs font-bold text-ink">{formatWon(CURRENT_AMOUNT)}원</span>
+                  <span className="text-sm font-bold text-ink">{formatWon(CURRENT_AMOUNT)}원</span>
                 </div>
                 {/* 조건 충족 시 막대 (상단 추가분 강조) */}
                 <div className="flex flex-col items-center gap-2">
@@ -242,7 +242,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
                     <div className="bg-[#18c9b5]" style={{ height: `${addedRatio}%` }} />
                   </motion.div>
                   <span className="text-[10px] font-semibold text-primary">조건 충족 시</span>
-                  <span className="text-xs font-black text-primary">
+                  <span className="text-sm font-black text-primary">
                     {formatWon(EXPECTED_AMOUNT)}원
                   </span>
                 </div>

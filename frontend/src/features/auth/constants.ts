@@ -9,7 +9,7 @@ export const AUTH_COPY: Record<AuthMode, AuthCopy> = {
     switchLabel: '회원가입',
   },
   signup: {
-    title: '보장체크 시작하기',
+    title: '보장zip 시작하기',
     description: '가입한 보험과 진료 상황을 안전하게 관리해 보세요.',
     submit: '회원가입',
     switchText: '이미 계정이 있으신가요?',

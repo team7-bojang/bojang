@@ -1,5 +1,14 @@
 @import 'tailwindcss';
 
+/* 로고 전용 폰트 (Freesentation ExtraBold) — jsDelivr CDN, OFL 라이선스 */
+@font-face {
+  font-family: 'Freesentation';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-8ExtraBold.woff2')
+    format('woff2');
+  font-weight: 800;
+  font-display: swap;
+}
+
 /* 디자인 토큰 (딥 틸/에메랄드 · 신뢰감) — 색상 변경 시 이 블록만 수정 */
 @theme {
   --color-canvas: #eef3f2;
@@ -21,6 +30,9 @@
 
   /* 토스페이스 이모지 폰트 (이모지 문자에 적용 → font-tossface 유틸 생성) */
   --font-tossface: 'Tossface', sans-serif;
+
+  /* 로고 텍스트 전용 폰트 (→ font-logo 유틸 생성, weight 800만 로드) */
+  --font-logo: 'Freesentation', sans-serif;
 }
 
 /* 스크롤은 되지만 스크롤바는 숨김 */

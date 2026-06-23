@@ -29,9 +29,9 @@ export function ValueSection() {
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <div className="text-center">
           <span className="inline-flex w-fit items-center rounded-full bg-primary-soft/15 px-3 py-1 text-xs font-semibold text-primary-soft">
-            WHY 보장체크
+            WHY 보장zip
           </span>
-          <h2 className="mt-4 text-3xl font-extrabold sm:text-4xl">왜 보장체크인가요?</h2>
+          <h2 className="mt-4 text-3xl font-extrabold sm:text-4xl">왜 보장zip인가요?</h2>
           <p className="mt-4 text-base text-white/65 sm:text-lg">
             믿을 수 있는 근거와 함께, 놓친 보장을 정확하게 찾아드립니다.
           </p>

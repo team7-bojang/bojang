@@ -11,7 +11,7 @@ interface ChatMessage {
   text: string;
 }
 
-const GREETING = '안녕하세요! 보장체크 AI 챗봇이에요 🙂 어떤 도움이 필요하신가요?';
+const GREETING = '안녕하세요! 보장zip AI 챗봇이에요 🙂 어떤 도움이 필요하신가요?';
 
 const SUGGESTIONS = [
   '사고가 났을 때 보장 받을 수 있을까요?',

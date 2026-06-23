@@ -11,7 +11,7 @@ export function HeroSection() {
     <section className="flex min-h-screen items-center bg-linear-to-b from-surface to-primary-tint/40">
       <div className="mx-auto grid w-full max-w-7xl items-center gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(360px,440px)] lg:py-24">
         <div className="flex flex-col gap-6">
-          <span className="inline-flex w-fit items-center rounded-full bg-primary-tint px-3 py-1 text-xs font-semibold text-primary">
+          <span className="inline-flex w-fit items-center rounded-full bg-primary-tint px-3 py-1 text-base font-semibold text-primary">
             AI가 찾아주는 내 보험의 숨은 혜택
           </span>
 
@@ -37,11 +37,11 @@ export function HeroSection() {
             </Button>
           </div>
 
-          {/* 신뢰 지표 — 세로 공간 활용 + 사회적 증거 */}
+          {/* 신뢰 지표 — 제품 사실 기반 (누적 통계 등 미보유 데이터는 사용하지 않음) */}
           <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-4 border-t border-line pt-6">
             {[
-              ['52,000+', '누적 분석'],
-              ['328,312원', '평균 환급액'],
+              ['2가지', '분석 모드'],
+              ['AI', '자동 분석'],
               ['100%', '약관 원문 근거'],
             ].map(([value, label]) => (
               <div key={label}>
