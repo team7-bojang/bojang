@@ -1,3 +1,5 @@
+import os
+
 from supabase import create_client
 
 from app.config import settings
@@ -10,6 +12,11 @@ _client = None
 def get_client():
     global _client
     if _client is not None:
+        return _client
+
+    if os.environ.get("MOCK_DB") == "True":
+        print("[DB] Using MockSupabaseClient for database (forced by MOCK_DB=True).")
+        _client = MockSupabaseClient()
         return _client
 
     if settings.supabase_url and settings.supabase_key:

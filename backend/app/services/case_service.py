@@ -1,12 +1,12 @@
 import json
 import re
 import uuid
-from datetime import date
+from datetime import UTC, datetime
 
 from openai import OpenAI
 
 from app.config import settings
-from app.core.errors import NotFoundError
+from app.core.errors import ForbiddenError, NotFoundError
 from app.db import get_client
 
 ALLOWED_TREATMENT_ITEMS = {
@@ -120,6 +120,7 @@ def create_case(
         }
 
     case_id = str(uuid.uuid4())
+    db = get_client()
 
     # 1. Preset 선택 등록 (CASE2인 경우 단일 선택 유효성 검증)
     from app.services import policy_service
@@ -461,18 +462,9 @@ def create_case(
         "is_inpatient": is_inpatient,
         "is_outpatient": is_outpatient,
         "created_at": datetime.now(UTC).isoformat(),
-        "service_type": service_type,
-        "policy_ids": policy_ids,
     }
 
     db.table("cases").insert(case_data).execute()
-
-    if service_type == "CASE2":
-        recommended_input_method, available_input_methods, message_out = None, [], None
-    else:
-        recommended_input_method = rec_method
-        available_input_methods = ["PAYMENT", "MEDICAL_DETAIL_STATEMENT"]
-        message_out = message
 
     return {
         "case_id": case_id,
@@ -768,6 +760,9 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
         raise NotFoundError("해당 케이스를 찾을 수 없습니다.")
 
     c = res.data[0]
+    if c.get("user_id") != user_id:
+        raise ForbiddenError("다른 사용자의 case에 접근할 수 없습니다.")
+        
     is_inpatient = bool(c.get("is_inpatient"))
     is_outpatient = bool(c.get("is_outpatient"))
 
@@ -777,14 +772,14 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
 
     return {
         "case_id": case_id,
-        "service_type": "CASE1" if c.get("admission_days_diagnosed") is None else "CASE2",
+        "service_type": "CASE1" if (c.get("admission_days_diagnosed") is None and c.get("diag_days") is None) else "CASE2",
         "dashboard": {
             "disease_name": c.get("disease_name"),
             "disease_kcd": c.get("disease_kcd"),
             "is_inpatient": is_inpatient,
             "is_outpatient": is_outpatient,
-            "admission_days_current": c.get("admission_days_current") if is_inpatient else None,
-            "admission_days_diagnosed": c.get("admission_days_diagnosed") if is_inpatient else None,
+            "admission_days_current": c.get("admission_days_current") or c.get("current_days"),
+            "admission_days_diagnosed": c.get("admission_days_diagnosed") or c.get("diag_days"),
             "treatment_items": c.get("treatment_items") or [],
             "payment_amount": c.get("payment_amount") if is_outpatient else None,
             "visit_date": visit_date if is_outpatient else None,
@@ -797,6 +792,42 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
 def patch_dashboard(user_id: str, case_id: str, data: dict) -> dict:
     """대시보드 화면에서 직접 수정한 정보들을 DB에 반영합니다."""
     db = get_client()
+
+    res = db.table("cases").select("*").eq("id", case_id).execute()
+    if not res.data:
+        raise NotFoundError("해당 케이스를 찾을 수 없습니다.")
+    case = res.data[0]
+    if case.get("user_id") != user_id:
+        raise ForbiddenError("다른 사용자의 case에 접근할 수 없습니다.")
+
+    # 1. 입원/통원 동시 설정 방지
+    new_inpatient = data.get("is_inpatient") if data.get("is_inpatient") is not None else case.get("is_inpatient")
+    new_outpatient = data.get("is_outpatient") if data.get("is_outpatient") is not None else case.get("is_outpatient")
+    if new_inpatient and new_outpatient:
+        raise ValueError("입원과 통원을 동시에 선택할 수 없습니다.")
+
+    # 2. 치료 항목 유효성 검사
+    if "treatment_items" in data:
+        items = data["treatment_items"] or []
+        for it in items:
+            if it not in ALLOWED_TREATMENT_ITEMS:
+                raise ValueError(f"유효하지 않은 치료 항목 코드입니다: {it}")
+
+    # 3. 내원일자 날짜 포맷 및 범위 검사
+    visit_dates_key = "visit_dates" if "visit_dates" in data else ("visit_date" if "visit_date" in data else None)
+    if visit_dates_key:
+        dates = data[visit_dates_key] or []
+        if isinstance(dates, str):
+            dates = [dates]
+        for d in dates:
+            if not re.match(r"^\d{4}-\d{2}-\d{2}$", d):
+                raise ValueError("날짜 형식이 올바르지 않습니다 (YYYY-MM-DD 필요).")
+            try:
+                dt_part = d.split("-")
+                import datetime
+                datetime.date(int(dt_part[0]), int(dt_part[1]), int(dt_part[2]))
+            except ValueError:
+                raise ValueError("유효하지 않은 날짜입니다.") from None
 
     updates = {}
 
@@ -824,8 +855,8 @@ def patch_dashboard(user_id: str, case_id: str, data: dict) -> dict:
         updates["payment_amount"] = (
             int(data["payment_amount"]) if data["payment_amount"] is not None else None
         )
-    if "visit_date" in data:
-        updates["visit_dates"] = data["visit_date"]
+    if visit_dates_key:
+        updates["visit_dates"] = data[visit_dates_key]
     if "annual_visit_count" in data:
         updates["annual_visit_count"] = (
             int(data["annual_visit_count"]) if data["annual_visit_count"] is not None else None

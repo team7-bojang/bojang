@@ -6,7 +6,7 @@ from flask_openapi3.models.tag import Tag
 
 from app.auth import require_auth
 from app.core import response
-from app.core.errors import NotFoundError
+from app.core.errors import ForbiddenError, NotFoundError
 from app.schemas.case import CaseCreateRequest, PaymentTextRequest
 from app.services import case_service
 
@@ -21,13 +21,14 @@ def create_case(body: CaseCreateRequest):
         if not body.service_type or not body.policy_ids or not body.initial_situation:
             return response.fail("validation_error", "필수 항목(service_type, policy_ids, initial_situation)이 누락되었습니다.", 400)
         
-        from app.core.errors import NotFoundError
         data = case_service.create_case(
             g.user_id, body.service_type, body.policy_ids, body.initial_situation
         )
         return response.ok(data, 201)
     except ValueError as val_err:
         return response.fail("validation_error", str(val_err), 400)
+    except ForbiddenError as fb_err:
+        return response.fail("forbidden", str(fb_err), 403)
     except NotFoundError as nf_err:
         return response.fail("not_found", str(nf_err), 404)
     except Exception as e:
@@ -115,6 +116,8 @@ def get_dashboard():
         return response.ok(data)
     except ValueError as val_err:
         return response.fail("validation_error", str(val_err), 400)
+    except ForbiddenError as fb_err:
+        return response.fail("forbidden", str(fb_err), 403)
     except NotFoundError as nf_err:
         return response.fail("not_found", str(nf_err), 404)
     except Exception as e:
@@ -132,6 +135,8 @@ def patch_dashboard():
         return response.ok(data)
     except ValueError as val_err:
         return response.fail("validation_error", str(val_err), 400)
+    except ForbiddenError as fb_err:
+        return response.fail("forbidden", str(fb_err), 403)
     except NotFoundError as nf_err:
         return response.fail("not_found", str(nf_err), 404)
     except Exception as e:

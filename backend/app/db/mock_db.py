@@ -19,6 +19,7 @@ class InMemoryDB:
         self.disease_group_code_rules = []
         self.disease_groups = []
         self.rider_treatment_rules = []
+        self.rider_disease_rules = []
         self._initialized = False
 
     def initialize_if_needed(self):
@@ -27,10 +28,34 @@ class InMemoryDB:
 
         # disease_groups 사전 모의 생성
         self.disease_groups.extend([
-            {"id": "stroke", "name": "뇌혈관질환", "user_label": "뇌졸중/뇌경색"},
-            {"id": "cancer", "name": "암", "user_label": "암/악성신생물"},
-            {"id": "disc_disease", "name": "추간판장애", "user_label": "허리디스크/목디스크"},
-            {"id": "fracture", "name": "골절", "user_label": "골절/뼈부러짐"},
+            {"id": "general_disease", "name": "일반 질병", "group_type": "disease", "match_priority": 10, "requires_policy_appendix": False, "description": "상해가 아닌 질병 전체. 실손/입원/수술의 원인 분류에 사용", "user_label": "질병"},
+            {"id": "injury", "name": "상해", "group_type": "injury", "match_priority": 10, "requires_policy_appendix": False, "description": "급격하고 우연한 외래 사고로 인한 상해", "user_label": "상해"},
+            {"id": "disc_disease", "name": "디스크질환", "group_type": "disease", "match_priority": 40, "requires_policy_appendix": False, "description": "목디스크/허리디스크 등 추간판장애 후보", "user_label": "디스크 관련 질환"},
+            {"id": "cancer_all", "name": "암", "group_type": "cancer", "match_priority": 90, "requires_policy_appendix": True, "description": "약관상 악성신생물 암. 보험사/상품별 별표 확인 필요", "user_label": "암"},
+            {"id": "general_cancer_excl_similar", "name": "일반암(유사암 제외)", "group_type": "cancer", "match_priority": 95, "requires_policy_appendix": True, "description": "기타피부암, 갑상선암, 제자리암, 경계성종양 등을 제외하는 암 보장", "user_label": "일반암"},
+            {"id": "similar_cancer", "name": "유사암", "group_type": "cancer", "match_priority": 95, "requires_policy_appendix": True, "description": "기타피부암, 갑상선암, 제자리암, 경계성종양 등", "user_label": "유사암"},
+            {"id": "specific_small_cancer", "name": "특정 소액암", "group_type": "cancer", "match_priority": 100, "requires_policy_appendix": True, "description": "약관에서 별도로 정의하는 특정 소액암.", "user_label": "특정 소액암"},
+            {"id": "thyroid_cancer", "name": "갑상선암", "group_type": "cancer", "match_priority": 100, "requires_policy_appendix": True, "description": "갑상선의 악성신생물.", "user_label": "갑상선암"},
+            {"id": "other_skin_cancer", "name": "기타피부암", "group_type": "cancer", "match_priority": 100, "requires_policy_appendix": True, "description": "기타 피부의 악성신생물", "user_label": "기타피부암"},
+            {"id": "carcinoma_in_situ", "name": "제자리암", "group_type": "cancer", "match_priority": 100, "requires_policy_appendix": True, "description": "제자리신생물", "user_label": "제자리암"},
+            {"id": "borderline_tumor", "name": "경계성종양", "group_type": "cancer", "match_priority": 100, "requires_policy_appendix": True, "description": "행동양식 불명 또는 미상의 신생물", "user_label": "경계성종양"},
+            {"id": "metastatic_cancer", "name": "전이암", "group_type": "cancer", "match_priority": 95, "requires_policy_appendix": True, "description": "이차성/상세불명 악성신생물", "user_label": "전이암"},
+            {"id": "male_genital_cancer", "name": "남성생식기관련암", "group_type": "cancer", "match_priority": 90, "requires_policy_appendix": True, "description": "남성생식기관련암", "user_label": "남성생식기관련암"},
+            {"id": "female_genital_cancer", "name": "여성생식기관련암", "group_type": "cancer", "match_priority": 90, "requires_policy_appendix": True, "description": "여성생식기관련암", "user_label": "여성생식기관련암"},
+            {"id": "breast_cancer", "name": "유방암", "group_type": "cancer", "match_priority": 90, "requires_policy_appendix": True, "description": "유방의 악성신생물", "user_label": "유방암"},
+            {"id": "cerebrovascular", "name": "뇌혈관질환", "group_type": "disease", "match_priority": 90, "requires_policy_appendix": True, "description": "뇌혈관질환 분류표 기준", "user_label": "뇌혈관질환"},
+            {"id": "stroke", "name": "뇌졸중", "group_type": "disease", "match_priority": 95, "requires_policy_appendix": True, "description": "뇌졸중 분류표 기준", "user_label": "뇌졸중/뇌경색"},
+            {"id": "cerebral_hemorrhage", "name": "뇌출혈", "group_type": "disease", "match_priority": 95, "requires_policy_appendix": True, "description": "뇌출혈", "user_label": "뇌출혈"},
+            {"id": "ischemic_heart", "name": "허혈심장질환", "group_type": "disease", "match_priority": 90, "requires_policy_appendix": True, "description": "허혈성/허혈심장질환 분류표 기준", "user_label": "허혈심장질환"},
+            {"id": "acute_mi", "name": "급성심근경색증", "group_type": "disease", "match_priority": 95, "requires_policy_appendix": True, "description": "급성심근경색증 분류표 기준", "user_label": "급성심근경색증"},
+            {"id": "diabetes", "name": "당뇨병", "group_type": "disease", "match_priority": 80, "requires_policy_appendix": True, "description": "당뇨병 및 당뇨 관련 주요질환", "user_label": "당뇨병"},
+            {"id": "herpes_zoster", "name": "대상포진", "group_type": "disease", "match_priority": 80, "requires_policy_appendix": False, "description": "대상포진", "user_label": "대상포진"},
+            {"id": "gout", "name": "통풍", "group_type": "disease", "match_priority": 80, "requires_policy_appendix": False, "description": "통풍", "user_label": "통풍"},
+            {"id": "cataract", "name": "백내장", "group_type": "disease", "match_priority": 80, "requires_policy_appendix": False, "description": "백내장", "user_label": "백내장"},
+            {"id": "fracture", "name": "골절", "group_type": "injury", "match_priority": 80, "requires_policy_appendix": True, "description": "골절분류표 기준", "user_label": "골절/뼈부러짐"},
+            {"id": "fracture_excl_tooth", "name": "골절(치아파절 제외)", "group_type": "injury", "match_priority": 85, "requires_policy_appendix": True, "description": "치아파절을 제외하는 골절분류표", "user_label": "골절"},
+            {"id": "burn_corrosion_frostbite", "name": "화상/부식/동상", "group_type": "injury", "match_priority": 80, "requires_policy_appendix": True, "description": "화상, 부식, 동상 관련 상해 분류", "user_label": "화상/동상"},
+            {"id": "specific_injury", "name": "특정상해", "group_type": "injury", "match_priority": 75, "requires_policy_appendix": True, "description": "특정다빈도상해", "user_label": "특정상해"}
         ])
 
         # disease_group_aliases 및 rules 사전 모의 생성
@@ -38,18 +63,92 @@ class InMemoryDB:
             {"id": 1, "group_id": "disc_disease", "alias": "허리디스크", "source": "service"},
             {"id": 2, "group_id": "disc_disease", "alias": "목디스크", "source": "service"},
             {"id": 3, "group_id": "disc_disease", "alias": "디스크", "source": "service"},
-            {"id": 4, "group_id": "fracture", "alias": "골절", "source": "service"},
-            {"id": 5, "group_id": "stroke", "alias": "뇌경색", "source": "service"},
-            {"id": 6, "group_id": "stroke", "alias": "뇌졸중", "source": "service"},
-            {"id": 7, "group_id": "cancer", "alias": "암", "source": "service"},
-            {"id": 8, "group_id": "cancer", "alias": "위암", "source": "service"},
+            {"id": 4, "group_id": "disc_disease", "alias": "추간판탈출", "source": "service"},
+            {"id": 5, "group_id": "disc_disease", "alias": "추간판장애", "source": "service"},
+            {"id": 6, "group_id": "cancer_all", "alias": "암", "source": "service"},
+            {"id": 7, "group_id": "general_cancer_excl_similar", "alias": "일반암", "source": "service"},
+            {"id": 8, "group_id": "similar_cancer", "alias": "유사암", "source": "service"},
+            {"id": 9, "group_id": "specific_small_cancer", "alias": "특정소액암", "source": "service"},
+            {"id": 10, "group_id": "specific_small_cancer", "alias": "소액암", "source": "service"},
+            {"id": 11, "group_id": "thyroid_cancer", "alias": "갑상선암", "source": "service"},
+            {"id": 12, "group_id": "other_skin_cancer", "alias": "기타피부암", "source": "service"},
+            {"id": 13, "group_id": "carcinoma_in_situ", "alias": "제자리암", "source": "service"},
+            {"id": 14, "group_id": "borderline_tumor", "alias": "경계성종양", "source": "service"},
+            {"id": 15, "group_id": "metastatic_cancer", "alias": "전이암", "source": "service"},
+            {"id": 16, "group_id": "cerebrovascular", "alias": "뇌혈관질환", "source": "service"},
+            {"id": 17, "group_id": "stroke", "alias": "뇌졸중", "source": "service"},
+            {"id": 18, "group_id": "stroke", "alias": "뇌경색", "source": "service"},
+            {"id": 19, "group_id": "cerebral_hemorrhage", "alias": "뇌출혈", "source": "service"},
+            {"id": 20, "group_id": "ischemic_heart", "alias": "허혈심장질환", "source": "service"},
+            {"id": 21, "group_id": "ischemic_heart", "alias": "허혈성심장질환", "source": "service"},
+            {"id": 22, "group_id": "acute_mi", "alias": "급성심근경색증", "source": "service"},
+            {"id": 23, "group_id": "diabetes", "alias": "당뇨", "source": "service"},
+            {"id": 24, "group_id": "diabetes", "alias": "당뇨병", "source": "service"},
+            {"id": 25, "group_id": "herpes_zoster", "alias": "대상포진", "source": "service"},
+            {"id": 26, "group_id": "gout", "alias": "통풍", "source": "service"},
+            {"id": 27, "group_id": "cataract", "alias": "백내장", "source": "service"},
+            {"id": 28, "group_id": "fracture", "alias": "골절", "source": "service"},
+            {"id": 29, "group_id": "burn_corrosion_frostbite", "alias": "화상", "source": "service"},
+            {"id": 30, "group_id": "burn_corrosion_frostbite", "alias": "부식", "source": "service"},
+            {"id": 31, "group_id": "burn_corrosion_frostbite", "alias": "동상", "source": "service"}
         ])
         
         self.disease_group_code_rules.extend([
-            {'id': 1, 'group_id': 'stroke', 'rule_type': 'include', 'code_start': 'I60', 'code_end': 'I69', 'code_system': 'KCD', 'confidence': 'high', 'note': '뇌혈관질환'},
-            {'id': 2, 'group_id': 'cancer', 'rule_type': 'include', 'code_start': 'C00', 'code_end': 'D09', 'code_system': 'KCD', 'confidence': 'high', 'note': '악성신생물'},
-            {'id': 3, 'group_id': 'disc_disease', 'rule_type': 'include', 'code_start': 'M50', 'code_end': 'M51', 'code_system': 'KCD', 'confidence': 'medium', 'note': '디스크'},
-            {'id': 4, 'group_id': 'fracture', 'rule_type': 'include', 'code_start': 'S02', 'code_end': 'S92', 'code_system': 'KCD', 'confidence': 'policy_review_required', 'note': '골절'},
+            {"id": 1, "group_id": "disc_disease", "rule_type": "include", "code_start": "M50", "code_end": "M51", "code_system": "KCD", "confidence": "medium", "note": "디스크"},
+            {"id": 2, "group_id": "cancer_all", "rule_type": "include", "code_start": "C00", "code_end": "C97", "code_system": "KCD", "confidence": "policy_review_required", "note": "암"},
+            {"id": 3, "group_id": "thyroid_cancer", "rule_type": "include", "code_start": "C73", "code_end": None, "code_system": "KCD", "confidence": "high", "note": "갑상선암"},
+            {"id": 4, "group_id": "other_skin_cancer", "rule_type": "include", "code_start": "C44", "code_end": None, "code_system": "KCD", "confidence": "high", "note": "기타피부암"},
+            {"id": 5, "group_id": "carcinoma_in_situ", "rule_type": "include", "code_start": "D00", "code_end": "D09", "code_system": "KCD", "confidence": "high", "note": "제자리암"},
+            {"id": 6, "group_id": "borderline_tumor", "rule_type": "include", "code_start": "D37", "code_end": "D48", "code_system": "KCD", "confidence": "high", "note": "경계성종양"},
+            {"id": 7, "group_id": "metastatic_cancer", "rule_type": "include", "code_start": "C77", "code_end": "C80", "code_system": "KCD", "confidence": "high", "note": "전이암"},
+            {"id": 8, "group_id": "cerebrovascular", "rule_type": "include", "code_start": "I60", "code_end": "I69", "code_system": "KCD", "confidence": "high", "note": "뇌혈관질환"},
+            {"id": 9, "group_id": "stroke", "rule_type": "include", "code_start": "I60", "code_end": "I66", "code_system": "KCD", "confidence": "high", "note": "뇌졸중"},
+            {"id": 10, "group_id": "cerebral_hemorrhage", "rule_type": "include", "code_start": "I60", "code_end": "I62", "code_system": "KCD", "confidence": "high", "note": "뇌출혈"},
+            {"id": 11, "group_id": "ischemic_heart", "rule_type": "include", "code_start": "I20", "code_end": "I25", "code_system": "KCD", "confidence": "high", "note": "허혈성심장질환"},
+            {"id": 12, "group_id": "acute_mi", "rule_type": "include", "code_start": "I21", "code_end": "I23", "code_system": "KCD", "confidence": "high", "note": "급성심근경색증"},
+            {"id": 13, "group_id": "diabetes", "rule_type": "include", "code_start": "E10", "code_end": "E14", "code_system": "KCD", "confidence": "medium", "note": "당뇨"},
+            {"id": 14, "group_id": "herpes_zoster", "rule_type": "include", "code_start": "B02", "code_end": None, "code_system": "KCD", "confidence": "high", "note": "대상포진"},
+            {"id": 15, "group_id": "gout", "rule_type": "include", "code_start": "M10", "code_end": None, "code_system": "KCD", "confidence": "high", "note": "통풍"},
+            {"id": 16, "group_id": "cataract", "rule_type": "include", "code_start": "H25", "code_end": "H26", "code_system": "KCD", "confidence": "medium", "note": "백내장"},
+            {"id": 17, "group_id": "fracture", "rule_type": "include", "code_start": "S02", "code_end": "S92", "code_system": "KCD", "confidence": "policy_review_required", "note": "골절"},
+            {"id": 18, "group_id": "fracture_excl_tooth", "rule_type": "include", "code_start": "S02", "code_end": "S92", "code_system": "KCD", "confidence": "policy_review_required", "note": "골절치아제외"},
+            {"id": 19, "group_id": "burn_corrosion_frostbite", "rule_type": "include", "code_start": "T20", "code_end": "T35", "code_system": "KCD", "confidence": "policy_review_required", "note": "화상/부식/동상"}
+        ])
+
+        # rider_disease_rules 사전 모의 생성
+        self.rider_disease_rules.extend([
+            {"id": 1, "policy_id": None, "rider_id": None, "rider_name_pattern": "%암진단%", "rule_type": "required", "group_id": "cancer_all", "require_trigger_type": "진단", "note": "암 진단 계열"},
+            {"id": 2, "policy_id": None, "rider_id": None, "rider_name_pattern": "%암진단비%유사암제외%", "rule_type": "required", "group_id": "general_cancer_excl_similar", "require_trigger_type": "진단", "note": "일반암 보장"},
+            {"id": 3, "policy_id": None, "rider_id": None, "rider_name_pattern": "%유사암진단%", "rule_type": "required", "group_id": "similar_cancer", "require_trigger_type": "진단", "note": "유사암 보장"},
+            {"id": 4, "policy_id": None, "rider_id": None, "rider_name_pattern": "%특정소액암%", "rule_type": "required", "group_id": "specific_small_cancer", "require_trigger_type": None, "note": "특정 소액암"},
+            {"id": 5, "policy_id": None, "rider_id": None, "rider_name_pattern": "%소액암%", "rule_type": "required", "group_id": "specific_small_cancer", "require_trigger_type": None, "note": "소액암"},
+            {"id": 6, "policy_id": None, "rider_id": None, "rider_name_pattern": "%갑상선암%", "rule_type": "required", "group_id": "thyroid_cancer", "require_trigger_type": None, "note": "갑상선암"},
+            {"id": 7, "policy_id": None, "rider_id": None, "rider_name_pattern": "%기타피부암%", "rule_type": "required", "group_id": "other_skin_cancer", "require_trigger_type": None, "note": "기타피부암"},
+            {"id": 8, "policy_id": None, "rider_id": None, "rider_name_pattern": "%제자리암%", "rule_type": "required", "group_id": "carcinoma_in_situ", "require_trigger_type": None, "note": "제자리암"},
+            {"id": 9, "policy_id": None, "rider_id": None, "rider_name_pattern": "%경계성종양%", "rule_type": "required", "group_id": "borderline_tumor", "require_trigger_type": None, "note": "경계성종양"},
+            {"id": 10, "policy_id": None, "rider_id": None, "rider_name_pattern": "%전이암%", "rule_type": "required", "group_id": "metastatic_cancer", "require_trigger_type": None, "note": "전이암"},
+            {"id": 11, "policy_id": None, "rider_id": None, "rider_name_pattern": "%남성생식기관련%", "rule_type": "required", "group_id": "male_genital_cancer", "require_trigger_type": None, "note": "남성생식기암"},
+            {"id": 12, "policy_id": None, "rider_id": None, "rider_name_pattern": "%여성생식기관련%", "rule_type": "required", "group_id": "female_genital_cancer", "require_trigger_type": None, "note": "여성생식기암"},
+            {"id": 13, "policy_id": None, "rider_id": None, "rider_name_pattern": "%유방암%", "rule_type": "required", "group_id": "breast_cancer", "require_trigger_type": None, "note": "유방암"},
+            {"id": 14, "policy_id": None, "rider_id": None, "rider_name_pattern": "%뇌혈관질환%", "rule_type": "required", "group_id": "cerebrovascular", "require_trigger_type": None, "note": "뇌혈관질환"},
+            {"id": 15, "policy_id": None, "rider_id": None, "rider_name_pattern": "%뇌졸중%", "rule_type": "required", "group_id": "stroke", "require_trigger_type": None, "note": "뇌졸중"},
+            {"id": 16, "policy_id": None, "rider_id": None, "rider_name_pattern": "%뇌출혈%", "rule_type": "required", "group_id": "cerebral_hemorrhage", "require_trigger_type": None, "note": "뇌출혈"},
+            {"id": 17, "policy_id": None, "rider_id": None, "rider_name_pattern": "%허혈%심장질환%", "rule_type": "required", "group_id": "ischemic_heart", "require_trigger_type": None, "note": "허혈심장"},
+            {"id": 18, "policy_id": None, "rider_id": None, "rider_name_pattern": "%급성심근경색%", "rule_type": "required", "group_id": "acute_mi", "require_trigger_type": None, "note": "급성심근경색"},
+            {"id": 19, "policy_id": None, "rider_id": None, "rider_name_pattern": "%당뇨%", "rule_type": "required", "group_id": "diabetes", "require_trigger_type": None, "note": "당뇨"},
+            {"id": 20, "policy_id": None, "rider_id": None, "rider_name_pattern": "%대상포진%", "rule_type": "required", "group_id": "herpes_zoster", "require_trigger_type": None, "note": "대상포진"},
+            {"id": 21, "policy_id": None, "rider_id": None, "rider_name_pattern": "%통풍%", "rule_type": "required", "group_id": "gout", "require_trigger_type": None, "note": "통풍"},
+            {"id": 22, "policy_id": None, "rider_id": None, "rider_name_pattern": "%백내장%", "rule_type": "required", "group_id": "cataract", "require_trigger_type": None, "note": "백내장"},
+            {"id": 23, "policy_id": None, "rider_id": None, "rider_name_pattern": "%골절%치아파절제외%", "rule_type": "required", "group_id": "fracture_excl_tooth", "require_trigger_type": None, "note": "골절 치아제외"},
+            {"id": 24, "policy_id": None, "rider_id": None, "rider_name_pattern": "%골절%", "rule_type": "required", "group_id": "fracture", "require_trigger_type": None, "note": "골절"},
+            {"id": 25, "policy_id": None, "rider_id": None, "rider_name_pattern": "%화상%", "rule_type": "required", "group_id": "burn_corrosion_frostbite", "require_trigger_type": None, "note": "화상"},
+            {"id": 26, "policy_id": None, "rider_id": None, "rider_name_pattern": "%부식%", "rule_type": "required", "group_id": "burn_corrosion_frostbite", "require_trigger_type": None, "note": "부식"},
+            {"id": 27, "policy_id": None, "rider_id": None, "rider_name_pattern": "%동상%", "rule_type": "required", "group_id": "burn_corrosion_frostbite", "require_trigger_type": None, "note": "동상"},
+            {"id": 28, "policy_id": None, "rider_id": None, "rider_name_pattern": "%특정상해%", "rule_type": "required", "group_id": "specific_injury", "require_trigger_type": None, "note": "상해"},
+            {"id": 29, "policy_id": None, "rider_id": None, "rider_name_pattern": "%질병급여실손%", "rule_type": "optional", "group_id": "general_disease", "require_trigger_type": None, "note": "질병급여실손"},
+            {"id": 30, "policy_id": None, "rider_id": None, "rider_name_pattern": "%질병비급여실손%", "rule_type": "optional", "group_id": "general_disease", "require_trigger_type": None, "note": "질병비급여실손"},
+            {"id": 31, "policy_id": None, "rider_id": None, "rider_name_pattern": "%질병입원일당%", "rule_type": "optional", "group_id": "general_disease", "require_trigger_type": "입원", "note": "질병입원일당"},
+            {"id": 32, "policy_id": None, "rider_id": None, "rider_name_pattern": "%질병수술비%", "rule_type": "optional", "group_id": "general_disease", "require_trigger_type": "수술", "note": "질병수술비"}
         ])
 
         # treatment_types 사전 생성
@@ -627,5 +726,7 @@ class MockSupabaseClient:
             return MockQueryBuilder(table_name, db_instance.disease_groups)
         elif table_name == "rider_treatment_rules":
             return MockQueryBuilder(table_name, db_instance.rider_treatment_rules)
+        elif table_name == "rider_disease_rules":
+            return MockQueryBuilder(table_name, db_instance.rider_disease_rules)
         else:
             raise ValueError(f"Unknown table: {table_name}")

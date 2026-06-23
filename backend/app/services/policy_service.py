@@ -1,7 +1,7 @@
 import threading
 import uuid
 
-from app.core.errors import NotFoundError
+from app.core.errors import ForbiddenError, NotFoundError
 from app.db import get_client
 
 _select_presets_lock = threading.Lock()
@@ -18,11 +18,16 @@ def select_presets(user_id: str, preset_ids: list[str]) -> list[str]:
     """사용자가 선택한 preset 상품들을 검증하고, 그 ID 목록을 그대로 반환합니다 (v2.1)."""
     db = get_client()
 
-    # 404 처리를 위해 모든 preset_ids가 실재하는지 선검증
+    # 404 처리를 위해 모든 preset_ids가 실재하는지 선검증 및 소유주/Preset 검증
     for pid in preset_ids:
-        res_p = db.table("policies").select("id").eq("id", pid).execute()
+        res_p = db.table("policies").select("id, is_preset, user_id").eq("id", pid).execute()
         if not res_p.data:
             raise NotFoundError(f"존재하지 않는 preset id가 포함되어 있습니다: {pid}")
+        
+        policy_data = res_p.data[0]
+        if not policy_data.get("is_preset", False):
+            if policy_data.get("user_id") != user_id:
+                raise ForbiddenError("다른 사용자의 보험에 접근할 수 없습니다.")
 
     # 데이터 중복 폭발을 유발하는 상품/특약/청크 물리적 복제본을 만들지 않고 원본 preset_ids를 반환합니다.
     return preset_ids
