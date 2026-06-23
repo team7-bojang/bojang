@@ -386,13 +386,13 @@ def get_or_parse_riders(
 
     Raises:
         NotFoundError: policy_id 없음 또는 페이지 데이터 없음
-        PermissionError: 다른 사용자의 약관에 접근 시도
+        ForbiddenError: 다른 사용자의 약관에 접근 시도
         ValueError: LLM 파싱 실패
     """
     db = get_client()
 
     # ── 소유자 검증 ──
-    policy_res = db.table("policies").select("id, user_id, is_preset").eq("id", policy_id).single().execute()
+    policy_res = db.table("policies").select("id, user_id, is_preset").eq("id", policy_id).maybe_single().execute()
     if not policy_res.data:
         raise NotFoundError(f"policy_id={policy_id} 를 찾을 수 없습니다.")
     if not policy_res.data.get("is_preset") and policy_res.data.get("user_id") != user_id:
@@ -454,12 +454,16 @@ def get_or_parse_riders(
             return existing.data or []
         raise  # unique 충돌 외 DB 오류는 그대로 전파
 
-    # ── LLM 파싱 (실패 시 예외 전파) ──
-    riders_raw = _parse_pages_with_llm(relevant_pages)
-
-    # ── DB 저장 (rider + rider_chunks + embedding) ──
-    if riders_raw:
-        _save_riders(policy_id, q_hash, riders_raw)
+    # ── LLM 파싱 + 저장 (실패 시 캐시 롤백) ──
+    # 캐시를 선점한 뒤 파싱/저장이 실패하면 캐시 행을 삭제해
+    # 다음 요청이 재파싱을 시도할 수 있도록 한다.
+    try:
+        riders_raw = _parse_pages_with_llm(relevant_pages)
+        if riders_raw:
+            _save_riders(policy_id, q_hash, riders_raw)
+    except Exception:
+        db.table("policy_parse_cache").delete().eq("policy_id", policy_id).eq("query_hash", q_hash).execute()
+        raise
 
     # ── 저장 후 재조회 (이 hash의 riders만) ──
     saved = db.table("riders").select("*").eq("policy_id", policy_id).eq("parse_query_hash", q_hash).execute()

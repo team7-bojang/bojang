@@ -129,7 +129,7 @@ def get_source(policy_id: str, page: int, user_id: str) -> dict:
     """
     db = get_client()
 
-    policy_res = db.table("policies").select("id, user_id, is_preset").eq("id", policy_id).single().execute()
+    policy_res = db.table("policies").select("id, user_id, is_preset").eq("id", policy_id).maybe_single().execute()
     if not policy_res.data:
         raise NotFoundError("해당 약관을 찾을 수 없습니다.")
     if not policy_res.data.get("is_preset") and policy_res.data.get("user_id") != user_id:
