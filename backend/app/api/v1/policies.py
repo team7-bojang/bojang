@@ -7,8 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.auth import require_auth
 from app.core import response
-from app.core.errors import NotFoundError
-from app.db import get_client
+from app.core.errors import ForbiddenError, NotFoundError
 from app.services import policy_service, user_policy_service
 
 bp = APIBlueprint(
@@ -131,12 +130,12 @@ def parse_policy_on_demand(path: PolicyPath, body: ParseRequest):
 
         return response.ok({"riders": riders})
 
-    except PermissionError as e:
+    except ForbiddenError as e:
         return response.fail("forbidden", str(e), 403)
     except NotFoundError as e:
         return response.fail("not_found", str(e), 404)
     except ValueError as e:
-        return response.fail("parse_error", str(e), 422)
+        return response.fail("parse_failed", str(e), 422)
     except Exception as e:
         return response.fail("server_error", str(e), 500)
 
@@ -161,21 +160,12 @@ def get_policy_source(path: PolicyPath, query: SourceQuery):
     사용자 업로드 약관은 소유자만 접근 가능.
     """
     try:
-        policy_id = path.id
-
-        db = get_client()
-        policy_res = db.table("policies").select("id, user_id, is_preset").eq("id", policy_id).single().execute()
-
-        if not policy_res.data:
-            return response.fail("not_found", "해당 약관을 찾을 수 없습니다.", 404)
-
-        policy = policy_res.data
-
-        if not policy.get("is_preset") and policy.get("user_id") != g.user_id:
-            return response.fail("forbidden", "접근 권한이 없습니다.", 403)
-
-        data = policy_service.get_source(policy_id, query.page)
+        data = policy_service.get_source(path.id, query.page, g.user_id)
         return response.ok(data)
 
-    except Exception as e:
+    except ForbiddenError as e:
+        return response.fail("forbidden", str(e), 403)
+    except NotFoundError as e:
         return response.fail("not_found", str(e), 404)
+    except Exception as e:
+        return response.fail("server_error", str(e), 500)

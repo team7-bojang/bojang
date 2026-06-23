@@ -17,7 +17,7 @@ import pdfplumber
 from openai import OpenAI
 
 from app.config import settings
-from app.core.errors import NotFoundError
+from app.core.errors import ForbiddenError, NotFoundError
 from app.db import get_client
 from app.rag.chunker import chunk_rider
 from app.rag.embedder import embed
@@ -26,6 +26,7 @@ from app.rag.embedder import embed
 # backend/app/services/user_policy_service.py → parents[3] = bojang 루트
 _ROOT = Path(__file__).resolve().parents[3]
 _PROMPT_PATH = _ROOT / "prompts" / "parsing" / "rider_extraction_prompt.txt"
+_USER_PREFIX_PATH = _ROOT / "prompts" / "parsing" / "rider_extraction_user_prefix.txt"
 
 # 온디맨드 파싱 모델
 _PARSE_MODEL = "gpt-4.1-mini"
@@ -168,6 +169,9 @@ def upload_pdf(user_id: str, file_name: str, pdf_bytes: bytes) -> dict:
         # ── 2. 텍스트 추출 ──
         pages = extract_pages(pdf_bytes)
 
+        if not pages:
+            raise ValueError("PDF에서 페이지를 추출할 수 없습니다. 유효한 PDF인지 확인해주세요.")
+
         # 스캔 PDF 감지: 텍스트 50자 미만 페이지가 절반 이상이면 거부
         empty_count = sum(1 for p in pages if len(p["text"].strip()) < 50)
         if empty_count > len(pages) * 0.5:
@@ -276,8 +280,11 @@ def _parse_pages_with_llm(pages: list[dict]) -> list[dict]:
     """
     if not _PROMPT_PATH.exists():
         raise FileNotFoundError(f"프롬프트 파일 없음: {_PROMPT_PATH}")
+    if not _USER_PREFIX_PATH.exists():
+        raise FileNotFoundError(f"프롬프트 파일 없음: {_USER_PREFIX_PATH}")
 
     system_prompt = _PROMPT_PATH.read_text(encoding="utf-8")
+    user_prefix = _USER_PREFIX_PATH.read_text(encoding="utf-8")
     document = "\n\n".join(p["text"] for p in pages)
 
     client = _get_openai()
@@ -286,12 +293,7 @@ def _parse_pages_with_llm(pages: list[dict]) -> list[dict]:
         max_tokens=8000,
         messages=[
             {"role": "system", "content": system_prompt},
-            {
-                "role": "user",
-                "content": (
-                    "다음 약관 추출 텍스트에서 보장(rider)을 구조화하세요. JSON 객체만 출력하세요.\n\n" + document
-                ),
-            },
+            {"role": "user", "content": user_prefix + document},
         ],
     )
     raw = msg.choices[0].message.content or ""
@@ -394,7 +396,7 @@ def get_or_parse_riders(
     if not policy_res.data:
         raise NotFoundError(f"policy_id={policy_id} 를 찾을 수 없습니다.")
     if not policy_res.data.get("is_preset") and policy_res.data.get("user_id") != user_id:
-        raise PermissionError("해당 약관에 대한 접근 권한이 없습니다.")
+        raise ForbiddenError("해당 약관에 대한 접근 권한이 없습니다.")
 
     # ── visit_type, surgery → treatment_items 정규화 ──
     normalized_items = _normalize_items(treatment_items, visit_type, surgery)
@@ -430,16 +432,9 @@ def get_or_parse_riders(
     if not relevant_pages:
         raise NotFoundError(f"policy_id={policy_id} 에 저장된 페이지 데이터가 없습니다. 먼저 PDF를 업로드해주세요.")
 
-    # ── LLM 파싱 (실패 시 예외 전파) ──
-    riders_raw = _parse_pages_with_llm(relevant_pages)
-
-    # ── DB 저장 (rider + rider_chunks + embedding) ──
-    if riders_raw:
-        _save_riders(policy_id, q_hash, riders_raw)
-
-    # ── 캐시 등록 (동시 요청 충돌 방어) ──
-    # 거의 동시에 두 요청이 cache miss → 두 번 파싱 → unique 충돌이 발생할 수 있다.
-    # 충돌 시 두 번째 요청은 이미 저장된 riders를 재조회해서 반환한다.
+    # ── 캐시 선점 (파싱 전 먼저 등록해 중복 파싱 방지) ──
+    # 동시 요청이 모두 cache miss를 통과하더라도, 캐시 insert unique 충돌이
+    # _save_riders 이전에 발생해 한 쪽만 파싱/저장을 수행한다.
     try:
         db.table("policy_parse_cache").insert(
             {
@@ -447,10 +442,24 @@ def get_or_parse_riders(
                 "query_hash": q_hash,
             }
         ).execute()
-    except Exception:
-        # 다른 요청이 먼저 캐시를 만든 경우 — 그 riders 재조회 후 반환
-        existing = db.table("riders").select("*").eq("policy_id", policy_id).eq("parse_query_hash", q_hash).execute()
-        return existing.data or []
+    except Exception as e:
+        # unique 충돌 → 다른 요청이 먼저 캐시를 선점한 경우
+        # "duplicate" 또는 "unique" 키워드로 중복 충돌 여부 판단
+        err_str = str(e).lower()
+        if "duplicate" in err_str or "unique" in err_str:
+            # 선점한 요청의 파싱이 완료될 때까지 대기 후 재조회
+            existing = (
+                db.table("riders").select("*").eq("policy_id", policy_id).eq("parse_query_hash", q_hash).execute()
+            )
+            return existing.data or []
+        raise  # unique 충돌 외 DB 오류는 그대로 전파
+
+    # ── LLM 파싱 (실패 시 예외 전파) ──
+    riders_raw = _parse_pages_with_llm(relevant_pages)
+
+    # ── DB 저장 (rider + rider_chunks + embedding) ──
+    if riders_raw:
+        _save_riders(policy_id, q_hash, riders_raw)
 
     # ── 저장 후 재조회 (이 hash의 riders만) ──
     saved = db.table("riders").select("*").eq("policy_id", policy_id).eq("parse_query_hash", q_hash).execute()

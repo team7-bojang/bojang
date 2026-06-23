@@ -428,7 +428,24 @@
     },
     "comparison_basis": "HOSPITALIZATION_DAYS",
     "demo_amount_inputs": [],
-    "policy_amount_summary": []
+    "policy_amount_summary": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 0,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [],
+        "total_calculation": "0원",
+        "scenario_days": 5
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 0,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [],
+        "total_calculation": "0원",
+        "scenario_days": 10
+      }
+    ]
   },
   {
     "schema_version": "2.0",
@@ -514,7 +531,7 @@
           "demo_input": {
             "label": "KB 유사암진단비Ⅲ",
             "field": "coverage_amount",
-            "amount": 300000,
+            "amount": 3000000,
             "source": "demo_policy_certificate"
           },
           "policy_source": {
@@ -690,7 +707,7 @@
           "demo_input": {
             "label": "KB 뇌혈관질환진단비Ⅳ",
             "field": "coverage_amount",
-            "amount": 5000000,
+            "amount": 10000000,
             "source": "demo_policy_certificate"
           },
           "policy_source": {
@@ -1477,7 +1494,15 @@
       "show_total_as_confirmed_payment": false
     },
     "demo_amount_inputs": [],
-    "policy_amount_summary": []
+    "policy_amount_summary": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 0,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [],
+        "total_calculation": "0원"
+      }
+    ]
   },
   {
     "schema_version": "2.0",
@@ -1658,7 +1683,15 @@
       "show_total_as_confirmed_payment": false
     },
     "demo_amount_inputs": [],
-    "policy_amount_summary": []
+    "policy_amount_summary": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 0,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [],
+        "total_calculation": "0원"
+      }
+    ]
   },
   {
     "schema_version": "2.0",
@@ -1714,6 +1747,14 @@
       "show_total_as_confirmed_payment": false
     },
     "demo_amount_inputs": [],
-    "policy_amount_summary": []
+    "policy_amount_summary": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 0,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [],
+        "total_calculation": "0원"
+      }
+    ]
   }
 ]
