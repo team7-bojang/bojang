@@ -8,12 +8,7 @@ from app.rag.citation import verify_quote
 
 
 def _load_prompt():
-    prompt_path = (
-        Path(__file__).resolve().parent.parent.parent.parent
-        / "prompts"
-        / "explanation"
-        / "system_prompt.txt"
-    )
+    prompt_path = Path(__file__).resolve().parent.parent.parent.parent / "prompts" / "explanation" / "system_prompt.txt"
     if prompt_path.exists():
         with open(prompt_path, encoding="utf-8") as f:
             return f.read()
@@ -64,9 +59,7 @@ def explain(case: dict, judgement: dict, chunks: list[dict]) -> dict:
                     break
 
             if not quote_matched:
-                print(
-                    f"[Explainer] Citation check failed for: '{quote}'. Falling back to original source metadata."
-                )
+                print(f"[Explainer] Citation check failed for: '{quote}'. Falling back to original source metadata.")
                 # 인용이 부적합하면 chunks 중 첫 번째의 기재사항이나 기본 metadata로 변경
                 if chunks:
                     first_c = chunks[0]
@@ -76,9 +69,7 @@ def explain(case: dict, judgement: dict, chunks: list[dict]) -> dict:
 
             return result
         except Exception as e:
-            print(
-                f"[Explainer] OpenAI LLM call failed: {e}. Using deterministic fallback explanation."
-            )
+            print(f"[Explainer] OpenAI LLM call failed: {e}. Using deterministic fallback explanation.")
 
     # 3. API 키 미지정 혹은 에러 시의 Fallback 설명문 생성
     # 룰 엔진의 status 기반으로 기본적인 한글 설명문을 로컬에서 빌드하여 반환
@@ -97,7 +88,9 @@ def explain(case: dict, judgement: dict, chunks: list[dict]) -> dict:
             lines = content_snippet.split("\n")
             rider_name = lines[0].replace("특약명:", "").strip()
             if status == "eligible":
-                explanation = f"고객님께서 가입하신 '{rider_name}'의 보장 요건을 만족하여 보험금 지급 대상이 될 수 있습니다."
+                explanation = (
+                    f"고객님께서 가입하신 '{rider_name}'의 보장 요건을 만족하여 보험금 지급 대상이 될 수 있습니다."
+                )
             elif status == "boundary_not_met":
                 explanation = (
                     f"고객님께서 가입하신 '{rider_name}'의 "
@@ -111,8 +104,7 @@ def explain(case: dict, judgement: dict, chunks: list[dict]) -> dict:
                 )
             elif status == "claimed":
                 explanation = (
-                    "이미 타 보험사나 다른 계약을 통해 "
-                    "해당 사고에 대한 실손/기타 청구가 완료된 상태로 보입니다."
+                    "이미 타 보험사나 다른 계약을 통해 해당 사고에 대한 실손/기타 청구가 완료된 상태로 보입니다."
                 )
 
             quote = content_snippet[:120] + "..."

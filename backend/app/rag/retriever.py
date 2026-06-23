@@ -11,7 +11,6 @@ def clean_for_match(text: str) -> str:
     return text.replace(" ", "").replace("성", "").replace("증", "").replace("특별약관", "").replace("특약", "")
 
 
-
 class Retriever:
     def __init__(self):
         # get_client()를 통해 Real/Mock Supabase 연동
@@ -44,7 +43,7 @@ class Retriever:
                     start = rule.get("code_start")
                     end = rule.get("code_end")
                     group_id = rule.get("group_id")
-                    
+
                     # KCD 범위 매칭 체크
                     in_range = False
                     kcd_clean = disease_kcd[:3]
@@ -55,25 +54,30 @@ class Retriever:
                         else:
                             if disease_kcd.startswith(start):
                                 in_range = True
-                                
+
                     if in_range:
                         if rule.get("rule_type") == "include":
                             matched_group_ids.append(group_id)
                         elif rule.get("rule_type") == "exclude":
                             excluded_group_ids.append(group_id)
-                
+
                 # 최종 매치 그룹
                 final_group_ids = [gid for gid in matched_group_ids if gid not in excluded_group_ids]
-                
+
                 if final_group_ids:
                     # disease_groups에서 한글 명칭/라벨 가져오기
-                    groups_res = self.db.table("disease_groups").select("id, name, user_label").in_("id", final_group_ids).execute()
+                    groups_res = (
+                        self.db.table("disease_groups")
+                        .select("id, name, user_label")
+                        .in_("id", final_group_ids)
+                        .execute()
+                    )
                     for group in groups_res.data or []:
                         if group.get("name"):
                             group_keywords.append(group["name"])
                         if group.get("user_label"):
                             group_keywords.append(group["user_label"])
-                    
+
                 group_keywords = list(set(group_keywords))
                 print(f"[Retriever] Dynamic group keywords for KCD {disease_kcd}: {group_keywords}")
             except Exception as e:
@@ -194,26 +198,34 @@ class Retriever:
                     keyword_score += 1.5
 
             # 특정 "진단비" 메인 특약 가산점 (질환 진단 쿼리 시 진단비/진단자금 특약 보정)
-            if is_disease_query and any(clean_for_match(w) in rider_name_clean for w in ["진단비", "진단자금", "진단금", "진단"]):
+            if is_disease_query and any(
+                clean_for_match(w) in rider_name_clean for w in ["진단비", "진단자금", "진단금", "진단"]
+            ):
                 keyword_score += 0.5
 
             # 일반 암진단비 / 일반 3대질병진단비 보정 가산점 (특정 부위/한정 암 제외)
             has_cancer = "암" in rider_name_clean
-            has_diag_word = any(clean_for_match(w) in rider_name_clean for w in ["진단비", "진단자금", "진단금", "진단"])
-            if has_cancer and has_diag_word and not any(
-                clean_for_match(w) in rider_name_clean
-                for w in [
-                    "소아",
-                    "남성",
-                    "여성",
-                    "고액",
-                    "특정",
-                    "유방",
-                    "대장",
-                    "자궁",
-                    "전립선",
-                    "식도",
-                ]
+            has_diag_word = any(
+                clean_for_match(w) in rider_name_clean for w in ["진단비", "진단자금", "진단금", "진단"]
+            )
+            if (
+                has_cancer
+                and has_diag_word
+                and not any(
+                    clean_for_match(w) in rider_name_clean
+                    for w in [
+                        "소아",
+                        "남성",
+                        "여성",
+                        "고액",
+                        "특정",
+                        "유방",
+                        "대장",
+                        "자궁",
+                        "전립선",
+                        "식도",
+                    ]
+                )
             ):
                 keyword_score += 0.4
 

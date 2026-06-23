@@ -23,7 +23,7 @@ def _other_user_auth_header(monkeypatch) -> dict:
     }
     if settings.supabase_url:
         payload["iss"] = f"{settings.supabase_url.rstrip('/')}/auth/v1"
-        
+
     token = jwt.encode(payload, _OTHER_USER_JWT_SECRET, algorithm="HS256")
     return {"Authorization": f"Bearer {token}"}
 
@@ -69,6 +69,7 @@ def test_get_dashboard_returns_nine_items(client):
     assert dashboard["is_outpatient"] is True
     assert dashboard["admission_days_current"] is None
     assert dashboard["treatment_items"] == ["MANUAL_THERAPY"]
+
 
 def test_get_dashboard_404_when_case_missing(client):
     res = client.get("/api/v1/cases/00000000-0000-0000-0000-111111111111/dashboard")

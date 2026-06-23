@@ -96,9 +96,7 @@ def _classify_intent_rule(situation: str) -> tuple[str, str, str]:
     return claim_status, recommended, message
 
 
-def create_case(
-    user_id: str, service_type: str, policy_ids: list[str], initial_situation: str
-) -> dict:
+def create_case(user_id: str, service_type: str, policy_ids: list[str], initial_situation: str) -> dict:
     """최초 상황 입력을 받아 분석 세션(Case)을 시작하고 결과를 반환합니다 (v2.1)."""
     # 지원 범위 밖 감지 (FR-10b)
     out_of_scope_keywords = ["자동차", "교통사고", "화재", "배상책임", "배상", "일상생활배상"]
@@ -179,9 +177,36 @@ def create_case(
     words = re.findall(r"[가-힣a-zA-Z0-9]+", initial_situation)
     keywords = []
     josa_suffixes = [
-        "은", "는", "이", "가", "을", "를", "에", "에서", "에게", "의", "으로", 
-        "로", "와", "과", "하고", "했다", "해요", "했습니다", "해서", "했음", 
-        "입원", "통원", "수술", "치료", "다녀왔어", "방문", "의사", "째인데", "경우", "보장"
+        "은",
+        "는",
+        "이",
+        "가",
+        "을",
+        "를",
+        "에",
+        "에서",
+        "에게",
+        "의",
+        "으로",
+        "로",
+        "와",
+        "과",
+        "하고",
+        "했다",
+        "해요",
+        "했습니다",
+        "해서",
+        "했음",
+        "입원",
+        "통원",
+        "수술",
+        "치료",
+        "다녀왔어",
+        "방문",
+        "의사",
+        "째인데",
+        "경우",
+        "보장",
     ]
     for w in words:
         if len(w) < 2:
@@ -193,10 +218,23 @@ def create_case(
                 if len(candidate) >= 2:
                     cleaned = candidate
                     break
-        if cleaned not in ["의사가", "의사", "입원", "통원", "수술", "치료", "다녀", "방문", "경우", "보장", "차이", "궁금"]:
+        if cleaned not in [
+            "의사가",
+            "의사",
+            "입원",
+            "통원",
+            "수술",
+            "치료",
+            "다녀",
+            "방문",
+            "경우",
+            "보장",
+            "차이",
+            "궁금",
+        ]:
             keywords.append(cleaned)
     keywords = list(set(keywords))
-    
+
     seen_kcds = set()
     for kw in keywords:
         if len(kw) < 2:
@@ -267,7 +305,7 @@ def create_case(
         "C34": "폐암",
         "I60": "지주막하출혈",
         "I61": "뇌내출혈",
-        "I21": "급성심근경색증"
+        "I21": "급성심근경색증",
     }
 
     seen_kcds = set()
@@ -289,7 +327,7 @@ def create_case(
     # 정렬 및 5개 한도 제한 (가장 매치 확률이 높은 것 위주)
     if body_part:
         disease_kcd_candidates.sort(key=lambda x: body_part not in x["name"])
-        
+
     disease_kcd_candidates = disease_kcd_candidates[:5]
 
     # 4-2) 사용자 입력설명에 특정 질병 키워드가 확실하게 매칭되는 경우 단독 후보로 지정
@@ -316,7 +354,16 @@ def create_case(
             match_len = 0
             for length in range(len(clean_name), 1, -1):
                 sub = clean_name[:length]
-                if sub in initial_situation and sub not in ["기타", "통원", "입원", "치료", "수술", "검사", "질병", "상해"]:
+                if sub in initial_situation and sub not in [
+                    "기타",
+                    "통원",
+                    "입원",
+                    "치료",
+                    "수술",
+                    "검사",
+                    "질병",
+                    "상해",
+                ]:
                     match_len = len(sub)
                     break
             if match_len > 0:
@@ -326,7 +373,7 @@ def create_case(
                     best_cand = cand
                 elif diff == min_diff:
                     best_cand = None  # 동률인 경우 탈락
-        
+
         # 글자 수 길이 차이가 3자 이내로 근접한 확실한 후보가 있으면 그것만 남김
         if best_cand and min_diff <= 3:
             exact_candidates = [best_cand]
@@ -385,9 +432,7 @@ def create_case(
 
     # 4. 입원/통원 여부 매핑
     is_inpatient = "입원" in initial_situation
-    is_outpatient = any(
-        w in initial_situation for w in ["통원", "치료", "다녀왔어", "다녀왔음", "방문", "외래"]
-    )
+    is_outpatient = any(w in initial_situation for w in ["통원", "외래", "통원치료", "외래진료", "통원 치료"])
     if is_inpatient and is_outpatient:
         is_outpatient = False
 
@@ -414,9 +459,11 @@ def create_case(
 
     # CASE2인 경우 진단 및 경과 일수/주수 파싱
     if service_type == "CASE2":
-        diag_day_match = re.search(r"(\d+)\s*일\s*(?:입원하라고|입원하래|입원하라|권고|진단|처방|하라고|입원)", initial_situation)
+        diag_day_match = re.search(
+            r"(\d+)\s*일\s*(?:입원하라고|입원하래|입원하라|권고|진단|처방|하라고|입원)", initial_situation
+        )
         diag_week_match = re.search(r"(\d+)\s*주\s*(?:진단|입원하라고)", initial_situation)
-        
+
         curr_day_match = re.search(r"(\d+)\s*일\s*(?:째|차)", initial_situation)
         curr_week_match = re.search(r"(\d+)\s*주\s*차", initial_situation)
 
@@ -424,7 +471,7 @@ def create_case(
             diag_days = int(diag_day_match.group(1))
         elif diag_week_match:
             diag_days = int(diag_week_match.group(1)) * 7
-            
+
         if curr_day_match:
             current_days = int(curr_day_match.group(1))
         elif curr_week_match:
@@ -479,9 +526,7 @@ def create_case(
         "disease_kcd_candidates": disease_kcd_candidates,
         "disease_match_confidence": disease_match_confidence,
         "recommended_input_method": None if service_type == "CASE2" else rec_method,
-        "available_input_methods": (
-            [] if service_type == "CASE2" else ["PAYMENT", "MEDICAL_DETAIL_STATEMENT"]
-        ),
+        "available_input_methods": ([] if service_type == "CASE2" else ["PAYMENT", "MEDICAL_DETAIL_STATEMENT"]),
         "message": None if service_type == "CASE2" else message,
         "treatment_types": get_treatment_types(),
         "next_question": get_next_question(case_data),
@@ -523,7 +568,7 @@ def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
     # 3-2. 결제 텍스트에서 치료 항목(treatment_items) 동적 추출
     treatment_items = []
     text_lower = payment_text.lower()
-    
+
     available_treatments = get_treatment_types()
     TREATMENT_KEYWORDS = {
         "MRI_MRA": ["mri", "mra", "자기공명"],
@@ -537,17 +582,17 @@ def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
         "EMERGENCY": ["응급", "응급실", "emergency"],
         "MEDICATION": ["약국", "처방약", "medication"],
     }
-    
+
     for t in available_treatments:
         code = t.get("code")
         name = t.get("name", "")
         keywords = list(TREATMENT_KEYWORDS.get(code, []))
-        
+
         # 기본 이름 정규화하여 키워드 매핑 보조
         clean_name = re.sub(r"[\s/]", "", name).lower()
         if clean_name and clean_name not in keywords:
             keywords.append(clean_name)
-            
+
         matched = False
         for kw in keywords:
             if kw in text_lower:
@@ -584,7 +629,7 @@ def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
     updates = {"payment_amount": payment_amount}
     if treatment_items:
         updates["treatment_items"] = treatment_items
-        
+
     db.table("cases").update(updates).eq("id", case_id).execute()
 
     res_c = db.table("cases").select("*").eq("id", case_id).execute()
@@ -618,7 +663,7 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_name: str) ->
     res = db.table("cases").select("*").eq("id", case_id).execute()
     if not res.data:
         raise NotFoundError("해당 케이스를 찾을 수 없습니다.")
-        
+
     case = res.data[0]
     if case.get("service_type") == "CASE2":
         raise ValueError("CASE2 서비스에서는 세부산정내역서 입력 API를 사용할 수 없습니다.")
@@ -626,7 +671,7 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_name: str) ->
     # 파일 이름에서 치료 항목 동적 추출
     treatment_items = []
     file_name_lower = file_name.lower()
-    
+
     TREATMENT_KEYWORDS = {
         "MRI_MRA": ["mri", "mra", "자기공명"],
         "XRAY": ["엑스레이", "xray", "x-ray"],
@@ -639,13 +684,13 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_name: str) ->
         "EMERGENCY": ["응급", "응급실", "emergency"],
         "MEDICATION": ["약국", "처방약", "medication"],
     }
-    
+
     for code, keywords in TREATMENT_KEYWORDS.items():
         for kw in keywords:
             if kw in file_name_lower:
                 treatment_items.append(code)
                 break
-                
+
     # 만약 파일명에서 추출된 치료 항목이 없다면 기본값 제공
     if not treatment_items:
         treatment_items = ["MANUAL_THERAPY", "PHYSICAL_THERAPY"]
@@ -655,7 +700,7 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_name: str) ->
     disease_kcd = case.get("disease_kcd") or "M51"
     is_inpatient = bool(case.get("is_inpatient"))
     is_outpatient = bool(case.get("is_outpatient"))
-    
+
     # 둘 다 설정 안 되어 있다면 기본적으로 통원(OUTPATIENT) 가정
     if not is_inpatient and not is_outpatient:
         is_outpatient = True
@@ -699,8 +744,7 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_name: str) ->
             "nhis_paid_amount": 16800,
             "non_covered_amount": updates["payment_amount"],
             "item_details": [
-                {"name": t_code, "amount": 70000, "is_non_covered": True, "count": 1}
-                for t_code in treatment_items
+                {"name": t_code, "amount": 70000, "is_non_covered": True, "count": 1} for t_code in treatment_items
             ],
         },
         "needs_confirmation": True,
@@ -731,7 +775,9 @@ def patch_extracted_info(user_id: str, case_id: str, info: dict) -> dict:
     if "surgery" in info:
         updates["surgery"] = bool(info["surgery"])
     if "policy_elapsed_days" in info:
-        updates["policy_elapsed_days"] = int(info["policy_elapsed_days"]) if info["policy_elapsed_days"] is not None else None
+        updates["policy_elapsed_days"] = (
+            int(info["policy_elapsed_days"]) if info["policy_elapsed_days"] is not None else None
+        )
     if "current_days" in info:
         updates["admission_days_current"] = int(info["current_days"]) if info["current_days"] is not None else None
     if "diag_days" in info:
@@ -862,9 +908,11 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
         if is_inpt:
             res_c = db.table("cases").select("*").eq("id", case_id).execute()
             c_data = res_c.data[0] if res_c.data else {}
-            if not c_data.get("admission_days_diagnosed") and not updates.get("admission_days_diagnosed"):
-                print("[case_service] 진단일수가 누락되어 임의 기본값(14일)을 할당했습니다.")
-                updates["admission_days_diagnosed"] = 14
+            service_type = c_data.get("service_type") or "CASE1"
+            if service_type == "CASE2":
+                if not c_data.get("admission_days_diagnosed") and not updates.get("admission_days_diagnosed"):
+                    print("[case_service] 진단일수가 누락되어 임의 기본값(14일)을 할당했습니다.")
+                    updates["admission_days_diagnosed"] = 14
             if not c_data.get("admission_days_current") and not updates.get("admission_days_current"):
                 updates["admission_days_current"] = 14
     if is_outpt is not None:
@@ -895,7 +943,7 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
     c = res.data[0]
     if c.get("user_id") != user_id:
         raise ForbiddenError("다른 사용자의 case에 접근할 수 없습니다.")
-        
+
     is_inpatient = bool(c.get("is_inpatient"))
     is_outpatient = bool(c.get("is_outpatient"))
 
@@ -903,16 +951,21 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
     if not visit_date and c.get("created_at"):
         visit_date = c["created_at"][:10]
 
+    service_type = c.get("service_type") or "CASE1"
+    admission_days_diagnosed = c.get("admission_days_diagnosed") or c.get("diag_days")
+    if service_type == "CASE1":
+        admission_days_diagnosed = None
+
     return {
         "case_id": case_id,
-        "service_type": "CASE1" if (c.get("admission_days_diagnosed") is None and c.get("diag_days") is None) else "CASE2",
+        "service_type": service_type,
         "dashboard": {
             "disease_name": c.get("disease_name"),
             "disease_kcd": c.get("disease_kcd"),
             "is_inpatient": is_inpatient,
             "is_outpatient": is_outpatient,
             "admission_days_current": c.get("admission_days_current") or c.get("current_days"),
-            "admission_days_diagnosed": c.get("admission_days_diagnosed") or c.get("diag_days"),
+            "admission_days_diagnosed": admission_days_diagnosed,
             "treatment_items": c.get("treatment_items") or [],
             "payment_amount": c.get("payment_amount"),
             "visit_date": visit_date,
@@ -958,6 +1011,7 @@ def patch_dashboard(user_id: str, case_id: str, data: dict) -> dict:
             try:
                 dt_part = d.split("-")
                 import datetime
+
                 datetime.date(int(dt_part[0]), int(dt_part[1]), int(dt_part[2]))
             except ValueError:
                 raise ValueError("유효하지 않은 날짜입니다.") from None
@@ -972,22 +1026,16 @@ def patch_dashboard(user_id: str, case_id: str, data: dict) -> dict:
         updates["surgery"] = bool(data["surgery"])
     if "admission_days_diagnosed" in data:
         updates["admission_days_diagnosed"] = (
-            int(data["admission_days_diagnosed"])
-            if data["admission_days_diagnosed"] is not None
-            else None
+            int(data["admission_days_diagnosed"]) if data["admission_days_diagnosed"] is not None else None
         )
     if "admission_days_current" in data:
         updates["admission_days_current"] = (
-            int(data["admission_days_current"])
-            if data["admission_days_current"] is not None
-            else None
+            int(data["admission_days_current"]) if data["admission_days_current"] is not None else None
         )
     if "treatment_items" in data:
         updates["treatment_items"] = data["treatment_items"]
     if "payment_amount" in data:
-        updates["payment_amount"] = (
-            int(data["payment_amount"]) if data["payment_amount"] is not None else None
-        )
+        updates["payment_amount"] = int(data["payment_amount"]) if data["payment_amount"] is not None else None
     if visit_dates_key:
         updates["visit_dates"] = data[visit_dates_key]
     if "annual_visit_count" in data:
@@ -1016,13 +1064,7 @@ def get_my_cases(user_id: str) -> list[dict]:
     """내 분석 이력 목록을 조회합니다."""
     db = get_client()
 
-    res_cases = (
-        db.table("cases")
-        .select("*")
-        .eq("user_id", user_id)
-        .order("created_at", descending=True)
-        .execute()
-    )
+    res_cases = db.table("cases").select("*").eq("user_id", user_id).order("created_at", descending=True).execute()
     cases = res_cases.data or []
 
     results = []
@@ -1084,7 +1126,19 @@ def get_next_question(case: dict) -> dict | None:
             "question_id": "disease_kcd",
             "question_text": "입력해주신 내용과 가장 가까운 질병을 골라주세요.",
             "input_type": "select_button",
-            "options": case.get("disease_kcd_candidates") or []
+            "options": case.get("disease_kcd_candidates") or [],
+        }
+
+    # 2. 입원/통원 치료 형태 (is_inpatient / is_outpatient) 확인 필요
+    if not case.get("is_inpatient") and not case.get("is_outpatient"):
+        return {
+            "question_id": "treatment_type",
+            "question_text": "입원 치료와 통원 치료 중 어떤 형태로 치료받으셨나요?",
+            "input_type": "select_button",
+            "options": [
+                {"value": "inpatient", "label": "입원 치료"},
+                {"value": "outpatient", "label": "통원 치료 (외래)"},
+            ],
         }
 
     # 2. 결제 자료 입력 유도 (CASE1인 경우에만 적용)
@@ -1100,8 +1154,8 @@ def get_next_question(case: dict) -> dict | None:
             "input_type": "select_button",
             "options": [
                 {"value": "PAYMENT", "label": "💳 문자·카드내역으로 빠르게 확인"},
-                {"value": "MEDICAL_DETAIL_STATEMENT", "label": "📄 진료비 세부산정내역서로 자세히 확인"}
-            ]
+                {"value": "MEDICAL_DETAIL_STATEMENT", "label": "📄 진료비 세부산정내역서로 자세히 확인"},
+            ],
         }
 
     # 3. 의사 권고 진단일수 (diag_days) 확인 필요 (CASE2인 경우)
@@ -1110,7 +1164,7 @@ def get_next_question(case: dict) -> dict | None:
             "question_id": "admission_days_diagnosed",
             "question_text": "의사가 말한 권고 입원 기간은 총 며칠인가요?",
             "input_type": "text_input",
-            "placeholder": "예: 4일"
+            "placeholder": "예: 4일",
         }
 
     # 4. 현재 입원일수 (current_days) 확인 필요
@@ -1121,7 +1175,7 @@ def get_next_question(case: dict) -> dict | None:
                 "question_id": "admission_days_current",
                 "question_text": "지금은 입원한 지 며칠째인가요?",
                 "input_type": "text_input",
-                "placeholder": "예: 3일"
+                "placeholder": "예: 3일",
             }
 
     # 5. 수술 여부 (surgery) 확인 필요
@@ -1130,10 +1184,7 @@ def get_next_question(case: dict) -> dict | None:
             "question_id": "surgery",
             "question_text": "이번 진료에서 수술도 받으셨나요?",
             "input_type": "radio_button",
-            "options": [
-                {"value": True, "label": "예"},
-                {"value": False, "label": "아니요"}
-            ]
+            "options": [{"value": True, "label": "예"}, {"value": False, "label": "아니요"}],
         }
 
     # 6. 치료 항목 (treatment_items) 확인 필요
@@ -1147,8 +1198,8 @@ def get_next_question(case: dict) -> dict | None:
                 {"value": "INJECTION", "label": "주사치료"},
                 {"value": "MANUAL_THERAPY", "label": "도수·충격파"},
                 {"value": "PHYSICAL_THERAPY", "label": "물리치료"},
-                {"value": "OTHER", "label": "기타 치료"}
-            ]
+                {"value": "OTHER", "label": "기타 치료"},
+            ],
         }
 
     # 7. 연간 내원 횟수 (annual_visit_count) 확인 필요
@@ -1157,7 +1208,7 @@ def get_next_question(case: dict) -> dict | None:
             "question_id": "annual_visit_count",
             "question_text": "올해 같은 이유로 병원에 간 게 이번 포함 몇 번째인가요?",
             "input_type": "text_input",
-            "placeholder": "예: 1번"
+            "placeholder": "예: 1번",
         }
 
     # 8. 가입 기간 경과 (policy_elapsed_days) 확인 필요
@@ -1171,8 +1222,8 @@ def get_next_question(case: dict) -> dict | None:
                 {"value": "90일 이상~1년 미만", "label": "90일 이상~1년 미만"},
                 {"value": "1년 이상~2년 미만", "label": "1년 이상~2년 미만"},
                 {"value": "2년 이상", "label": "2년 이상"},
-                {"value": "잘 모르겠어요", "label": "잘 모르겠어요"}
-            ]
+                {"value": "잘 모르겠어요", "label": "잘 모르겠어요"},
+            ],
         }
 
     return None

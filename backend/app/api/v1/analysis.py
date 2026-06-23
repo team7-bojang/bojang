@@ -32,9 +32,7 @@ def compare_scenarios(body: CompareRequest):
     """조건별 비교 분석 (v2.1)."""
     try:
         scenarios_list = [sc.model_dump() for sc in body.scenarios]
-        data = analysis_service.compare_scenarios(
-            g.user_id, body.case_id, scenarios_list
-        )
+        data = analysis_service.compare_scenarios(g.user_id, body.case_id, scenarios_list)
         return response.ok(data)
     except Exception as e:
         return response.fail("server_error", str(e), 500)

@@ -28,7 +28,7 @@ def resolve_subscribed(case: Case, rider: Rider) -> int | None:
             if key is not None and key in ca:
                 v = ca[key]
                 return v.get("amount") if isinstance(v, dict) else v
-        
+
         # 이름 부분 일치 매칭 (공백 및 '특별약관', '보장' 등 제거 비교)
         if rname:
             rname_clean = rname.replace(" ", "").replace("특별약관", "").replace("보장", "")
@@ -46,7 +46,7 @@ def resolve_subscribed(case: Case, rider: Rider) -> int | None:
                 continue
             if item.get("rider_id") is not None and str(item.get("rider_id")) == rid:
                 return item.get("amount")
-            
+
             # 리스트 아이템의 name 부분 일치 매칭
             item_name = item.get("rider_name") or item.get("coverage_key")
             if item_name and rname:
@@ -68,13 +68,13 @@ def resolve_covered(case: Case, rider: Rider) -> int | None:
     cov = case.get("covered_amounts") or case.get("coverage_amounts")
     rid = str(rider.get("id")) if rider.get("id") is not None else None
     rname = rider.get("name")
-    
+
     if isinstance(cov, dict):
         for key in (rid, rname):
             if key is not None and key in cov:
                 v = cov[key]
                 return v.get("amount") if isinstance(v, dict) else v
-                
+
         if rname:
             rname_clean = rname.replace(" ", "").replace("특별약관", "").replace("보장", "")
             for k, v in cov.items():
@@ -83,21 +83,21 @@ def resolve_covered(case: Case, rider: Rider) -> int | None:
                 k_clean = str(k).replace(" ", "").replace("특별약관", "").replace("보장", "")
                 if k_clean in rname_clean or rname_clean in k_clean:
                     return v.get("amount") if isinstance(v, dict) else v
-                    
+
     elif isinstance(cov, list):
         for item in cov:
             if not isinstance(item, dict):
                 continue
             if item.get("rider_id") is not None and str(item.get("rider_id")) == rid:
                 return item.get("amount")
-                
+
             item_name = item.get("rider_name") or item.get("coverage_key")
             if item_name and rname:
                 item_name_clean = str(item_name).replace(" ", "").replace("특별약관", "").replace("보장", "")
                 rname_clean = rname.replace(" ", "").replace("특별약관", "").replace("보장", "")
                 if item_name_clean in rname_clean or rname_clean in item_name_clean:
                     return item.get("amount")
-                    
+
     return case.get("payment_amount")
 
 
