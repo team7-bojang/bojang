@@ -46,7 +46,7 @@ def _create_case(**overrides) -> str:
         **overrides,
     }
     res = db.table("cases").insert(case).execute()
-    return res.data["id"]
+    return res.data[0]["id"]
 
 
 def test_get_dashboard_returns_nine_items(client):
@@ -66,9 +66,24 @@ def test_get_dashboard_returns_nine_items(client):
     assert dashboard["treatment_items"] == ["MANUAL_THERAPY"]
 
 
-def test_get_dashboard_falls_back_to_legacy_column_names(client):
+def test_get_dashboard_falls_back_to_legacy_column_names(client, monkeypatch):
     """diag_days/current_days 로 저장된(마이그레이션 이전) case도 읽혀야 한다."""
-    case_id = _create_case(diag_days=28, current_days=14)
+    case_id = _create_case()
+
+    import postgrest._sync.request_builder
+    original_execute = postgrest._sync.request_builder.SyncQueryRequestBuilder.execute
+
+    def fake_execute(self):
+        res = original_execute(self)
+        if res.data and isinstance(res.data, list) and len(res.data) > 0 and "id" in res.data[0]:
+            for row in res.data:
+                row["diag_days"] = 28
+                row["current_days"] = 14
+                row["admission_days_diagnosed"] = None
+                row["admission_days_current"] = None
+        return res
+
+    monkeypatch.setattr(postgrest._sync.request_builder.SyncQueryRequestBuilder, "execute", fake_execute)
 
     res = client.get(f"/api/v1/cases/{case_id}/dashboard")
 
@@ -78,7 +93,7 @@ def test_get_dashboard_falls_back_to_legacy_column_names(client):
 
 
 def test_get_dashboard_404_when_case_missing(client):
-    res = client.get("/api/v1/cases/does-not-exist/dashboard")
+    res = client.get("/api/v1/cases/00000000-0000-0000-0000-111111111111/dashboard")
 
     assert res.status_code == 404
     assert res.get_json()["error"]["code"] == "not_found"

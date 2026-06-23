@@ -22,6 +22,7 @@ ALLOWED_TREATMENT_ITEMS = {
     "BRACE_SPLINT",
     "EMERGENCY",
     "OTHER",
+    "ETC",
 }
 
 
@@ -942,7 +943,7 @@ def patch_dashboard(user_id: str, case_id: str, data: dict) -> dict:
     if "treatment_items" in data:
         items = data["treatment_items"] or []
         for it in items:
-            if it not in ALLOWED_TREATMENT_ITEMS:
+            if it not in ALLOWED_TREATMENT_ITEMS and not it.startswith("ETC:"):
                 raise ValueError(f"유효하지 않은 치료 항목 코드입니다: {it}")
 
     # 3. 내원일자 날짜 포맷 및 범위 검사
@@ -1136,7 +1137,7 @@ def get_next_question(case: dict) -> dict | None:
         }
 
     # 6. 치료 항목 (treatment_items) 확인 필요
-    if not case.get("treatment_items"):
+    if case.get("treatment_items") is None:
         return {
             "question_id": "treatment_items",
             "question_text": "이번 입원 중 함께 받은 치료가 있다면 골라주세요. (여러 개 선택 가능)",

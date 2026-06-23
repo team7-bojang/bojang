@@ -6,13 +6,17 @@ from app.services import analysis_service, case_service
 OWNER_ID = "00000000-0000-0000-0000-000000000000"
 
 
-def _create_policy(user_id: str = OWNER_ID, name: str = "테스트 보험") -> str:
+import uuid
+
+def _create_policy(user_id: str = OWNER_ID, name: str = None) -> str:
+    policy_name = name or "테스트 보험"
+    policy_name = f"{policy_name} {uuid.uuid4()}"
     res = (
         get_client()
         .table("policies")
         .insert(
             {
-                "name": name,
+                "name": policy_name,
                 "insurer": "테스트 보험사",
                 "type": "질병",
                 "is_preset": False,
@@ -21,7 +25,7 @@ def _create_policy(user_id: str = OWNER_ID, name: str = "테스트 보험") -> s
         )
         .execute()
     )
-    return res.data["id"]
+    return res.data[0]["id"]
 
 
 def test_create_case_rejects_other_users_policy(client):
