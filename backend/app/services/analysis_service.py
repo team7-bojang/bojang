@@ -267,13 +267,17 @@ def search_analysis(user_id: str, case_id: str) -> dict:
     is_dummy_used = False
 
     if not my_policies:
-        my_policies = DUMMY_POLICIES
-        is_dummy_used = True
-        notice = (
-            "실제 DB에 등록된 보험이 없어, 테스트를 위해 임의의 데모 보험 데이터"
-            "(DB손해 3대질병, 메리츠 실손)를 임시로 추가하여 RAG 분석을 수행했습니다."
-        )
-        print("[analysis_service] 가입보험 없음 -> 임의 데모 보험 데이터 사용.")
+        try:
+            res_preset = db.table("policies").select("*").eq("is_preset", True).limit(2).execute()
+            my_policies = res_preset.data or []
+            if my_policies:
+                notice = "실제 등록한 보험이 없어, 시스템에 등록된 대표 프리셋 보험 정보를 기반으로 청구 분석을 수행했습니다."
+        except Exception as e:
+            print(f"[analysis_service] Failed to fetch preset policies: {e}")
+
+        if not my_policies:
+            my_policies = []
+            notice = "분석 가능한 가입 보험 정보가 존재하지 않습니다."
 
     policy_ids = [p["id"] for p in my_policies]
     policy_names = {p["id"]: p["name"] for p in my_policies}
@@ -325,13 +329,8 @@ def search_analysis(user_id: str, case_id: str) -> dict:
                 print(f"[analysis_service] Failed to load riders for {pid}: {e}")
 
     if not chunks:
-        chunks = DUMMY_CHUNKS
         if not notice:
-            notice = (
-                "RAG 검색 매칭 정보가 부족하여, 뇌경색 및 허리디스크 관련 "
-                "임의의 데모 특약 데이터를 임시로 보완하여 분석을 실행했습니다."
-            )
-            print("[analysis_service] RAG 결과 없음 -> 임의 데모 특약 데이터 사용.")
+            notice = "가입한 보험의 세부 약관 및 특약 정보가 DB에 등록되어 있지 않아 분석이 제한됩니다."
 
     # 4. 연관 특약 판정 및 AI 설명 생성
     analyzed_rider_ids = set()
@@ -529,14 +528,18 @@ def compare_scenarios(
     is_dummy_used = False
 
     if not my_policies:
-        my_policies = DUMMY_POLICIES
-        is_dummy_used = True
-        if not scenarios_input:
-            notice = (
-                "실제 DB에 등록된 보험이 없어, 테스트를 위해 임의의 데모 보험 데이터"
-                "(DB손해 3대질병)를 임시로 추가하여 퇴원 시점 비교표를 구성했습니다."
-            )
-            print("[analysis_service] 가입보험 없음 -> 임의 데모 보험 비교.")
+        try:
+            res_preset = db.table("policies").select("*").eq("is_preset", True).limit(2).execute()
+            my_policies = res_preset.data or []
+            if my_policies and not scenarios_input:
+                notice = "실제 등록한 보험이 없어, 시스템에 등록된 대표 프리셋 보험 정보를 기반으로 퇴원 시점 비교표를 구성했습니다."
+        except Exception as e:
+            print(f"[analysis_service] Failed to fetch preset policies for compare: {e}")
+
+        if not my_policies:
+            my_policies = []
+            if not scenarios_input:
+                notice = "비교 분석을 위한 가입 보험 정보가 존재하지 않습니다."
 
     policy_ids = [p["id"] for p in my_policies]
     policy_names = {p["id"]: p["name"] for p in my_policies}
@@ -553,13 +556,8 @@ def compare_scenarios(
                 print(f"[analysis_service] Fetch riders failed for {pid}: {e}")
 
     if not my_riders:
-        my_riders = DUMMY_RIDERS
         if not scenarios_input and not notice:
-            notice = (
-                "비교 가능한 입원 특약 데이터가 부족하여, 임의의 데모 입원 특약"
-                "(DB손해 질병입원일당) 데이터를 임시로 보완하여 비교를 진행했습니다."
-            )
-            print("[analysis_service] 입원특약 없음 -> 임의 데모 입원특약 비교.")
+            notice = "비교 분석에 필요한 입원 특약 정보가 가입 보험 약관 DB에 존재하지 않습니다."
 
     # ─── 분기 1: 신규 다중 시나리오 방식 (scenarios_input이 전달된 경우) ───
     if scenarios_input is not None:
