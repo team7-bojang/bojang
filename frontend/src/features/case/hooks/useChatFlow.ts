@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
 
-import type { AnswerValue, CreateCaseResponse, NextQuestion, ServiceType } from './model';
+import type { AnswerValue, CreateCaseResponse, NextQuestion, ServiceType } from '../model';
 import {
   answerCase,
   startCaseAnalysis,
   submitCasePayment,
   submitMedicalDetailStatement,
-} from './queries';
+} from '../queries';
 
 export interface ChatMessage {
   role: 'bot' | 'user';

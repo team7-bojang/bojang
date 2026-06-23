@@ -1,35 +1,28 @@
 import type { CaseDashboard } from '@/types/case';
 
-import {
-  createCase,
-  getCaseDashboard,
-  patchCaseDashboard,
-  saveCasePayment,
-  saveCaseAnswers,
-  uploadMedicalDetailStatement,
-} from './api/cases';
+import { casesApi } from './api';
 import type { CreateCaseRequest, SaveAnswersRequest, SavePaymentRequest } from './model';
 
 export async function startCaseAnalysis(params: CreateCaseRequest) {
-  return createCase(params);
+  return casesApi.createCase(params);
 }
 
 export async function answerCase(caseId: string, body: SaveAnswersRequest) {
-  return saveCaseAnswers(caseId, body);
+  return casesApi.saveCaseAnswers(caseId, body);
 }
 
 export async function submitCasePayment(caseId: string, body: SavePaymentRequest) {
-  return saveCasePayment(caseId, body);
+  return casesApi.saveCasePayment(caseId, body);
 }
 
 export async function submitMedicalDetailStatement(caseId: string, file: File) {
-  return uploadMedicalDetailStatement(caseId, file);
+  return casesApi.uploadMedicalDetailStatement(caseId, file);
 }
 
 export async function fetchCaseDashboard(caseId: string) {
-  return getCaseDashboard(caseId);
+  return casesApi.getCaseDashboard(caseId);
 }
 
 export async function saveCaseDashboard(caseId: string, dashboard: CaseDashboard) {
-  return patchCaseDashboard(caseId, dashboard);
+  return casesApi.patchCaseDashboard(caseId, dashboard);
 }

@@ -1,7 +1,7 @@
 import { InsurerLogo } from '@/features/insurance/components/InsurerLogo';
 import { ChevronRight } from 'lucide-react';
 
-import type { Benefit } from '../types';
+import type { Benefit } from '../model';
 import { formatWon } from '../utils/format';
 
 export function BenefitRow({ benefit, onClick }: { benefit: Benefit; onClick: () => void }) {

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { QuestionPrompt } from '@/features/case/components/QuestionPrompt';
 import type { AnswerValue, ServiceType } from '@/features/case/model';
-import { useChatFlow } from '@/features/case/useChatFlow';
+import { useChatFlow } from '@/features/case/hooks/useChatFlow';
 import { cn } from '@/lib/utils';
 
 const GREETING = '안녕하세요. 어떤 사고나 치료가 있었는지 먼저 알려주세요.';

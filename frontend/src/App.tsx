@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthModal } from '@/features/auth/components/AuthModal';
 import { LandingPage } from '@/pages/LandingPage';
 import { HomePage } from '@/pages/HomePage';
-import { ConfirmPage } from '@/pages/ConfirmPage';
+import { CaseReviewPage } from '@/pages/CaseReviewPage';
 import { ResultPage } from '@/pages/ResultPage';
 
 function App() {
@@ -12,7 +12,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<HomePage />} />
-        <Route path="/cases/:caseId/confirm" element={<ConfirmPage />} />
+        <Route path="/cases/:caseId/review" element={<CaseReviewPage />} />
         <Route path="/cases/:caseId/result" element={<ResultPage />} />
       </Routes>
       <AuthModal />

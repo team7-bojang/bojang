@@ -1,9 +1,9 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 
-import * as queries from './queries';
+import * as queries from '../queries';
 import { useChatFlow } from './useChatFlow';
 
-vi.mock('./queries');
+vi.mock('../queries');
 
 const mockedStart = vi.mocked(queries.startCaseAnalysis);
 const mockedAnswer = vi.mocked(queries.answerCase);

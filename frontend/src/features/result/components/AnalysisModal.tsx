@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import type { Benefit } from '../types';
+import type { Benefit } from '../model';
 import { formatWon } from '../utils/format';
 
 function DetailSection({

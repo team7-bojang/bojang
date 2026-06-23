@@ -16,12 +16,12 @@ import { AppHeader } from '@/components/common/AppHeader';
 import { INSURERS } from '@/features/insurance/data/insurers';
 import { fetchMyPolicyOptions } from '@/features/insurance/queries';
 import type { PolicyOption } from '@/features/insurance/model';
-import { compareCaseAnalysis, searchCaseAnalysis } from '@/features/result/api/analysis';
+import { compareCaseAnalysis, searchCaseAnalysis } from '@/features/result/queries';
 import type { CaseDashboard, ServiceType } from '@/types/case';
 
 const MIN_SKELETON_MS = 500;
 
-export function ConfirmPage() {
+export function CaseReviewPage() {
   const { caseId = '' } = useParams();
   const navigate = useNavigate();
   const selectedPolicyIds = useCaseStore(state => state.selectedPolicyIds);
@@ -222,4 +222,4 @@ export function ConfirmPage() {
   );
 }
 
-export default ConfirmPage;
+export default CaseReviewPage;

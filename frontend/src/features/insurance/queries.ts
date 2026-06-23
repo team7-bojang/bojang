@@ -1,5 +1,5 @@
 import { INSURER_LIST, type InsurerId } from './data/insurers';
-import { getMyPolicies, getPolicyPresets, selectPolicyPresets, uploadPolicy } from './api/policies';
+import { policiesApi } from './api';
 import type { MyPolicy, MyPolicyWithNestedPolicy, PolicyOption, PolicyPreset } from './model';
 
 const insurerAliases: Record<string, InsurerId> = {
@@ -36,12 +36,12 @@ export function toPolicyOption(preset: PolicyPreset): PolicyOption {
 }
 
 export async function fetchPolicyOptions(): Promise<PolicyOption[]> {
-  const { presets } = await getPolicyPresets();
+  const { presets } = await policiesApi.getPolicyPresets();
   return presets.map(toPolicyOption);
 }
 
 export async function fetchMyPolicyOptions(): Promise<PolicyOption[]> {
-  const policies = await getMyPolicies();
+  const policies = await policiesApi.getMyPolicies();
   return policies.map(policy => {
     const item = 'policy' in policy ? toFlatMyPolicy(policy) : policy;
     return {
@@ -54,11 +54,11 @@ export async function fetchMyPolicyOptions(): Promise<PolicyOption[]> {
 }
 
 export async function registerSelectedPolicyPresets(policyIds: string[]) {
-  return selectPolicyPresets({ preset_ids: policyIds });
+  return policiesApi.selectPolicyPresets({ preset_ids: policyIds });
 }
 
 export async function uploadUserPolicy(file: File) {
-  return uploadPolicy(file);
+  return policiesApi.uploadPolicy(file);
 }
 
 function toFlatMyPolicy(policy: MyPolicyWithNestedPolicy): MyPolicy {

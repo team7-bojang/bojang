@@ -1,6 +1,7 @@
-import { api } from '@/api/client';
+import { apiClient, formDataClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
-import type { ApiEnvelope } from '@/api/types';
+import { unwrapApiResponse } from '@/api/response';
+import type { ApiResponse } from '@/api/types';
 
 import type {
   CaseDashboard,
@@ -12,61 +13,59 @@ import type {
   SaveMedicalDetailStatementResponse,
   SavePaymentRequest,
   SavePaymentResponse,
-} from '../model';
+} from './model';
 
-function unwrap<T>(envelope: ApiEnvelope<T>): T {
-  if (!envelope.success) {
-    throw new Error(envelope.error.message);
-  }
-  return envelope.data;
-}
+export const casesApi = {
+  async createCase(body: CreateCaseRequest) {
+    const { data } = await apiClient.post<ApiResponse<CreateCaseResponse>>(
+      endpoints.cases.create,
+      body
+    );
+    return unwrapApiResponse(data);
+  },
 
-export async function createCase(body: CreateCaseRequest) {
-  const { data } = await api.post<ApiEnvelope<CreateCaseResponse>>(endpoints.cases.create, body);
-  return unwrap(data);
-}
+  async saveCasePayment(caseId: string, body: SavePaymentRequest) {
+    const { data } = await apiClient.post<ApiResponse<SavePaymentResponse>>(
+      endpoints.cases.payment(caseId),
+      body
+    );
+    return unwrapApiResponse(data);
+  },
 
-export async function saveCasePayment(caseId: string, body: SavePaymentRequest) {
-  const { data } = await api.post<ApiEnvelope<SavePaymentResponse>>(
-    endpoints.cases.payment(caseId),
-    body
-  );
-  return unwrap(data);
-}
+  async uploadMedicalDetailStatement(caseId: string, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
 
-export async function uploadMedicalDetailStatement(caseId: string, file: File) {
-  const formData = new FormData();
-  formData.append('file', file);
+    const { data } = await formDataClient.post<ApiResponse<SaveMedicalDetailStatementResponse>>(
+      endpoints.cases.medicalDetailStatement(caseId),
+      formData
+    );
+    return unwrapApiResponse(data);
+  },
 
-  const { data } = await api.post<ApiEnvelope<SaveMedicalDetailStatementResponse>>(
-    endpoints.cases.medicalDetailStatement(caseId),
-    formData
-  );
-  return unwrap(data);
-}
+  async saveCaseAnswers(caseId: string, body: SaveAnswersRequest) {
+    const { data } = await apiClient.post<ApiResponse<SaveAnswersResponse>>(
+      endpoints.cases.answers(caseId),
+      body
+    );
+    return unwrapApiResponse(data);
+  },
 
-export async function saveCaseAnswers(caseId: string, body: SaveAnswersRequest) {
-  const { data } = await api.post<ApiEnvelope<SaveAnswersResponse>>(
-    endpoints.cases.answers(caseId),
-    body
-  );
-  return unwrap(data);
-}
+  async getCaseDashboard(caseId: string): Promise<CaseDashboardResponse> {
+    const { data } = await apiClient.get<ApiResponse<CaseDashboardResponse>>(
+      endpoints.cases.dashboard(caseId)
+    );
+    return normalizeDashboardResponse(unwrapApiResponse(data));
+  },
 
-export async function getCaseDashboard(caseId: string): Promise<CaseDashboardResponse> {
-  const { data } = await api.get<ApiEnvelope<CaseDashboardResponse>>(
-    endpoints.cases.dashboard(caseId)
-  );
-  return normalizeDashboardResponse(unwrap(data));
-}
-
-export async function patchCaseDashboard(caseId: string, body: Partial<CaseDashboard>) {
-  const { data } = await api.patch<ApiEnvelope<CaseDashboardResponse>>(
-    endpoints.cases.dashboard(caseId),
-    body
-  );
-  return normalizeDashboardResponse(unwrap(data));
-}
+  async patchCaseDashboard(caseId: string, body: Partial<CaseDashboard>) {
+    const { data } = await apiClient.patch<ApiResponse<CaseDashboardResponse>>(
+      endpoints.cases.dashboard(caseId),
+      body
+    );
+    return normalizeDashboardResponse(unwrapApiResponse(data));
+  },
+};
 
 type DashboardCasePayload = Partial<CaseDashboard> & {
   id?: string;

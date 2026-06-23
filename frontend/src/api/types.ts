@@ -1,11 +1,11 @@
-export interface ApiSuccess<T> {
+export interface ApiSuccessResponse<T> {
   success: true;
   data: T;
   timestamp?: string;
   request_id?: string;
 }
 
-export interface ApiFailure {
+export interface ApiErrorResponse {
   success: false;
   error: {
     code: string;
@@ -15,4 +15,4 @@ export interface ApiFailure {
   request_id?: string;
 }
 
-export type ApiEnvelope<T> = ApiSuccess<T> | ApiFailure;
+export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
