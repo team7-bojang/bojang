@@ -802,18 +802,22 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
             if val is not None:
                 try:
                     num_str = re.sub(r"[^0-9]", "", str(val))
-                    updates["admission_days_diagnosed"] = int(num_str) if num_str else None
-                    is_inpt = True
-                    is_outpt = False
+                    days_val = int(num_str) if num_str else None
+                    updates["admission_days_diagnosed"] = days_val
+                    if days_val and days_val > 0:
+                        is_inpt = True
+                        is_outpt = False
                 except Exception:
                     pass
         elif q_id == "admission_days_current":
             if val is not None:
                 try:
                     num_str = re.sub(r"[^0-9]", "", str(val))
-                    updates["admission_days_current"] = int(num_str) if num_str else None
-                    is_inpt = True
-                    is_outpt = False
+                    days_val = int(num_str) if num_str else None
+                    updates["admission_days_current"] = days_val
+                    if days_val and days_val > 0:
+                        is_inpt = True
+                        is_outpt = False
                 except Exception:
                     pass
         elif q_id == "treatment_items":
