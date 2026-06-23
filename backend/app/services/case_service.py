@@ -908,9 +908,11 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
         if is_inpt:
             res_c = db.table("cases").select("*").eq("id", case_id).execute()
             c_data = res_c.data[0] if res_c.data else {}
-            if not c_data.get("admission_days_diagnosed") and not updates.get("admission_days_diagnosed"):
-                print("[case_service] 진단일수가 누락되어 임의 기본값(14일)을 할당했습니다.")
-                updates["admission_days_diagnosed"] = 14
+            service_type = c_data.get("service_type") or "CASE1"
+            if service_type == "CASE2":
+                if not c_data.get("admission_days_diagnosed") and not updates.get("admission_days_diagnosed"):
+                    print("[case_service] 진단일수가 누락되어 임의 기본값(14일)을 할당했습니다.")
+                    updates["admission_days_diagnosed"] = 14
             if not c_data.get("admission_days_current") and not updates.get("admission_days_current"):
                 updates["admission_days_current"] = 14
     if is_outpt is not None:
@@ -949,18 +951,21 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
     if not visit_date and c.get("created_at"):
         visit_date = c["created_at"][:10]
 
+    service_type = c.get("service_type") or "CASE1"
+    admission_days_diagnosed = c.get("admission_days_diagnosed") or c.get("diag_days")
+    if service_type == "CASE1":
+        admission_days_diagnosed = None
+
     return {
         "case_id": case_id,
-        "service_type": "CASE1"
-        if (c.get("admission_days_diagnosed") is None and c.get("diag_days") is None)
-        else "CASE2",
+        "service_type": service_type,
         "dashboard": {
             "disease_name": c.get("disease_name"),
             "disease_kcd": c.get("disease_kcd"),
             "is_inpatient": is_inpatient,
             "is_outpatient": is_outpatient,
             "admission_days_current": c.get("admission_days_current") or c.get("current_days"),
-            "admission_days_diagnosed": c.get("admission_days_diagnosed") or c.get("diag_days"),
+            "admission_days_diagnosed": admission_days_diagnosed,
             "treatment_items": c.get("treatment_items") or [],
             "payment_amount": c.get("payment_amount"),
             "visit_date": visit_date,
