@@ -110,3 +110,20 @@ def test_debug_does_not_bypass_real_token(client, monkeypatch):
     monkeypatch.setattr(settings, "debug", True)
     res = client.get("/protected", headers=_auth(_make_token(secret="attacker-secret")))
     assert res.status_code == 401
+
+
+def test_real_app_maps_auth_error_to_401_envelope(monkeypatch):
+    """실제 create_app 에서 AuthError 가 500 이 아닌 401 응답 봉투로 변환되는지 고정.
+
+    (AppError 핸들러 누락 회귀 방지 — 누락 시 500 HTML 이 새어 나갔다.)
+    """
+    from app.factory import create_app
+
+    monkeypatch.setattr(settings, "debug", False)
+    real_client = create_app().test_client()
+
+    res = real_client.get("/api/v1/policies/my")  # 토큰 없는 보호 라우트
+    assert res.status_code == 401
+    body = res.get_json()
+    assert body["success"] is False
+    assert body["error"]["code"] == "unauthorized"
