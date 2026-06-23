@@ -23,7 +23,7 @@ def select_presets(user_id: str, preset_ids: list[str]) -> list[str]:
         res_p = db.table("policies").select("id, is_preset, user_id").eq("id", pid).execute()
         if not res_p.data:
             raise NotFoundError(f"존재하지 않는 preset id가 포함되어 있습니다: {pid}")
-        
+
         policy_data = res_p.data[0]
         if not policy_data.get("is_preset", False):
             if policy_data.get("user_id") != user_id:
@@ -70,9 +70,7 @@ def upload_pdf(user_id: str, file_name: str) -> dict:
         "verified": True,
         "page": 10,
         "article_no": "입원특약 제4조",
-        "raw_text": (
-            "피보험자가 질병으로 입원하여 치료를 받은 경우 입원 1일째부터 입원일당을 지급합니다."
-        ),
+        "raw_text": ("피보험자가 질병으로 입원하여 치료를 받은 경우 입원 1일째부터 입원일당을 지급합니다."),
     }
     db.table("riders").insert(cloned_rider).execute()
 
@@ -90,14 +88,9 @@ def get_my_policies(user_id: str) -> list[dict]:
 
     # 가장 최근 케이스 조회하여 사용된 policy_ids 추출
     res_case = (
-        db.table("cases")
-        .select("policy_ids")
-        .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .limit(1)
-        .execute()
+        db.table("cases").select("policy_ids").eq("user_id", user_id).order("created_at", desc=True).limit(1).execute()
     )
-    
+
     policy_ids = []
     if res_case.data:
         policy_ids = res_case.data[0].get("policy_ids") or []
@@ -133,9 +126,7 @@ def get_source(policy_id: str, page: int) -> dict:
     db = get_client()
 
     # riders 테이블에서 policy_id와 page가 매칭되는 레코드의 raw_text 검색
-    res_riders = (
-        db.table("riders").select("*").eq("policy_id", policy_id).eq("page", page).execute()
-    )
+    res_riders = db.table("riders").select("*").eq("policy_id", policy_id).eq("page", page).execute()
     if res_riders.data:
         rider = res_riders.data[0]
         return {"page": page, "text": rider.get("raw_text") or "원문 데이터가 존재하지 않습니다."}

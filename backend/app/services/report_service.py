@@ -47,9 +47,7 @@ def create_report(user_id: str, case_id: str) -> dict:
     if "뇌" in disease_name or "암" in disease_name:
         checklist.append(
             {
-                "task": (
-                    "전문의 진단명이 기재된 '진단서' 및 '조직검사결과지' 또는 '영상판독서' 챙기기"
-                ),
+                "task": ("전문의 진단명이 기재된 '진단서' 및 '조직검사결과지' 또는 '영상판독서' 챙기기"),
                 "done": False,
             }
         )

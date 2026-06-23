@@ -65,11 +65,7 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
         thresholds = sorted(b.get("condition_days", 0) for b in boundaries)
         need = thresholds[0]
         if current_days < need:
-            potential = (
-                subscribed * max(0, need - deduct)
-                if (daily and subscribed is not None)
-                else base
-            )
+            potential = subscribed * max(0, need - deduct) if (daily and subscribed is not None) else base
             return new_judgement(
                 JudgeStatus.BOUNDARY_NOT_MET,
                 gap_days=need - current_days,
@@ -95,7 +91,12 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
             if until and elapsed is not None and elapsed < until:
                 expected = int(base * rate)
                 reduced = base - expected
-                reduction = {"applied": True, "condition": f"가입 후 {until}일 미만", "rate": rate, "until_elapsed_days": until}
+                reduction = {
+                    "applied": True,
+                    "condition": f"가입 후 {until}일 미만",
+                    "rate": rate,
+                    "until_elapsed_days": until,
+                }
                 reason = "가입기간 미충족"  # CASE 2-2 감액 사유
                 limit_note = red.get("note")
                 break

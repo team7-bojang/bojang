@@ -40,8 +40,9 @@ def select_presets(body: SelectPresetRequest):
     try:
         if not body.preset_ids:
             return response.fail("validation_error", "preset_ids가 빈 배열입니다.", 400)
-        
+
         from app.core.errors import NotFoundError
+
         policy_ids = policy_service.select_presets(g.user_id, body.preset_ids)
         return response.ok({"registered_policy_ids": policy_ids}, 201)
     except NotFoundError as nf_err:

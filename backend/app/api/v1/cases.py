@@ -19,11 +19,11 @@ def create_case(body: CaseCreateRequest):
     """최초 상황 입력 및 분석 세션 시작 (v2.1)."""
     try:
         if not body.service_type or not body.policy_ids or not body.initial_situation:
-            return response.fail("validation_error", "필수 항목(service_type, policy_ids, initial_situation)이 누락되었습니다.", 400)
-        
-        data = case_service.create_case(
-            g.user_id, body.service_type, body.policy_ids, body.initial_situation
-        )
+            return response.fail(
+                "validation_error", "필수 항목(service_type, policy_ids, initial_situation)이 누락되었습니다.", 400
+            )
+
+        data = case_service.create_case(g.user_id, body.service_type, body.policy_ids, body.initial_situation)
         return response.ok(data, 201)
     except ValueError as val_err:
         return response.fail("validation_error", str(val_err), 400)
@@ -141,6 +141,7 @@ def patch_dashboard():
         return response.fail("not_found", str(nf_err), 404)
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         return response.fail("server_error", str(e), 500)
 

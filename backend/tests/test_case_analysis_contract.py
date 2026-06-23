@@ -7,6 +7,7 @@ from app.services import analysis_service, case_service
 
 OWNER_ID = "00000000-0000-0000-0000-000000000000"
 
+
 def _create_policy(user_id: str = OWNER_ID, name: str = None) -> str:
     policy_name = name or "테스트 보험"
     policy_name = f"{policy_name} {uuid.uuid4()}"

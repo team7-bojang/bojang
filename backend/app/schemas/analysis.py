@@ -65,4 +65,3 @@ class Comparison(BaseModel):
 class CompareResponse(BaseModel):
     scenarios: list[ScenarioOutput]
     comparisons: list[Comparison]
-

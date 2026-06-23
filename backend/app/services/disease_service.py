@@ -22,10 +22,7 @@ def search_diseases(query: str, limit: int = 5, offset: int = 0) -> dict:
     try:
         if not query:
             res = (
-                client.table("diseases")
-                .select("kcd, name", count="exact")
-                .range(offset, offset + limit - 1)
-                .execute()
+                client.table("diseases").select("kcd, name", count="exact").range(offset, offset + limit - 1).execute()
             )
             total = res.count or 0
             results = res.data or []
@@ -41,12 +38,7 @@ def search_diseases(query: str, limit: int = 5, offset: int = 0) -> dict:
             results = res.data or []
 
         has_more = (offset + limit) < total
-        return {
-            "results": results,
-            "total": total,
-            "offset": offset,
-            "has_more": has_more
-        }
+        return {"results": results, "total": total, "offset": offset, "has_more": has_more}
     except Exception as e:
         print(f"[DiseaseService] Failed to fetch diseases from Supabase: {e}")
         # Local fallback
@@ -61,10 +53,4 @@ def search_diseases(query: str, limit: int = 5, offset: int = 0) -> dict:
         total = len(filtered)
         results = filtered[offset : offset + limit]
         has_more = (offset + limit) < total
-        return {
-            "results": results,
-            "total": total,
-            "offset": offset,
-            "has_more": has_more
-        }
-
+        return {"results": results, "total": total, "offset": offset, "has_more": has_more}
