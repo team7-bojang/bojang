@@ -13,10 +13,10 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { INSURER_LIST } from '../data/insurers';
 import { PolicyCard } from './PolicyCard';
-import type { Policy } from '../data/policies';
+import type { PolicyOption } from '../model';
 
 interface PolicySelectorProps {
-  policies: Policy[];
+  policies: PolicyOption[];
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
   className?: string;

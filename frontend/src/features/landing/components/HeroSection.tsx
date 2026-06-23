@@ -27,13 +27,13 @@ export function HeroSection() {
 
           <div className="flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link to="/home">
+              <Link to="/home?serviceType=CASE1">
                 청구가능보험 확인하기
                 <ArrowRight />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link to="/home">
+              <Link to="/home?serviceType=CASE2">
                 추가보장찾기 시작하기
                 <ArrowRight />
               </Link>

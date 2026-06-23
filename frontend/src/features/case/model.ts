@@ -9,7 +9,12 @@ export interface DiseaseCandidate {
   friendly_name?: string;
 }
 
-export type QuestionInputType = 'radio_button' | 'select_button' | 'checkbox_button' | 'text_input';
+export type QuestionInputType =
+  | 'radio_button'
+  | 'select_button'
+  | 'checkbox_button'
+  | 'text_input'
+  | 'file_upload';
 
 // 백엔드 raw 옵션: 질병은 {kcd,name}, 그 외는 {value,label}(value는 boolean 가능)
 export type RawQuestionOption =
@@ -31,7 +36,7 @@ export interface NormalizedOption {
 }
 
 // /answers 로 전송하는 값 (단일/불리언/다중)
-export type AnswerValue = string | boolean | Array<string | boolean>;
+export type AnswerValue = string | boolean | File | Array<string | boolean>;
 
 export interface CaseQuestion {
   index: number;
@@ -72,6 +77,7 @@ export interface SavePaymentRequest {
 export interface SavePaymentResponse {
   case_id: string;
   input_method: 'PAYMENT';
+  next_question?: NextQuestion | null;
   extracted_payment: {
     payment_amount: number;
     payment_date: string;
@@ -88,10 +94,13 @@ export interface SavePaymentResponse {
 }
 
 export interface SaveMedicalDetailStatementResponse {
-  case_id: string;
-  input_method: 'MEDICAL_DETAIL_STATEMENT';
-  extracted_medical_info: Record<string, unknown>;
-  needs_confirmation: boolean;
+  case_id?: string;
+  input_method?: 'MEDICAL_DETAIL_STATEMENT';
+  extracted_medical_info?: Record<string, unknown>;
+  extracted_treatments?: string[];
+  covered_amounts?: Record<string, number>;
+  needs_confirmation?: boolean;
+  next_question?: NextQuestion | null;
 }
 
 export interface SaveAnswersRequest {
@@ -107,18 +116,4 @@ export interface SaveAnswersResponse {
   ready_for_dashboard?: boolean;
   case_id?: string;
   next_question?: NextQuestion | null;
-}
-
-export type PatchExtractedInfoRequest = Partial<CaseDashboard> & {
-  input_method?: 'PAYMENT' | 'MEDICAL_DETAIL_STATEMENT';
-  confirmed_is_inpatient?: boolean;
-  confirmed_is_outpatient?: boolean;
-  current_days?: number | null;
-  diag_days?: number | null;
-  claimed_policy_ids?: string[];
-};
-
-export interface PatchExtractedInfoResponse {
-  confirmed?: boolean;
-  case_id?: string;
 }

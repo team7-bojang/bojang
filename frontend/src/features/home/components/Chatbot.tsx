@@ -1,62 +1,88 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Bot, ChevronRight, Lock, SendHorizontal } from 'lucide-react';
+import { Bot, Lock, SendHorizontal } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { QuestionPrompt } from '@/features/case/components/QuestionPrompt';
+import type { AnswerValue, ServiceType } from '@/features/case/model';
+import { useChatFlow } from '@/features/case/useChatFlow';
 import { cn } from '@/lib/utils';
 
-interface ChatMessage {
-  role: 'bot' | 'user';
-  text: string;
-}
-
-const GREETING = '안녕하세요! 보장zip AI 챗봇이에요 🙂 어떤 도움이 필요하신가요?';
-
-const SUGGESTIONS = [
-  '사고가 났을 때 보장 받을 수 있을까요?',
-  '실비 보험 청구는 어떻게 하나요?',
-  '특약에 대해 궁금해요',
-];
+const GREETING = '안녕하세요. 어떤 사고나 치료가 있었는지 먼저 알려주세요.';
 
 interface ChatbotProps {
   className?: string;
-  /** 전제 조건 미충족 시 입력 잠금 (보험 선택/ PDF 업로드 전). */
+  /** 전제 조건 미충족 시 입력 잠금. */
   locked?: boolean;
-  /** 상황 확인 후 분석 시작(다음 페이지) 트리거. */
-  onStartAnalysis?: () => void;
+  /** 선택한 보험 상품 id. `/cases` 생성 요청의 policy_ids로 전달한다. */
+  selectedPolicyIds: string[];
+  serviceType: ServiceType;
+  /** 최초 케이스 생성 완료 후 상위 화면에 선택 상태를 공유한다. */
+  onCaseCreated?: (caseId: string, selectedPolicyIds: string[]) => void;
+  /** 챗봇 수집이 끝난 뒤 확인 화면으로 이동하기 위한 콜백. */
+  onDone?: (caseId: string) => void;
 }
 
-const CONFIRM_TEXT = '입력해주신 상황을 확인했어요. 이대로 분석을 시작할까요?';
-
-/** "챗봇" — 추천 질문 칩 + 메시지 입력 (단순형). */
-export function Chatbot({ className, locked = false, onStartAnalysis }: ChatbotProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+/** 상황 입력 후 질병 후보 확인과 후속 질문을 이어가는 챗봇. */
+export function Chatbot({
+  className,
+  locked = false,
+  selectedPolicyIds,
+  serviceType,
+  onCaseCreated,
+  onDone,
+}: ChatbotProps) {
+  const { messages, caseId, pendingQuestion, submitting, error, done, start, answer } = useChatFlow(
+    { serviceType, selectedPolicyIds, onCaseCreated, onDone }
+  );
   const [input, setInput] = useState('');
+  const [composerQuestionOverride, setComposerQuestionOverride] = useState<{
+    sourceQuestionId: string;
+    questionId: string;
+    placeholder?: string;
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 사용자가 상황을 한 번이라도 입력하면 분석 시작을 안내.
-  const hasUserInput = messages.some(message => message.role === 'user');
-
-  // 새 메시지가 추가되면 항상 맨 아래로 스크롤 (사용자는 채팅 입력에만 집중).
   useEffect(() => {
     const el = scrollRef.current;
     if (el) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, pendingQuestion, submitting, error]);
 
-  const send = (text: string) => {
-    if (locked) {
+  const started = caseId !== null;
+  const pendingTextQuestion =
+    pendingQuestion?.input_type === 'text_input'
+      ? {
+          questionId: pendingQuestion.question_id,
+          placeholder: pendingQuestion.placeholder,
+        }
+      : null;
+  const composerQuestion =
+    composerQuestionOverride?.sourceQuestionId === pendingQuestion?.question_id
+      ? composerQuestionOverride
+      : pendingTextQuestion;
+  const composerPlaceholder = composerQuestion?.placeholder ?? '답변을 입력해주세요';
+  const inputDisabled = locked || submitting || (started && !composerQuestion);
+
+  const handleSend = () => {
+    if (inputDisabled) {
       return;
     }
-    const value = text.trim();
+
+    const value = input.trim();
     if (!value) {
       return;
     }
-    // TODO: 백엔드 챗봇 API 연동 — 현재는 입력만 누적.
-    setMessages(prev => [...prev, { role: 'user', text: value }]);
+
     setInput('');
+    if (composerQuestion && caseId) {
+      void answer(composerQuestion.questionId, value as AnswerValue, value);
+      return;
+    }
+
+    void start(value);
   };
 
   return (
@@ -68,7 +94,7 @@ export function Chatbot({ className, locked = false, onStartAnalysis }: ChatbotP
     >
       <h2 className="shrink-0 text-lg font-bold text-ink">챗봇</h2>
 
-      {locked ? (
+      {locked && messages.length === 0 ? (
         <div className="mt-5 flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-center">
           <span className="flex size-12 items-center justify-center rounded-full bg-canvas text-muted">
             <Lock className="size-6" />
@@ -87,7 +113,6 @@ export function Chatbot({ className, locked = false, onStartAnalysis }: ChatbotP
           ref={scrollRef}
           className="scrollbar-hide mt-5 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto"
         >
-          {/* 봇 인사 */}
           <motion.div
             className="flex items-start gap-3"
             initial={{ opacity: 0, y: 8 }}
@@ -102,27 +127,6 @@ export function Chatbot({ className, locked = false, onStartAnalysis }: ChatbotP
             </p>
           </motion.div>
 
-          {/* 추천 질문 */}
-          <div className="flex flex-col gap-2">
-            {SUGGESTIONS.map((suggestion, index) => (
-              <motion.button
-                key={suggestion}
-                type="button"
-                onClick={() => send(suggestion)}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 + index * 0.07 }}
-                whileHover={{ x: 2 }}
-                whileTap={{ scale: 0.99 }}
-                className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3 text-left text-sm text-ink transition-colors hover:border-primary/40 hover:bg-primary-tint/40"
-              >
-                <span>{suggestion}</span>
-                <ChevronRight className="size-4 shrink-0 text-muted" />
-              </motion.button>
-            ))}
-          </div>
-
-          {/* 대화 내역 */}
           <AnimatePresence initial={false}>
             {messages.map((message, index) => (
               <motion.div
@@ -143,25 +147,29 @@ export function Chatbot({ className, locked = false, onStartAnalysis }: ChatbotP
             ))}
           </AnimatePresence>
 
-          {/* 상황 확인 후 분석 시작 */}
-          <AnimatePresence>
-            {hasUserInput && (
-              <motion.div
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-                className="flex flex-col gap-3 self-start rounded-2xl rounded-tl-sm bg-canvas px-4 py-3"
-              >
-                <p className="text-sm leading-6 text-ink">{CONFIRM_TEXT}</p>
-                <Button type="button" size="sm" className="self-start" onClick={onStartAnalysis}>
-                  분석 시작
-                  <ArrowRight />
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {pendingQuestion && !done && (
+            <div className="mt-1">
+              <QuestionPrompt
+                key={pendingQuestion.question_id}
+                question={pendingQuestion}
+                onAnswer={answer}
+                onTextInputRequest={request => {
+                  setComposerQuestionOverride({
+                    sourceQuestionId: pendingQuestion.question_id,
+                    ...request,
+                  });
+                }}
+                disabled={submitting}
+              />
+            </div>
+          )}
+
+          {submitting && (
+            <p className="self-start rounded-2xl rounded-tl-sm bg-canvas px-4 py-3 text-sm leading-6 text-muted">
+              입력해주신 내용을 분석하고 있습니다.
+            </p>
+          )}
+          {error && <p className="text-sm text-red-700">{error}</p>}
         </div>
       )}
 
@@ -170,21 +178,29 @@ export function Chatbot({ className, locked = false, onStartAnalysis }: ChatbotP
           className="relative"
           onSubmit={event => {
             event.preventDefault();
-            send(input);
+            handleSend();
           }}
         >
           <Input
             value={input}
             onChange={event => setInput(event.target.value)}
-            placeholder={locked ? '보험을 먼저 선택해주세요' : '메시지를 입력하세요...'}
+            placeholder={
+              locked
+                ? '보험을 먼저 선택해주세요'
+                : composerQuestion
+                  ? composerPlaceholder
+                  : started
+                    ? '아래 선택지에서 답해주세요'
+                    : '상황을 입력해주세요'
+            }
             className="pr-12"
-            disabled={locked}
+            disabled={inputDisabled}
           />
           <Button
             type="submit"
             variant="ghost"
             size="icon"
-            disabled={locked}
+            disabled={inputDisabled}
             className="absolute right-1 top-1/2 size-9 -translate-y-1/2 text-primary hover:bg-primary-tint"
             aria-label="메시지 전송"
           >
@@ -192,7 +208,7 @@ export function Chatbot({ className, locked = false, onStartAnalysis }: ChatbotP
           </Button>
         </form>
         <p className="mt-3 text-center text-xs leading-5 text-muted">
-          ※ 챗봇의 답변은 참고용이며, 실제 보장 여부는 약관 및 상황에 따라 달라질 수 있습니다.
+          AI 챗봇의 답변은 참고용이며, 실제 보장 여부는 약관과 상황에 따라 달라질 수 있습니다.
         </p>
       </div>
     </section>

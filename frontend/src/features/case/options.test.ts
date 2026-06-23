@@ -6,6 +6,7 @@ describe('normalizeOptions', () => {
       { kcd: 'G56', name: '손목터널증후군' },
       { kcd: 'S60', name: '손목 타박상' },
     ]);
+
     expect(result).toEqual([
       { value: 'G56', label: '손목터널증후군' },
       { value: 'S60', label: '손목 타박상' },
@@ -15,11 +16,12 @@ describe('normalizeOptions', () => {
   it('{value,label} 옵션은 그대로 두고 boolean value를 보존한다', () => {
     const result = normalizeOptions([
       { value: true, label: '예' },
-      { value: false, label: '아니요' },
+      { value: false, label: '아니오' },
     ]);
+
     expect(result).toEqual([
       { value: true, label: '예' },
-      { value: false, label: '아니요' },
+      { value: false, label: '아니오' },
     ]);
   });
 

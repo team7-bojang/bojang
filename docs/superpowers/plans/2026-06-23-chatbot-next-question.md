@@ -527,7 +527,7 @@ git commit -m "feat(frontend): next_question 기반 대화 흐름 useChatFlow �
 > Task 6 완료 전까지 select_button을 `null` 반환하지 않게 하기 위해 Task 6의
 > import를 미리 넣는다(Task 6에서 파일 생성). **Task 5와 6은 순서대로 진행.**
 
-- [ ] **Step 1: Chip 컴포넌트 작성**
+- [x] **Step 1: Chip 컴포넌트 작성**
 
 `frontend/src/features/case/components/Chip.tsx`:
 ```tsx
@@ -559,7 +559,7 @@ export function Chip({ label, selected = false, disabled = false, onClick }: Chi
 }
 ```
 
-- [ ] **Step 2: 실패하는 렌더 테스트 작성**
+- [x] **Step 2: 실패하는 렌더 테스트 작성**
 
 `frontend/src/features/case/components/QuestionPrompt.test.tsx`:
 ```tsx
@@ -638,12 +638,12 @@ describe('QuestionPrompt', () => {
 });
 ```
 
-- [ ] **Step 3: 테스트 실패 확인**
+- [x] **Step 3: 테스트 실패 확인**
 
 Run: `pnpm test QuestionPrompt`
 Expected: FAIL (QuestionPrompt / DiseasePicker 모듈 없음).
 
-- [ ] **Step 4: QuestionPrompt 구현**
+- [x] **Step 4: QuestionPrompt 구현**
 
 `frontend/src/features/case/components/QuestionPrompt.tsx`:
 ```tsx
@@ -776,7 +776,7 @@ function TextPrompt({ question, onAnswer, disabled }: InnerProps) {
 > 이 시점에 `./DiseasePicker` import가 미해결이라 테스트가 모듈 에러를 낼 수 있다.
 > 곧바로 Task 6을 진행해 `DiseasePicker.tsx`를 생성한 뒤 본 태스크 테스트를 통과시킨다.
 
-- [ ] **Step 5: (Task 6 완료 후) 테스트 통과 확인**
+- [x] **Step 5: (Task 6 완료 후) 테스트 통과 확인**
 
 Run: `pnpm test QuestionPrompt`
 Expected: PASS (3 passed). — DiseasePicker 생성 전이면 실패하므로 Task 6 Step 4 이후 재실행.
@@ -793,7 +793,7 @@ Chip/QuestionPrompt는 Task 6의 DiseasePicker와 의존하므로 **Task 6 완�
 - Create: `frontend/src/features/case/components/DiseasePicker.tsx`
 - Test: `frontend/src/features/case/components/DiseasePicker.test.tsx`
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 `frontend/src/features/case/components/DiseasePicker.test.tsx`:
 ```tsx
@@ -865,12 +865,12 @@ describe('DiseasePicker', () => {
 });
 ```
 
-- [ ] **Step 2: 테스트 실패 확인**
+- [x] **Step 2: 테스트 실패 확인**
 
 Run: `pnpm test DiseasePicker`
 Expected: FAIL (DiseasePicker 모듈 없음).
 
-- [ ] **Step 3: DiseasePicker 구현**
+- [x] **Step 3: DiseasePicker 구현**
 
 `frontend/src/features/case/components/DiseasePicker.tsx`:
 ```tsx
@@ -956,12 +956,12 @@ export function DiseasePicker({ question, onAnswer, disabled = false }: DiseaseP
 }
 ```
 
-- [ ] **Step 4: 테스트 통과 확인 (DiseasePicker + QuestionPrompt)**
+- [x] **Step 4: 테스트 통과 확인 (DiseasePicker + QuestionPrompt)**
 
 Run: `pnpm test DiseasePicker QuestionPrompt`
 Expected: PASS (DiseasePicker 5 + QuestionPrompt 3 = 8 passed).
 
-- [ ] **Step 5: 전체 테스트 + 빌드 확인**
+- [x] **Step 5: 전체 테스트 + 빌드 확인**
 
 Run: `pnpm test && pnpm build`
 Expected: 모든 테스트 PASS, build 성공.

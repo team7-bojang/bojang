@@ -19,8 +19,31 @@ export interface CaseDashboard {
   policy_elapsed_days: number | null;
 }
 
+export interface DashboardPolicy {
+  id?: string;
+  name: string;
+  insurer: string;
+}
+
+export interface AnalysisEvidence {
+  article?: string;
+  quote?: string;
+}
+
+export interface AnalysisResult {
+  policy: string;
+  rider: string;
+  status: string;
+  gap_days?: number;
+  payable_days?: number;
+  estimated_amount?: number;
+  evidence?: AnalysisEvidence;
+}
+
 export interface CaseDashboardResponse {
   case_id: string;
   service_type: ServiceType;
   dashboard: CaseDashboard;
+  policies?: DashboardPolicy[];
+  analysis_results?: AnalysisResult[];
 }
