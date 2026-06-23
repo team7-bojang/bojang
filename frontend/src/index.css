@@ -1,5 +1,14 @@
 @import 'tailwindcss';
 
+/* 로고 전용 폰트 (Freesentation ExtraBold) — jsDelivr CDN, OFL 라이선스 */
+@font-face {
+  font-family: Freesentation;
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-8ExtraBold.woff2')
+    format('woff2');
+  font-weight: 800;
+  font-display: swap;
+}
+
 /* 디자인 토큰 (딥 틸/에메랄드 · 신뢰감) — 색상 변경 시 이 블록만 수정 */
 @theme {
   --color-canvas: #eef3f2;
@@ -10,14 +19,23 @@
   --color-success: #15803d;
   --color-success-tint: #cdeed7;
   --color-ink: #0b1220;
+  --color-ink-deep: #0a3f3a;
   --color-muted: #475569;
   --color-line: #d5e0dd;
+  --color-chart-base: #bfe5df;
+  --color-chart-gain: #18c9b5;
 
   --radius-card: 0.8rem;
 
   --font-sans:
     'Pretendard Variable', Pretendard, system-ui, 'Apple SD Gothic Neo', 'Segoe UI', Roboto,
     sans-serif;
+
+  /* 토스페이스 이모지 폰트 (이모지 문자에 적용 → font-tossface 유틸 생성) */
+  --font-tossface: 'Tossface', sans-serif;
+
+  /* 로고 텍스트 전용 폰트 (→ font-logo 유틸 생성, weight 800만 로드) */
+  --font-logo: Freesentation, sans-serif;
 }
 
 /* 스크롤은 되지만 스크롤바는 숨김 */
@@ -179,6 +197,15 @@
   transform-origin: bottom;
 }
 
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 @layer base {
   * {
     border-color: var(--color-line);
@@ -203,6 +230,10 @@
 }
 
 @layer components {
+  .animate-marquee {
+    animation: marquee-scroll 60s linear infinite;
+  }
+
   .firework {
     position: absolute;
     z-index: 0;
@@ -300,7 +331,8 @@
 
   @media (prefers-reduced-motion: reduce) {
     .animate-result-enter,
-    .animate-coverage-bar-rise {
+    .animate-coverage-bar-rise,
+    .animate-marquee {
       animation: none;
     }
   }
