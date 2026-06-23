@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import type { AnswerValue, NextQuestion } from './model';
 import { answerCase, startCaseAnalysis } from './queries';
@@ -8,6 +8,7 @@ export interface ChatMessage {
   text: string;
 }
 
+// 백엔드 응답 JSON 형태를 반영(snake_case)
 interface ApplyTarget {
   next_question?: NextQuestion | null;
   message?: string | null;
@@ -28,9 +29,13 @@ export function useChatFlow({ selectedPolicyIds, onCaseCreated, onDone }: UseCha
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // setState 비동기 배치로 인한 빠른 중복 제출을 막기 위한 동기 가드.
+  const submittingRef = useRef(false);
 
-  const pushMessage = (role: ChatMessage['role'], text: string) =>
-    setMessages(prev => [...prev, { role, text }]);
+  const pushMessage = useCallback(
+    (role: ChatMessage['role'], text: string) => setMessages(prev => [...prev, { role, text }]),
+    []
+  );
 
   const applyResponse = useCallback(
     (res: ApplyTarget, resolvedCaseId: string) => {
@@ -45,15 +50,16 @@ export function useChatFlow({ selectedPolicyIds, onCaseCreated, onDone }: UseCha
       setDone(true);
       onDone?.(resolvedCaseId);
     },
-    [onDone]
+    [onDone, pushMessage]
   );
 
   const start = useCallback(
     async (situation: string) => {
       const value = situation.trim();
-      if (!value || caseId || submitting) {
+      if (!value || caseId || submittingRef.current) {
         return;
       }
+      submittingRef.current = true;
       pushMessage('user', value);
       setError(null);
       setSubmitting(true);
@@ -73,17 +79,19 @@ export function useChatFlow({ selectedPolicyIds, onCaseCreated, onDone }: UseCha
       } catch (err) {
         setError(err instanceof Error ? err.message : '분석 세션을 시작하지 못했습니다.');
       } finally {
+        submittingRef.current = false;
         setSubmitting(false);
       }
     },
-    [applyResponse, caseId, onCaseCreated, selectedPolicyIds, submitting]
+    [applyResponse, caseId, onCaseCreated, pushMessage, selectedPolicyIds]
   );
 
   const answer = useCallback(
     async (questionId: string, value: AnswerValue, label: string) => {
-      if (!caseId || submitting) {
+      if (!caseId || submittingRef.current) {
         return;
       }
+      submittingRef.current = true;
       pushMessage('user', label);
       setError(null);
       setSubmitting(true);
@@ -93,10 +101,11 @@ export function useChatFlow({ selectedPolicyIds, onCaseCreated, onDone }: UseCha
       } catch (err) {
         setError(err instanceof Error ? err.message : '답변을 저장하지 못했습니다.');
       } finally {
+        submittingRef.current = false;
         setSubmitting(false);
       }
     },
-    [applyResponse, caseId, submitting]
+    [applyResponse, caseId, pushMessage]
   );
 
   return { messages, caseId, pendingQuestion, submitting, error, done, start, answer };

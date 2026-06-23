@@ -91,4 +91,24 @@ describe('useChatFlow', () => {
     expect(result.current.error).toBe('실패');
     expect(result.current.caseId).toBeNull();
   });
+
+  it('answer: caseId 없이 호출하면 아무 요청도 보내지 않는다', async () => {
+    const { result } = renderHook(() => useChatFlow({ selectedPolicyIds: ['p1'] }));
+
+    await act(async () => {
+      await result.current.answer('disease_kcd', 'G56', '손목터널증후군');
+    });
+
+    expect(mockedAnswer).not.toHaveBeenCalled();
+  });
+
+  it('start: 공백 입력이면 요청을 보내지 않는다', async () => {
+    const { result } = renderHook(() => useChatFlow({ selectedPolicyIds: ['p1'] }));
+
+    await act(async () => {
+      await result.current.start('   ');
+    });
+
+    expect(mockedStart).not.toHaveBeenCalled();
+  });
 });
