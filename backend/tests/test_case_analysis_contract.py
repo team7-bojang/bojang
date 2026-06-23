@@ -1,12 +1,11 @@
 """case 생성과 분석 범위 계약 회귀 테스트."""
 
+import uuid
+
 from app.db import get_client
 from app.services import analysis_service, case_service
 
 OWNER_ID = "00000000-0000-0000-0000-000000000000"
-
-
-import uuid
 
 def _create_policy(user_id: str = OWNER_ID, name: str = None) -> str:
     policy_name = name or "테스트 보험"

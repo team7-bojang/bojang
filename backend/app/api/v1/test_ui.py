@@ -1417,7 +1417,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
             // 4. Inpatient branch questions
             if (c.is_inpatient) {
-                const needDays = (c.admission_days_current === null || c.admission_days_current === undefined || c.admission_days_current === 0);
+                const needDays = (c.current_days === null || c.current_days === undefined || c.current_days === 0);
                 if (needDays) {
                     chatbotQuestions.push({
                         type: 'days',
@@ -1446,7 +1446,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             }
 
             // 5. 치료 항목 (treatment_items) 질문 - 공통화 (입원/통원 불문하고 항상!)
-            const treatmentsInputted = (c.treatment_items !== null && c.treatment_items !== undefined);
+            const treatmentsInputted = (c.treatment_items !== null && c.treatment_items !== undefined && (c.treatment_items.length > 0 || c.annual_visit_count !== null));
             if (!treatmentsInputted) {
                 chatbotQuestions.push({
                     type: 'treatments',
@@ -1597,7 +1597,9 @@ HTML_CONTENT = """<!DOCTYPE html>
                     const res = await fetchAPI(`/cases/${activeCaseId}/dashboard`);
                     if (res.success) {
                         const dbVal = res.data.dashboard;
-                        const msgText = '좋아요. 제가 이해한 내용을 한 번 정리해볼게요.\\n맞는지 확인한 뒤 분석을 시작할 수 있어요.';
+                        const msgText = (serviceType === 'CASE2') 
+                            ? '좋아요. 제가 이해한 내용을 한 번 정리해볼게요.\n맞는지 확인한 뒤 분석을 시작할 수 있어요.'
+                            : '내용 확인을 위해 대시보드로 넘어갈게요.';
                         addBotMessage(
                             msgText,
                             renderVerifyForm(dbVal)
@@ -2111,22 +2113,13 @@ HTML_CONTENT = """<!DOCTYPE html>
                 });
 
                 // 3. POST /analysis/compare (v2.1)
-                const compareScenarios = (serviceType === 'CASE2')
-                    ? [
-                        { days: current_days, name: `현재 입원 (${current_days}일)` },
-                        { days: diagnosed_days, name: `의사 권고 (${diagnosed_days}일)` }
-                      ]
-                    : [
-                        { days: 3, name: '통상입원 (3일)' },
-                        { days: 14, name: '장기입원 (14일)' },
-                        { days: 30, name: '집중입원 (30일)' }
-                      ];
-
+                const targetDays = (serviceType === 'CASE2') ? diagnosed_days : (current_days > 3 ? 30 : 14);
                 const compareRes = await fetchAPI('/analysis/compare', {
                     method: 'POST',
                     body: {
                         case_id: activeCaseId,
-                        scenarios: compareScenarios
+                        current_days: current_days,
+                        target_days: targetDays
                     }
                 });
 
@@ -2246,20 +2239,24 @@ HTML_CONTENT = """<!DOCTYPE html>
             tbody.innerHTML = '';
 
             const rawCompare = analysisData.compare || {};
-            const scenarios = rawCompare.scenarios || [];
-            const comparisons = rawCompare.comparisons || [];
+            const comparisons = rawCompare.comparison || [];
+            const slider = rawCompare.slider || {};
+            
+            const currentDays = slider.current || 3;
+            const targetDays = slider.target || 14;
 
             // Update headers dynamically
-            let headerHtml = '<tr><th>보험상품 / 특약명</th>';
-            scenarios.forEach(sc => {
-                headerHtml += `<th>${sc.name}</th>`;
-            });
-            headerHtml += '</tr>';
-            thead.innerHTML = headerHtml;
+            thead.innerHTML = `
+                <tr>
+                    <th>보험상품 / 특약명</th>
+                    <th>현재 퇴원 시점 (${currentDays}일)</th>
+                    <th>비교 퇴원 시점 (${targetDays}일)</th>
+                </tr>
+            `;
 
             if (comparisons.length === 0) {
                 tbody.innerHTML = `<tr>
-                    <td colspan="${scenarios.length + 1}" style="text-align:center; color:var(--text-muted);">
+                    <td colspan="3" style="text-align:center; color:var(--text-muted);">
                         비교 가능한 입원 일당 특약이 존재하지 않습니다.
                     </td>
                 </tr>`;
@@ -2268,23 +2265,25 @@ HTML_CONTENT = """<!DOCTYPE html>
 
             comparisons.forEach(item => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td><strong>[${item.policy}]</strong><br>${item.rider}</td>`;
+                tr.innerHTML = `<td><strong>[${item.policy_name}]</strong><br>${item.rider_name}</td>`;
 
-                const outcomes = item.outcomes || [];
-                outcomes.forEach(out => {
+                const scenarios = item.scenarios || [];
+                scenarios.forEach(sc => {
                     let badgeClass = 'status-potential';
                     let label = '미해당';
-                    if (out.status === 'eligible') { badgeClass = 'status-eligible'; label = '청구 가능'; }
-                    else if (out.status === 'boundary_not_met') { badgeClass = 'status-boundary_not_met'; label = '경계 미달'; }
-                    else if (out.status === 'waiting_period_not_met') { badgeClass = 'status-waiting_period_not_met'; label = '면책 미경과'; }
+                    if (sc.status === 'eligible') { badgeClass = 'status-eligible'; label = '청구 가능'; }
+                    else if (sc.status === 'boundary_not_met') { badgeClass = 'status-boundary_not_met'; label = '경계 미달'; }
+                    else if (sc.status === 'waiting_period_not_met') { badgeClass = 'status-waiting_period_not_met'; label = '면책 미경과'; }
 
-                    const boundaryText = out.gap_days ? `<span class="compare-boundary-highlight">⚠️ ${out.gap_days}일 부족으로 미해당</span>` : '';
-                    const calcText = out.calc ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">${out.calc}</div>` : '';
+                    const boundaryText = sc.gap_days ? `<span class="compare-boundary-highlight">⚠️ ${sc.gap_days}일 부족으로 미해당</span>` : '';
+                    const calcText = sc.calc ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">${sc.calc}</div>` : '';
+                    const amountText = sc.amount_note ? `<div style="font-size:0.8rem; font-weight:600; color:var(--accent-color);">${sc.amount_note}</div>` : '';
 
                     tr.innerHTML += `
                         <td>
                             <span class="compare-status-badge ${badgeClass}">${label}</span>
                             ${boundaryText}
+                            ${amountText}
                             ${calcText}
                         </td>
                     `;
