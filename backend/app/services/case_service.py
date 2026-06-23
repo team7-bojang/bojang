@@ -483,6 +483,7 @@ def create_case(
         ),
         "message": None if service_type == "CASE2" else message,
         "treatment_types": get_treatment_types(),
+        "next_question": get_next_question(case_data),
     }
 
 
@@ -867,6 +868,7 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
         "ready_for_dashboard": True,
         "case": latest_case,
         "treatment_types": get_treatment_types(),
+        "next_question": get_next_question(latest_case),
     }
 
 
@@ -1057,3 +1059,91 @@ def get_treatment_types() -> list[dict]:
         {"code": "PHYSICAL_THERAPY", "name": "물리치료"},
         {"code": "ETC", "name": "기타"},
     ]
+
+
+def get_next_question(case: dict) -> dict | None:
+    """케이스의 저장 상태를 검사하여 다음으로 해야 할 질문 정보를 반환합니다."""
+    service_type = case.get("service_type", "CASE1")
+
+    # 1. 질병 정보 확인 필요
+    if case.get("disease_match_confidence") == "need_user_confirmation" and not case.get("disease_kcd"):
+        return {
+            "question_id": "disease_kcd",
+            "question_text": "입력해주신 내용과 가장 가까운 질병을 골라주세요.",
+            "input_type": "select_button",
+            "options": case.get("disease_kcd_candidates") or []
+        }
+
+    # 2. 의사 권고 진단일수 (diag_days) 확인 필요 (CASE2인 경우)
+    if service_type == "CASE2" and case.get("admission_days_diagnosed") is None:
+        return {
+            "question_id": "admission_days_diagnosed",
+            "question_text": "의사가 말한 권고 입원 기간은 총 며칠인가요?",
+            "input_type": "text_input",
+            "placeholder": "예: 4일"
+        }
+
+    # 3. 현재 입원일수 (current_days) 확인 필요
+    if case.get("admission_days_current") is None:
+        # 외래 통원이 아닌 경우에만 입원일수 확인
+        if not (case.get("is_outpatient") and not case.get("is_inpatient")):
+            return {
+                "question_id": "admission_days_current",
+                "question_text": "지금은 입원한 지 며칠째인가요?",
+                "input_type": "text_input",
+                "placeholder": "예: 3일"
+            }
+
+    # 4. 수술 여부 (surgery) 확인 필요
+    if case.get("surgery") is None:
+        return {
+            "question_id": "surgery",
+            "question_text": "이번 진료에서 수술도 받으셨나요?",
+            "input_type": "radio_button",
+            "options": [
+                {"value": True, "label": "예"},
+                {"value": False, "label": "아니요"}
+            ]
+        }
+
+    # 5. 치료 항목 (treatment_items) 확인 필요
+    # 치료 항목이 비어 있거나 없는 경우
+    if not case.get("treatment_items"):
+        return {
+            "question_id": "treatment_items",
+            "question_text": "이번 입원 중 함께 받은 치료가 있다면 골라주세요. (여러 개 선택 가능)",
+            "input_type": "checkbox_button",
+            "options": [
+                {"value": "MRI_MRA", "label": "영상검사 (MRI/CT)"},
+                {"value": "INJECTION", "label": "주사치료"},
+                {"value": "MANUAL_THERAPY", "label": "도수·충격파"},
+                {"value": "PHYSICAL_THERAPY", "label": "물리치료"},
+                {"value": "OTHER", "label": "기타 치료"}
+            ]
+        }
+
+    # 6. 연간 내원 횟수 (annual_visit_count) 확인 필요
+    if case.get("annual_visit_count") is None:
+        return {
+            "question_id": "annual_visit_count",
+            "question_text": "올해 같은 이유로 병원에 간 게 이번 포함 몇 번째인가요?",
+            "input_type": "text_input",
+            "placeholder": "예: 1번"
+        }
+
+    # 7. 가입 기간 경과 (policy_elapsed_days) 확인 필요
+    if case.get("policy_elapsed_days") is None:
+        return {
+            "question_id": "policy_elapsed_days",
+            "question_text": "선택한 보험의 가입기간에 해당하는 구간을 골라주세요.",
+            "input_type": "radio_button",
+            "options": [
+                {"value": "90일 미만", "label": "90일 미만"},
+                {"value": "90일 이상~1년 미만", "label": "90일 이상~1년 미만"},
+                {"value": "1년 이상~2년 미만", "label": "1년 이상~2년 미만"},
+                {"value": "2년 이상", "label": "2년 이상"},
+                {"value": "잘 모르겠어요", "label": "잘 모르겠어요"}
+            ]
+        }
+
+    return None
