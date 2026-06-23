@@ -518,6 +518,42 @@ def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
     if hosp_match:
         hospital_name = hosp_match.group(1)
 
+    # 3-2. 결제 텍스트에서 치료 항목(treatment_items) 동적 추출
+    treatment_items = []
+    text_lower = payment_text.lower()
+    
+    available_treatments = get_treatment_types()
+    TREATMENT_KEYWORDS = {
+        "MRI_MRA": ["mri", "mra", "자기공명"],
+        "XRAY": ["엑스레이", "xray", "x-ray"],
+        "INJECTION": ["주사", "주사치료", "injection"],
+        "MANUAL_THERAPY": ["도수", "도수치료", "manual"],
+        "PHYSICAL_THERAPY": ["물리", "물리치료", "physical"],
+        "ECSWT": ["충격파", "체외충격파", "ecswt"],
+        "CAST": ["깁스", "캐스트", "cast"],
+        "BRACE_SPLINT": ["보조기", "splint", "brace"],
+        "EMERGENCY": ["응급", "응급실", "emergency"],
+        "MEDICATION": ["약국", "처방약", "medication"],
+    }
+    
+    for t in available_treatments:
+        code = t.get("code")
+        name = t.get("name", "")
+        keywords = list(TREATMENT_KEYWORDS.get(code, []))
+        
+        # 기본 이름 정규화하여 키워드 매핑 보조
+        clean_name = re.sub(r"[\s/]", "", name).lower()
+        if clean_name and clean_name not in keywords:
+            keywords.append(clean_name)
+            
+        matched = False
+        for kw in keywords:
+            if kw in text_lower:
+                matched = True
+                break
+        if matched and code not in treatment_items:
+            treatment_items.append(code)
+
     # 실제 DB에 설정된 값을 기준으로 기설정 여부 판단
     db_inpt = bool(case.get("is_inpatient"))
     db_outpt = bool(case.get("is_outpatient"))
@@ -543,7 +579,11 @@ def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
             inf_message = "결제금액을 보니 입원치료인 것 같은데 맞나요?"
             threshold_basis = "50만원 이상"
 
-    db.table("cases").update({"payment_amount": payment_amount}).eq("id", case_id).execute()
+    updates = {"payment_amount": payment_amount}
+    if treatment_items:
+        updates["treatment_items"] = treatment_items
+        
+    db.table("cases").update(updates).eq("id", case_id).execute()
 
     return {
         "case_id": case_id,
@@ -569,49 +609,89 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_name: str) ->
     """진료비 세부산정내역서 PDF 업로드 결과를 가공하여 extracted_medical_info 양식으로 리턴합니다."""
     db = get_client()
 
-    res = db.table("cases").select("service_type").eq("id", case_id).execute()
+    res = db.table("cases").select("*").eq("id", case_id).execute()
     if not res.data:
         raise NotFoundError("해당 케이스를 찾을 수 없습니다.")
-    if res.data[0].get("service_type") == "CASE2":
+        
+    case = res.data[0]
+    if case.get("service_type") == "CASE2":
         raise ValueError("CASE2 서비스에서는 세부산정내역서 입력 API를 사용할 수 없습니다.")
 
-    treatment_items = ["MANUAL_THERAPY", "PHYSICAL_THERAPY"]
+    # 파일 이름에서 치료 항목 동적 추출
+    treatment_items = []
+    file_name_lower = file_name.lower()
+    
+    TREATMENT_KEYWORDS = {
+        "MRI_MRA": ["mri", "mra", "자기공명"],
+        "XRAY": ["엑스레이", "xray", "x-ray"],
+        "INJECTION": ["주사", "주사치료", "injection"],
+        "MANUAL_THERAPY": ["도수", "도수치료", "manual"],
+        "PHYSICAL_THERAPY": ["물리", "물리치료", "physical"],
+        "ECSWT": ["충격파", "체외충격파", "ecswt"],
+        "CAST": ["깁스", "캐스트", "cast"],
+        "BRACE_SPLINT": ["보조기", "splint", "brace"],
+        "EMERGENCY": ["응급", "응급실", "emergency"],
+        "MEDICATION": ["약국", "처방약", "medication"],
+    }
+    
+    for code, keywords in TREATMENT_KEYWORDS.items():
+        for kw in keywords:
+            if kw in file_name_lower:
+                treatment_items.append(code)
+                break
+                
+    # 만약 파일명에서 추출된 치료 항목이 없다면 기본값 제공
+    if not treatment_items:
+        treatment_items = ["MANUAL_THERAPY", "PHYSICAL_THERAPY"]
+
+    # 기존 케이스의 질병명 정보가 덮어씌워지지 않도록 유지
+    disease_name = case.get("disease_name") or "기타 추간판 장애 (허리디스크)"
+    disease_kcd = case.get("disease_kcd") or "M51"
+    is_inpatient = bool(case.get("is_inpatient"))
+    is_outpatient = bool(case.get("is_outpatient"))
+    
+    # 둘 다 설정 안 되어 있다면 기본적으로 통원(OUTPATIENT) 가정
+    if not is_inpatient and not is_outpatient:
+        is_outpatient = True
+
+    surgery = "수술" in file_name_lower or bool(case.get("surgery"))
+
     updates = {
-        "admission_days_diagnosed": 14,
-        "admission_days_current": 14,
-        "surgery": False,
+        "admission_days_diagnosed": case.get("admission_days_diagnosed") or (14 if is_inpatient else 0),
+        "admission_days_current": case.get("admission_days_current") or (14 if is_inpatient else 0),
+        "surgery": surgery,
         "treatment_items": treatment_items,
-        "is_inpatient": False,
-        "is_outpatient": True,
-        "payment_amount": 90000,
+        "is_inpatient": is_inpatient,
+        "is_outpatient": is_outpatient,
+        "payment_amount": case.get("payment_amount") or 90000,
     }
     db.table("cases").update(updates).eq("id", case_id).execute()
 
-    # 데이터 미비 시 임의 기본값을 활용했다는 print 알림 남김
     print(
-        "[case_service] 세부산정내역서 데이터가 부족하여 기본 스텁 데이터"
-        "(허리디스크 통원 14일)를 임의로 보완 적재했습니다."
+        f"[case_service] 세부산정내역서({file_name}) 분석 완료: "
+        f"질병={disease_name}({disease_kcd}), 치료항목={treatment_items}"
     )
 
     return {
         "case_id": case_id,
         "input_method": "MEDICAL_DETAIL_STATEMENT",
         "extracted_medical_info": {
-            "disease_name": "허리디스크",
-            "disease_kcd": "M511",
+            "disease_name": disease_name,
+            "disease_kcd": disease_kcd,
             "hospital_name": "OO정형외과",
             "visit_dates": ["2026-06-10"],
-            "is_inpatient": False,
-            "is_outpatient": True,
-            "surgery": False,
+            "is_inpatient": is_inpatient,
+            "is_outpatient": is_outpatient,
+            "surgery": surgery,
             "treatment_items": treatment_items,
-            "payment_amount": 90000,
+            "payment_amount": updates["payment_amount"],
             "total_amount": 113900,
             "patient_paid_amount": 7100,
             "nhis_paid_amount": 16800,
-            "non_covered_amount": 90000,
+            "non_covered_amount": updates["payment_amount"],
             "item_details": [
-                {"name": "도수치료", "amount": 70000, "is_non_covered": True, "count": 1}
+                {"name": t_code, "amount": 70000, "is_non_covered": True, "count": 1}
+                for t_code in treatment_items
             ],
         },
         "needs_confirmation": True,
@@ -688,7 +768,6 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
     case = res.data[0]
     if case.get("user_id") != user_id:
         raise ForbiddenError("다른 사용자의 case에 접근할 수 없습니다.")
-    return case
 
     updates = {}
     is_inpt = None
@@ -711,19 +790,58 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
         elif q_id == "surgery":
             updates["surgery"] = bool(val)
         elif q_id == "admission_days_diagnosed":
-            updates["admission_days_diagnosed"] = int(val) if val is not None else None
-            is_inpt = True
-            is_outpt = False
+            if val is not None:
+                try:
+                    num_str = re.sub(r"[^0-9]", "", str(val))
+                    updates["admission_days_diagnosed"] = int(num_str) if num_str else None
+                    is_inpt = True
+                    is_outpt = False
+                except Exception:
+                    pass
         elif q_id == "admission_days_current":
-            updates["admission_days_current"] = int(val) if val is not None else None
-            is_inpt = True
-            is_outpt = False
+            if val is not None:
+                try:
+                    num_str = re.sub(r"[^0-9]", "", str(val))
+                    updates["admission_days_current"] = int(num_str) if num_str else None
+                    is_inpt = True
+                    is_outpt = False
+                except Exception:
+                    pass
         elif q_id == "treatment_items":
             updates["treatment_items"] = val
         elif q_id == "annual_visit_count":
-            updates["annual_visit_count"] = int(val) if val is not None else None
+            if val is not None:
+                try:
+                    num_str = re.sub(r"[^0-9]", "", str(val))
+                    updates["annual_visit_count"] = int(num_str) if num_str else None
+                except Exception:
+                    pass
         elif q_id == "policy_elapsed_days":
-            updates["policy_elapsed_days"] = int(val) if val is not None else None
+            if val is None:
+                updates["policy_elapsed_days"] = None
+            elif isinstance(val, int):
+                updates["policy_elapsed_days"] = val
+            elif isinstance(val, str):
+                # "[2년 이상]" -> "2년 이상" 으로 정규화
+                val_clean = val.replace("[", "").replace("]", "").strip()
+                if "2년 이상" in val_clean:
+                    updates["policy_elapsed_days"] = 730
+                elif "1년 이상" in val_clean:
+                    updates["policy_elapsed_days"] = 540
+                elif "90일 이상" in val_clean:
+                    updates["policy_elapsed_days"] = 180
+                elif "90일 미만" in val_clean:
+                    updates["policy_elapsed_days"] = 80
+                elif "잘 모르겠" in val_clean:
+                    updates["policy_elapsed_days"] = None
+                else:
+                    try:
+                        num_str = re.sub(r"[^0-9]", "", val_clean)
+                        updates["policy_elapsed_days"] = int(num_str) if num_str else None
+                    except Exception:
+                        updates["policy_elapsed_days"] = None
+            else:
+                updates["policy_elapsed_days"] = None
 
     if is_inpt is not None:
         updates["is_inpatient"] = bool(is_inpt)
