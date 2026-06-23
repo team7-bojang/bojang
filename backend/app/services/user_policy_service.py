@@ -32,7 +32,6 @@ _PARSE_MODEL = "gpt-4.1-mini"
 
 # PDF 업로드 제한
 _MAX_PDF_BYTES = 50 * 1024 * 1024  # 50 MB
-_MAX_PAGES = 600
 
 # treatment_types.code → 약관 키워드 매핑 (005_treatment_tables.sql aliases 기준)
 TREATMENT_KEYWORDS: dict[str, list[str]] = {
@@ -168,9 +167,6 @@ def upload_pdf(user_id: str, file_name: str, pdf_bytes: bytes) -> dict:
     try:
         # ── 2. 텍스트 추출 ──
         pages = extract_pages(pdf_bytes)
-
-        if len(pages) > _MAX_PAGES:
-            raise ValueError(f"페이지 수 제한 초과 (최대 {_MAX_PAGES}페이지, 현재 {len(pages)}페이지)")
 
         # 스캔 PDF 감지: 텍스트 50자 미만 페이지가 절반 이상이면 거부
         empty_count = sum(1 for p in pages if len(p["text"].strip()) < 50)
