@@ -1,0 +1,1719 @@
+[
+  {
+    "schema_version": "2.0",
+    "id": "kb3n_c2_01",
+    "service_type": "CASE2",
+    "description": "뇌경색 3일 퇴원과 7일 입원 비교 — KB 3.N.암 심플러스 기준",
+    "selected_policies": [
+      "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)"
+    ],
+    "case": {
+      "initial_situation": "뇌경색으로 입원 중이며 현재 3일째, 의사 권고 입원기간은 7일",
+      "disease": "뇌경색",
+      "disease_kcd": "I63",
+      "is_inpatient": true,
+      "is_outpatient": false,
+      "surgery": false,
+      "admission_days_current": 3,
+      "admission_days_diagnosed": 7,
+      "treatment_items": [
+        "MRI_MRA"
+      ],
+      "annual_visit_count": 1,
+      "policy_elapsed_days": 730
+    },
+    "demo_assumptions": {
+      "KB 뇌혈관질환진단비Ⅳ": {
+        "coverage_amount": 10000000
+      }
+    },
+    "expected": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "뇌혈관질환진단비Ⅳ",
+        "status": "eligible",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::뇌혈관질환진단비Ⅳ",
+        "estimated_amount": 10000000,
+        "calculation": "10,000,000원 × 100%",
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%",
+          "claim_formula": null,
+          "demo_input": {
+            "label": "KB 뇌혈관질환진단비Ⅳ",
+            "field": "coverage_amount",
+            "amount": 10000000,
+            "source": "demo_policy_certificate"
+          },
+          "policy_source": {
+            "article": "뇌혈관질환진단비Ⅳ 특별약관 제1조(보험금의 지급사유)",
+            "page": 203
+          },
+          "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+        },
+        "note": "입원일수와 무관한 진단비라 3일/7일 모두 동일하게 후보 추출",
+        "scenario_days": 3,
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "10,000,000원 × 100%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "10,000,000원"
+          }
+        ]
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "뇌혈관질환진단비Ⅳ",
+        "status": "eligible",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::뇌혈관질환진단비Ⅳ",
+        "estimated_amount": 10000000,
+        "calculation": "10,000,000원 × 100%",
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%",
+          "claim_formula": null,
+          "demo_input": {
+            "label": "KB 뇌혈관질환진단비Ⅳ",
+            "field": "coverage_amount",
+            "amount": 10000000,
+            "source": "demo_policy_certificate"
+          },
+          "policy_source": {
+            "article": "뇌혈관질환진단비Ⅳ 특별약관 제1조(보험금의 지급사유)",
+            "page": 203
+          },
+          "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+        },
+        "note": "입원일수와 무관한 진단비라 3일/7일 모두 동일하게 후보 추출",
+        "scenario_days": 7,
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "10,000,000원 × 100%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "10,000,000원"
+          }
+        ]
+      }
+    ],
+    "must_not_match": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "뇌혈관질환입원일당(4일이상120일한도)",
+        "reason": "해당 업로드 약관에서 직접 담보명 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "질병입원일당(1일이상180일한도)",
+        "reason": "해당 업로드 약관에는 일반 질병입원일당 대신 간병인/간호간병 조건부 입원일당이 있음"
+      }
+    ],
+    "expected_summary": {
+      "eligible_count": 2,
+      "not_met_count": 0
+    },
+    "display_rule": {
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+      "show_total_as_confirmed_payment": false
+    },
+    "comparison_basis": "HOSPITALIZATION_DAYS",
+    "demo_amount_inputs": [
+      {
+        "label": "KB 뇌혈관질환진단비Ⅳ",
+        "field": "coverage_amount",
+        "amount": 10000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "policy_amount_summary": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 10000000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "뇌혈관질환진단비Ⅳ",
+            "calculation": "10,000,000원 × 100%",
+            "estimated_amount": 10000000
+          }
+        ],
+        "total_calculation": "10,000,000원 = 10,000,000원",
+        "scenario_days": 3
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 10000000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "뇌혈관질환진단비Ⅳ",
+            "calculation": "10,000,000원 × 100%",
+            "estimated_amount": 10000000
+          }
+        ],
+        "total_calculation": "10,000,000원 = 10,000,000원",
+        "scenario_days": 7
+      }
+    ]
+  },
+  {
+    "schema_version": "2.0",
+    "id": "kb3n_c2_02",
+    "service_type": "CASE2",
+    "description": "급성심근경색 3일과 4일 경계 비교 — KB 3.N.암 심플러스 기준",
+    "selected_policies": [
+      "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)"
+    ],
+    "case": {
+      "initial_situation": "급성심근경색으로 현재 3일째 입원, 목표 4일",
+      "disease": "급성심근경색증",
+      "disease_kcd": "I21",
+      "is_inpatient": true,
+      "is_outpatient": false,
+      "surgery": false,
+      "admission_days_current": 3,
+      "admission_days_diagnosed": 4,
+      "treatment_items": [
+        "OTHER"
+      ],
+      "annual_visit_count": 1,
+      "policy_elapsed_days": 730
+    },
+    "demo_assumptions": {
+      "KB 허혈성심장질환진단비Ⅳ": {
+        "coverage_amount": 5000000
+      }
+    },
+    "expected": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "허혈성심장질환진단비Ⅳ",
+        "status": "eligible",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::허혈성심장질환진단비Ⅳ",
+        "estimated_amount": 5000000,
+        "calculation": "5,000,000원 × 100%",
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%",
+          "claim_formula": null,
+          "demo_input": {
+            "label": "KB 허혈성심장질환진단비Ⅳ",
+            "field": "coverage_amount",
+            "amount": 5000000,
+            "source": "demo_policy_certificate"
+          },
+          "policy_source": {
+            "article": "허혈성심장질환진단비Ⅳ 특별약관 제1조(보험금의 지급사유)",
+            "page": 204
+          },
+          "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+        },
+        "note": "입원일수와 무관한 진단비라 3일/4일 모두 동일하게 후보 추출",
+        "scenario_days": 3,
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 5,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "5,000,000원 × 100%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "5,000,000원"
+          }
+        ]
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "허혈성심장질환진단비Ⅳ",
+        "status": "eligible",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::허혈성심장질환진단비Ⅳ",
+        "estimated_amount": 5000000,
+        "calculation": "5,000,000원 × 100%",
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%",
+          "claim_formula": null,
+          "demo_input": {
+            "label": "KB 허혈성심장질환진단비Ⅳ",
+            "field": "coverage_amount",
+            "amount": 5000000,
+            "source": "demo_policy_certificate"
+          },
+          "policy_source": {
+            "article": "허혈성심장질환진단비Ⅳ 특별약관 제1조(보험금의 지급사유)",
+            "page": 204
+          },
+          "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+        },
+        "note": "입원일수와 무관한 진단비라 3일/4일 모두 동일하게 후보 추출",
+        "scenario_days": 4,
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 5,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "5,000,000원 × 100%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "5,000,000원"
+          }
+        ]
+      }
+    ],
+    "must_not_match": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "급성심근경색증진단비",
+        "reason": "이 PDF에는 급성심근경색 단독 담보가 아니라 허혈성심장질환진단비Ⅳ가 있음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "허혈심장질환입원일당(4일이상120일한도)",
+        "reason": "해당 업로드 약관에서 직접 담보명 확인되지 않음"
+      }
+    ],
+    "expected_summary": {
+      "eligible_count": 2,
+      "not_met_count": 0
+    },
+    "display_rule": {
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+      "show_total_as_confirmed_payment": false
+    },
+    "comparison_basis": "HOSPITALIZATION_DAYS",
+    "demo_amount_inputs": [
+      {
+        "label": "KB 허혈성심장질환진단비Ⅳ",
+        "field": "coverage_amount",
+        "amount": 5000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "policy_amount_summary": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 5000000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "허혈성심장질환진단비Ⅳ",
+            "calculation": "5,000,000원 × 100%",
+            "estimated_amount": 5000000
+          }
+        ],
+        "total_calculation": "5,000,000원 = 5,000,000원",
+        "scenario_days": 3
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 5000000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "허혈성심장질환진단비Ⅳ",
+            "calculation": "5,000,000원 × 100%",
+            "estimated_amount": 5000000
+          }
+        ],
+        "total_calculation": "5,000,000원 = 5,000,000원",
+        "scenario_days": 4
+      }
+    ]
+  },
+  {
+    "schema_version": "2.0",
+    "id": "kb3n_c2_03",
+    "service_type": "CASE2",
+    "description": "당뇨성 신증 5일과 10일 비교 — KB 3.N.암 심플러스 기준",
+    "selected_policies": [
+      "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)"
+    ],
+    "case": {
+      "initial_situation": "당뇨성 신증으로 현재 5일째 입원, 권고기간 10일",
+      "disease": "당뇨성 신증",
+      "disease_kcd": "E112",
+      "is_inpatient": true,
+      "is_outpatient": false,
+      "surgery": false,
+      "admission_days_current": 5,
+      "admission_days_diagnosed": 10,
+      "treatment_items": [
+        "INJECTION"
+      ],
+      "annual_visit_count": 2,
+      "policy_elapsed_days": 730
+    },
+    "demo_assumptions": {},
+    "expected": [],
+    "must_not_match": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "26대생활습관병 입원비",
+        "reason": "해당 업로드 약관에서 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "당뇨 관련 주요질환 입원급여금",
+        "reason": "해당 업로드 약관에서 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "당뇨병(당화혈색소 기준) 진단보험금",
+        "reason": "해당 업로드 약관에서 확인되지 않음"
+      }
+    ],
+    "expected_summary": {
+      "eligible_count": 0,
+      "not_met_count": 0
+    },
+    "display_rule": {
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+      "show_total_as_confirmed_payment": false
+    },
+    "comparison_basis": "HOSPITALIZATION_DAYS",
+    "demo_amount_inputs": [],
+    "policy_amount_summary": []
+  },
+  {
+    "schema_version": "2.0",
+    "id": "kb3n_c2_04",
+    "service_type": "CASE2",
+    "description": "가입 90일 미만 중증 갑상선암 면책·유사암 감액 — KB 3.N.암 심플러스 기준",
+    "selected_policies": [
+      "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)"
+    ],
+    "case": {
+      "initial_situation": "중증 갑상선암 진단 후 외래 진료",
+      "disease": "중증 갑상선암",
+      "disease_kcd": "C73",
+      "is_inpatient": false,
+      "is_outpatient": true,
+      "surgery": false,
+      "admission_days_current": null,
+      "admission_days_diagnosed": null,
+      "treatment_items": [],
+      "annual_visit_count": 1,
+      "policy_elapsed_days": 89
+    },
+    "demo_assumptions": {
+      "KB 중증갑상선암진단비": {
+        "coverage_amount": 10000000
+      },
+      "KB 유사암진단비Ⅲ": {
+        "coverage_amount": 3000000
+      },
+      "KB 암진단비(유사암제외)": {
+        "coverage_amount": 10000000
+      }
+    },
+    "expected": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "중증갑상선암진단비",
+        "status": "waiting_period_not_met",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::중증갑상선암진단비",
+        "estimated_amount": 0,
+        "calculation": null,
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 1년 미만 50%, 1년 이상 100%, 갱신계약 100%; 중증갑상선암 보장개시일은 계약일부터 90일이 지난 날의 다음날",
+          "claim_formula": null,
+          "demo_input": null,
+          "policy_source": {
+            "article": "중증갑상선암진단비 특별약관 제1조(보험금의 지급사유)",
+            "page": 106
+          },
+          "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+        },
+        "note": "가입기간 89일로 90일 보장개시일 미충족",
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 1년 미만 50%, 1년 이상 100%, 갱신계약 100%; 중증갑상선암 보장개시일은 계약일부터 90일이 지난 날의 다음날"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "가입기간 89일로 90일 보장개시일 미충족"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ]
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "유사암진단비Ⅲ",
+        "status": "eligible",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::유사암진단비Ⅲ",
+        "estimated_amount": 300000,
+        "calculation": "3,000,000원 × 10%",
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 90일 미만 10%, 90일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%",
+          "claim_formula": null,
+          "demo_input": {
+            "label": "KB 유사암진단비Ⅲ",
+            "field": "coverage_amount",
+            "amount": 300000,
+            "source": "demo_policy_certificate"
+          },
+          "policy_source": {
+            "article": "유사암진단비Ⅲ 특별약관 제1조(보험금의 지급사유)",
+            "page": 90
+          },
+          "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+        },
+        "reduction": {
+          "applied": true,
+          "rate": 0.1,
+          "until_elapsed_days": 90,
+          "elapsed_days_label": "89일"
+        },
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 3,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 90일 미만 10%, 90일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%"
+          },
+          {
+            "step": 3,
+            "title": "가입기간 감액",
+            "detail": "가입 후 89일, 약관상 지급률 10% 적용"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "3,000,000원 × 10%"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "300,000원"
+          }
+        ]
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "암진단비(유사암제외)",
+        "status": "not_applicable",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::암진단비(유사암제외)",
+        "estimated_amount": 0,
+        "calculation": null,
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 1년 미만 보험가입금액 50%, 1년 이상 100%, 갱신계약 100%; 암 보장개시일은 계약일부터 90일이 지난 날의 다음날",
+          "claim_formula": null,
+          "demo_input": null,
+          "policy_source": {
+            "article": "암진단비(유사암제외) 특별약관 제1조(보험금의 지급사유)",
+            "page": 89
+          },
+          "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+        },
+        "note": "갑상선암(C73)은 암진단비(유사암제외)에서 제외",
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 1년 미만 보험가입금액 50%, 1년 이상 100%, 갱신계약 100%; 암 보장개시일은 계약일부터 90일이 지난 날의 다음날"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "갑상선암(C73)은 암진단비(유사암제외)에서 제외"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ]
+      }
+    ],
+    "must_not_match": [],
+    "expected_summary": {
+      "eligible_count": 1,
+      "not_met_count": 2
+    },
+    "display_rule": {
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+      "show_total_as_confirmed_payment": false
+    },
+    "comparison_basis": "POLICY_ELAPSED",
+    "demo_amount_inputs": [
+      {
+        "label": "KB 중증갑상선암진단비",
+        "field": "coverage_amount",
+        "amount": 10000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "KB 유사암진단비Ⅲ",
+        "field": "coverage_amount",
+        "amount": 3000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "KB 암진단비(유사암제외)",
+        "field": "coverage_amount",
+        "amount": 10000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "policy_amount_summary": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 300000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "유사암진단비Ⅲ",
+            "calculation": "3,000,000원 × 10%",
+            "estimated_amount": 300000
+          }
+        ],
+        "total_calculation": "300,000원 = 300,000원"
+      }
+    ]
+  },
+  {
+    "schema_version": "2.0",
+    "id": "kb3n_c2_05",
+    "service_type": "CASE2",
+    "description": "가입 1년 미만 뇌경색 진단과 5일 입원 감액 — KB 3.N.암 심플러스 기준",
+    "selected_policies": [
+      "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)"
+    ],
+    "case": {
+      "initial_situation": "뇌경색 진단 후 5일 입원, 수술 없음",
+      "disease": "뇌경색",
+      "disease_kcd": "I63",
+      "is_inpatient": true,
+      "is_outpatient": false,
+      "surgery": false,
+      "admission_days_current": 5,
+      "admission_days_diagnosed": 5,
+      "treatment_items": [
+        "MRI_MRA"
+      ],
+      "annual_visit_count": 1,
+      "policy_elapsed_days": 364,
+      "contract_type": "비갱신형",
+      "age": 55
+    },
+    "demo_assumptions": {
+      "KB 뇌혈관질환진단비Ⅳ": {
+        "coverage_amount": 10000000
+      }
+    },
+    "expected": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "뇌혈관질환진단비Ⅳ",
+        "status": "eligible",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::뇌혈관질환진단비Ⅳ",
+        "estimated_amount": 5000000,
+        "calculation": "10,000,000원 × 50%",
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%",
+          "claim_formula": null,
+          "demo_input": {
+            "label": "KB 뇌혈관질환진단비Ⅳ",
+            "field": "coverage_amount",
+            "amount": 5000000,
+            "source": "demo_policy_certificate"
+          },
+          "policy_source": {
+            "article": "뇌혈관질환진단비Ⅳ 특별약관 제1조(보험금의 지급사유)",
+            "page": 203
+          },
+          "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+        },
+        "reduction": {
+          "applied": true,
+          "rate": 0.5,
+          "until_elapsed_days": 365,
+          "elapsed_days_label": "364일"
+        },
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 10,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%"
+          },
+          {
+            "step": 3,
+            "title": "가입기간 감액",
+            "detail": "가입 후 364일, 약관상 지급률 50% 적용"
+          },
+          {
+            "step": 4,
+            "title": "보험금 계산",
+            "detail": "10,000,000원 × 50%"
+          },
+          {
+            "step": 5,
+            "title": "최종 예상보험금",
+            "detail": "5,000,000원"
+          }
+        ]
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "혈전용해치료비Ⅱ(최초1회한)",
+        "status": "not_applicable",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::혈전용해치료비Ⅱ(최초1회한)",
+        "estimated_amount": 0,
+        "calculation": null,
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "뇌졸중 또는 특정심장질환 진단 확정 후 직접 치료 목적으로 혈전용해치료를 받은 경우 세부보장별 최초 1회 지급",
+          "claim_formula": null,
+          "demo_input": null,
+          "policy_source": {
+            "article": "혈전용해치료비Ⅱ(최초1회한) 특별약관 제2조(보험금의 지급사유)",
+            "page": 205
+          },
+          "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+        },
+        "note": "시나리오에 혈전용해치료가 명시되지 않음",
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "뇌졸중 또는 특정심장질환 진단 확정 후 직접 치료 목적으로 혈전용해치료를 받은 경우 세부보장별 최초 1회 지급"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "시나리오에 혈전용해치료가 명시되지 않음"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ]
+      }
+    ],
+    "must_not_match": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "뇌졸중진단비",
+        "reason": "해당 업로드 약관에서 별도 담보명 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "뇌혈관질환입원일당(4일이상120일한도)",
+        "reason": "해당 업로드 약관에서 직접 담보명 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "질병입원일당(1일이상180일한도)",
+        "reason": "해당 업로드 약관에는 일반 질병입원일당 대신 간병인/간호간병 조건부 입원일당이 있음"
+      }
+    ],
+    "expected_summary": {
+      "eligible_count": 1,
+      "not_met_count": 1
+    },
+    "display_rule": {
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+      "show_total_as_confirmed_payment": false
+    },
+    "comparison_basis": "COMBINED",
+    "demo_amount_inputs": [
+      {
+        "label": "KB 뇌혈관질환진단비Ⅳ",
+        "field": "coverage_amount",
+        "amount": 10000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "policy_amount_summary": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 5000000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "뇌혈관질환진단비Ⅳ",
+            "calculation": "10,000,000원 × 50%",
+            "estimated_amount": 5000000
+          }
+        ],
+        "total_calculation": "5,000,000원 = 5,000,000원"
+      }
+    ]
+  },
+  {
+    "schema_version": "2.0",
+    "id": "kb3n_c1_01",
+    "service_type": "CASE1",
+    "description": "갑상선암 진단 통원 시 3개 보험 중복 탐색 — KB 3.N.암 심플러스 기준",
+    "selected_policies": [
+      "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)"
+    ],
+    "case": {
+      "initial_situation": "갑상선암 조직검사 확정, 수술 전 통원",
+      "disease": "갑상선암",
+      "disease_kcd": "C73",
+      "is_inpatient": false,
+      "is_outpatient": true,
+      "surgery": false,
+      "treatment_items": [],
+      "payment_amount": 45000,
+      "visit_dates": [
+        "2026-06-10"
+      ],
+      "annual_visit_count": 1,
+      "policy_elapsed_days": 730
+    },
+    "demo_assumptions": {
+      "KB 유사암진단비Ⅲ": {
+        "coverage_amount": 3000000
+      },
+      "KB 중증갑상선암진단비": {
+        "coverage_amount": 10000000
+      },
+      "KB 암진단비(유사암제외)": {
+        "coverage_amount": 10000000
+      },
+      "KB 암직접치료통원일당(종합병원)": {
+        "coverage_amount_per_visit": 20000
+      }
+    },
+    "expected": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "유사암진단비Ⅲ",
+        "status": "eligible",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::유사암진단비Ⅲ",
+        "estimated_amount": 3000000,
+        "calculation": "3,000,000원 × 100%",
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 90일 미만 10%, 90일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%",
+          "claim_formula": null,
+          "demo_input": {
+            "label": "KB 유사암진단비Ⅲ",
+            "field": "coverage_amount",
+            "amount": 3000000,
+            "source": "demo_policy_certificate"
+          },
+          "policy_source": {
+            "article": "유사암진단비Ⅲ 특별약관 제1조(보험금의 지급사유)",
+            "page": 90
+          },
+          "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+        },
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 3,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 90일 미만 10%, 90일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "3,000,000원 × 100%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "3,000,000원"
+          }
+        ]
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "중증갑상선암진단비",
+        "status": "not_applicable",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::중증갑상선암진단비",
+        "estimated_amount": 0,
+        "calculation": null,
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 1년 미만 50%, 1년 이상 100%, 갱신계약 100%; 중증갑상선암 보장개시일은 계약일부터 90일이 지난 날의 다음날",
+          "claim_formula": null,
+          "demo_input": null,
+          "policy_source": {
+            "article": "중증갑상선암진단비 특별약관 제1조(보험금의 지급사유)",
+            "page": 106
+          },
+          "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+        },
+        "note": "시나리오 질병은 일반 갑상선암이며 중증갑상선암(수질암/역형성암) 판정이 명시되지 않음",
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 1년 미만 50%, 1년 이상 100%, 갱신계약 100%; 중증갑상선암 보장개시일은 계약일부터 90일이 지난 날의 다음날"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "시나리오 질병은 일반 갑상선암이며 중증갑상선암(수질암/역형성암) 판정이 명시되지 않음"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ]
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "암진단비(유사암제외)",
+        "status": "not_applicable",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::암진단비(유사암제외)",
+        "estimated_amount": 0,
+        "calculation": null,
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 1년 미만 보험가입금액 50%, 1년 이상 100%, 갱신계약 100%; 암 보장개시일은 계약일부터 90일이 지난 날의 다음날",
+          "claim_formula": null,
+          "demo_input": null,
+          "policy_source": {
+            "article": "암진단비(유사암제외) 특별약관 제1조(보험금의 지급사유)",
+            "page": 89
+          },
+          "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+        },
+        "note": "갑상선암(C73)은 암진단비(유사암제외)에서 제외",
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 1년 미만 보험가입금액 50%, 1년 이상 100%, 갱신계약 100%; 암 보장개시일은 계약일부터 90일이 지난 날의 다음날"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "갑상선암(C73)은 암진단비(유사암제외)에서 제외"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ]
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "암직접치료통원일당(종합병원)",
+        "status": "not_applicable",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::암직접치료통원일당(종합병원)",
+        "estimated_amount": 0,
+        "calculation": null,
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "암 또는 유사암의 직접적인 치료를 목적으로 종합병원에 통원한 경우 통원 1회당 보험가입금액 지급",
+          "claim_formula": null,
+          "demo_input": null,
+          "policy_source": {
+            "article": "암직접치료통원일당(종합병원) 특별약관 제1조(보험금의 지급사유)",
+            "page": 195
+          },
+          "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+        },
+        "note": "종합병원 통원 및 암 직접치료 목적 여부가 시나리오에 명시되지 않음",
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "암 또는 유사암의 직접적인 치료를 목적으로 종합병원에 통원한 경우 통원 1회당 보험가입금액 지급"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "종합병원 통원 및 암 직접치료 목적 여부가 시나리오에 명시되지 않음"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ]
+      }
+    ],
+    "must_not_match": [],
+    "expected_summary": {
+      "eligible_count": 1,
+      "not_met_count": 3
+    },
+    "display_rule": {
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+      "show_total_as_confirmed_payment": false
+    },
+    "demo_amount_inputs": [
+      {
+        "label": "KB 유사암진단비Ⅲ",
+        "field": "coverage_amount",
+        "amount": 3000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "KB 중증갑상선암진단비",
+        "field": "coverage_amount",
+        "amount": 10000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "KB 암진단비(유사암제외)",
+        "field": "coverage_amount",
+        "amount": 10000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      },
+      {
+        "label": "KB 암직접치료통원일당(종합병원)",
+        "field": "coverage_amount_per_visit",
+        "amount": 20000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "policy_amount_summary": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 3000000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "유사암진단비Ⅲ",
+            "calculation": "3,000,000원 × 100%",
+            "estimated_amount": 3000000
+          }
+        ],
+        "total_calculation": "3,000,000원 = 3,000,000원"
+      }
+    ]
+  },
+  {
+    "schema_version": "2.0",
+    "id": "kb3n_c1_02",
+    "service_type": "CASE1",
+    "description": "급성심근경색 진단과 5일 입원 시 DB·KB 중복 탐색 — KB 3.N.암 심플러스 기준",
+    "selected_policies": [
+      "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)"
+    ],
+    "case": {
+      "initial_situation": "급성심근경색 진단 후 5일 입원, 수술 없음",
+      "disease": "급성심근경색증",
+      "disease_kcd": "I21",
+      "is_inpatient": true,
+      "is_outpatient": false,
+      "surgery": false,
+      "admission_days_diagnosed": 5,
+      "treatment_items": [
+        "MRI_MRA",
+        "INJECTION"
+      ],
+      "payment_amount": 680000,
+      "visit_dates": [
+        "2026-06-05"
+      ],
+      "annual_visit_count": 1,
+      "policy_elapsed_days": 730
+    },
+    "demo_assumptions": {
+      "KB 허혈성심장질환진단비Ⅳ": {
+        "coverage_amount": 5000000
+      }
+    },
+    "expected": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "허혈성심장질환진단비Ⅳ",
+        "status": "eligible",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::허혈성심장질환진단비Ⅳ",
+        "estimated_amount": 5000000,
+        "calculation": "5,000,000원 × 100%",
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%",
+          "claim_formula": null,
+          "demo_input": {
+            "label": "KB 허혈성심장질환진단비Ⅳ",
+            "field": "coverage_amount",
+            "amount": 5000000,
+            "source": "demo_policy_certificate"
+          },
+          "policy_source": {
+            "article": "허혈성심장질환진단비Ⅳ 특별약관 제1조(보험금의 지급사유)",
+            "page": 204
+          },
+          "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+        },
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 5,000,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%, 갱신계약 100%"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "5,000,000원 × 100%"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "5,000,000원"
+          }
+        ]
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "혈전용해치료비Ⅱ(최초1회한)",
+        "status": "not_applicable",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::혈전용해치료비Ⅱ(최초1회한)",
+        "estimated_amount": 0,
+        "calculation": null,
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "뇌졸중 또는 특정심장질환 진단 확정 후 직접 치료 목적으로 혈전용해치료를 받은 경우 세부보장별 최초 1회 지급",
+          "claim_formula": null,
+          "demo_input": null,
+          "policy_source": {
+            "article": "혈전용해치료비Ⅱ(최초1회한) 특별약관 제2조(보험금의 지급사유)",
+            "page": 205
+          },
+          "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+        },
+        "note": "시나리오에 혈전용해치료가 명시되지 않음",
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "뇌졸중 또는 특정심장질환 진단 확정 후 직접 치료 목적으로 혈전용해치료를 받은 경우 세부보장별 최초 1회 지급"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "시나리오에 혈전용해치료가 명시되지 않음"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ]
+      }
+    ],
+    "must_not_match": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "급성심근경색증진단비",
+        "reason": "이 PDF에는 급성심근경색 단독 담보가 아니라 허혈성심장질환진단비Ⅳ가 있음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "허혈성심장질환입원일당(1일이상180일한도)",
+        "reason": "해당 업로드 약관에서 직접 담보명 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "질병입원일당(1일이상180일한도)",
+        "reason": "해당 업로드 약관에는 일반 질병입원일당 대신 간병인/간호간병 조건부 입원일당이 있음"
+      }
+    ],
+    "expected_summary": {
+      "eligible_count": 1,
+      "not_met_count": 1
+    },
+    "display_rule": {
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+      "show_total_as_confirmed_payment": false
+    },
+    "demo_amount_inputs": [
+      {
+        "label": "KB 허혈성심장질환진단비Ⅳ",
+        "field": "coverage_amount",
+        "amount": 5000000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "policy_amount_summary": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 5000000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "허혈성심장질환진단비Ⅳ",
+            "calculation": "5,000,000원 × 100%",
+            "estimated_amount": 5000000
+          }
+        ],
+        "total_calculation": "5,000,000원 = 5,000,000원"
+      }
+    ]
+  },
+  {
+    "schema_version": "2.0",
+    "id": "kb3n_c1_03",
+    "service_type": "CASE1",
+    "description": "손목골절 수술·7일 입원·깁스 시 정액과 실손 중복 탐색 — KB 3.N.암 심플러스 기준",
+    "selected_policies": [
+      "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)"
+    ],
+    "case": {
+      "initial_situation": "손목골절 수술 후 7일 입원, 엑스레이와 깁스",
+      "disease": "손목골절",
+      "disease_kcd": "S62",
+      "is_inpatient": true,
+      "is_outpatient": false,
+      "surgery": true,
+      "admission_days_diagnosed": 7,
+      "treatment_items": [
+        "XRAY",
+        "CAST"
+      ],
+      "payment_amount": 1200000,
+      "visit_dates": [
+        "2026-06-01"
+      ],
+      "annual_visit_count": 1,
+      "policy_elapsed_days": 730
+    },
+    "demo_assumptions": {
+      "KB 상해1~5종수술비(매회지급)": {
+        "coverage_amount": 500000
+      }
+    },
+    "expected": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "상해1~5종수술비(매회지급)",
+        "status": "eligible",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::상해1~5종수술비(매회지급)",
+        "estimated_amount": 500000,
+        "calculation": "수술 1회 × 500,000원",
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "상해의 직접결과로 1~5종수술Ⅱ 분류표에서 정한 수술을 받은 경우 수술 1회당 각 보장의 보험가입금액 100%",
+          "claim_formula": null,
+          "demo_input": {
+            "label": "KB 상해1~5종수술비(매회지급)",
+            "field": "coverage_amount",
+            "amount": 500000,
+            "source": "demo_policy_certificate"
+          },
+          "policy_source": {
+            "article": "상해1~5종수술비(매회지급) 특별약관 제2조(보험금의 지급사유)",
+            "page": 85
+          },
+          "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+        },
+        "note": "데모에서는 손목골절 수술이 1~5종수술Ⅱ 분류표상 지급대상인 것으로 가정",
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "계산 입력값",
+            "detail": "데모 보험증권 가입금액: 500,000원"
+          },
+          {
+            "step": 2,
+            "title": "약관 지급 기준",
+            "detail": "상해의 직접결과로 1~5종수술Ⅱ 분류표에서 정한 수술을 받은 경우 수술 1회당 각 보장의 보험가입금액 100%"
+          },
+          {
+            "step": 3,
+            "title": "보험금 계산",
+            "detail": "수술 1회 × 500,000원"
+          },
+          {
+            "step": 4,
+            "title": "최종 예상보험금",
+            "detail": "500,000원"
+          }
+        ]
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "간병인사용 상해입원일당Ⅱ(요양병원 제외, 1-180일)",
+        "status": "not_applicable",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::간병인사용 상해입원일당Ⅱ(요양병원 제외, 1-180일)",
+        "estimated_amount": 0,
+        "calculation": null,
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "상해 입원 중 간병인을 사용한 날에 대해 지급",
+          "claim_formula": null,
+          "demo_input": null,
+          "policy_source": {
+            "article": "간병인사용 상해입원일당Ⅱ 특별약관 제1조(보험금의 지급사유)",
+            "page": 80
+          },
+          "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+        },
+        "note": "간병인 사용 여부가 시나리오에 명시되지 않음",
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "상해 입원 중 간병인을 사용한 날에 대해 지급"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "간병인 사용 여부가 시나리오에 명시되지 않음"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ]
+      }
+    ],
+    "must_not_match": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "골절진단비",
+        "reason": "해당 업로드 약관에서 직접 담보명 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "골절수술비",
+        "reason": "전용 골절수술비 담보가 아니라 일반 상해1~5종수술비만 확인됨"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "깁스치료비",
+        "reason": "해당 업로드 약관에서 직접 담보명 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "상해급여실손의료비",
+        "reason": "실손의료비 약관이 아님"
+      }
+    ],
+    "expected_summary": {
+      "eligible_count": 1,
+      "not_met_count": 1
+    },
+    "display_rule": {
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+      "show_total_as_confirmed_payment": false
+    },
+    "demo_amount_inputs": [
+      {
+        "label": "KB 상해1~5종수술비(매회지급)",
+        "field": "coverage_amount",
+        "amount": 500000,
+        "source": "demo_policy_certificate",
+        "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+      }
+    ],
+    "policy_amount_summary": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 500000,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [
+          {
+            "rider": "상해1~5종수술비(매회지급)",
+            "calculation": "수술 1회 × 500,000원",
+            "estimated_amount": 500000
+          }
+        ],
+        "total_calculation": "500,000원 = 500,000원"
+      }
+    ]
+  },
+  {
+    "schema_version": "2.0",
+    "id": "kb3n_c1_04",
+    "service_type": "CASE1",
+    "description": "손목 부상 후 골절 확정·응급실 통원 — KB 3.N.암 심플러스 기준",
+    "selected_policies": [
+      "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)"
+    ],
+    "case": {
+      "initial_situation": "계단에서 넘어져 손목을 다쳐 응급의료센터 통원",
+      "disease": "손목골절",
+      "disease_kcd": "S62",
+      "is_inpatient": false,
+      "is_outpatient": true,
+      "surgery": false,
+      "treatment_items": [
+        "XRAY",
+        "EMERGENCY"
+      ],
+      "payment_amount": 80000,
+      "visit_dates": [
+        "2026-06-10"
+      ],
+      "annual_visit_count": 1,
+      "policy_elapsed_days": 730
+    },
+    "demo_assumptions": {},
+    "expected": [],
+    "must_not_match": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "골절진단비",
+        "reason": "해당 업로드 약관에서 직접 담보명 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "상해 응급실내원비",
+        "reason": "해당 업로드 약관에서 직접 담보명 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "상해1~5종수술비(매회지급)",
+        "reason": "시나리오에 수술이 없음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "깁스치료비",
+        "reason": "해당 업로드 약관에서 직접 담보명 확인되지 않음"
+      }
+    ],
+    "expected_summary": {
+      "eligible_count": 0,
+      "not_met_count": 0
+    },
+    "display_rule": {
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+      "show_total_as_confirmed_payment": false
+    },
+    "demo_amount_inputs": [],
+    "policy_amount_summary": []
+  },
+  {
+    "schema_version": "2.0",
+    "id": "kb3n_c1_05",
+    "service_type": "CASE1",
+    "description": "대장 용종 내시경 제거 후 진단비 탐색 — KB 3.N.암 심플러스 기준",
+    "selected_policies": [
+      "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)"
+    ],
+    "case": {
+      "initial_situation": "건강검진에서 대장 용종 발견 후 내시경 제거",
+      "disease": "대장 양성종양 및 용종",
+      "disease_kcd": "D12",
+      "is_inpatient": false,
+      "is_outpatient": true,
+      "surgery": true,
+      "treatment_items": [],
+      "payment_amount": 280000,
+      "visit_dates": [
+        "2026-06-05"
+      ],
+      "annual_visit_count": 1,
+      "policy_elapsed_days": 730
+    },
+    "demo_assumptions": {},
+    "expected": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "암진단비(유사암제외)",
+        "status": "not_applicable",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::암진단비(유사암제외)",
+        "estimated_amount": 0,
+        "calculation": null,
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "최초계약 1년 미만 보험가입금액 50%, 1년 이상 100%, 갱신계약 100%; 암 보장개시일은 계약일부터 90일이 지난 날의 다음날",
+          "claim_formula": null,
+          "demo_input": null,
+          "policy_source": {
+            "article": "암진단비(유사암제외) 특별약관 제1조(보험금의 지급사유)",
+            "page": 89
+          },
+          "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+        },
+        "note": "대장 용종/양성종양(D12)은 암(유사암제외) 진단 대상이 아님",
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "최초계약 1년 미만 보험가입금액 50%, 1년 이상 100%, 갱신계약 100%; 암 보장개시일은 계약일부터 90일이 지난 날의 다음날"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "대장 용종/양성종양(D12)은 암(유사암제외) 진단 대상이 아님"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ]
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "질병1~5종수술비Ⅱ(매회지급)",
+        "status": "not_applicable",
+        "rider_catalog_key": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)::질병1~5종수술비Ⅱ(매회지급)",
+        "estimated_amount": 0,
+        "calculation": null,
+        "amount_basis": {
+          "coverage_kind": "정액",
+          "policy_rule": "진단확정된 질병의 치료를 직접적인 목적으로 1~5종수술Ⅲ 분류표에서 정한 수술을 받은 경우 수술 1회당 지급",
+          "claim_formula": null,
+          "demo_input": null,
+          "policy_source": {
+            "article": "질병1~5종수술비Ⅱ(매회지급) 특별약관 제2조(보험금의 지급사유)",
+            "page": 221
+          },
+          "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+        },
+        "note": "내시경 용종 제거가 1~5종수술Ⅲ 분류표 지급대상인지 추가 확인 필요. 대장 용종 진단비 전용 담보는 아님",
+        "calculation_steps": [
+          {
+            "step": 1,
+            "title": "약관 지급 기준",
+            "detail": "진단확정된 질병의 치료를 직접적인 목적으로 1~5종수술Ⅲ 분류표에서 정한 수술을 받은 경우 수술 1회당 지급"
+          },
+          {
+            "step": 2,
+            "title": "미지급 판정",
+            "detail": "내시경 용종 제거가 1~5종수술Ⅲ 분류표 지급대상인지 추가 확인 필요. 대장 용종 진단비 전용 담보는 아님"
+          },
+          {
+            "step": 3,
+            "title": "최종 예상보험금",
+            "detail": "0원"
+          }
+        ]
+      }
+    ],
+    "must_not_match": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "대장 양성종양 및 용종 진단비(연간1회한)",
+        "reason": "해당 업로드 약관에서 직접 담보명 확인되지 않음"
+      }
+    ],
+    "expected_summary": {
+      "eligible_count": 0,
+      "not_met_count": 2
+    },
+    "display_rule": {
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+      "show_total_as_confirmed_payment": false
+    },
+    "demo_amount_inputs": [],
+    "policy_amount_summary": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "estimated_amount": 0,
+        "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+        "calculation_breakdown": [],
+        "total_calculation": "0원"
+      }
+    ]
+  },
+  {
+    "schema_version": "2.0",
+    "id": "kb3n_c1_06",
+    "service_type": "CASE1",
+    "description": "당뇨 외래 진단보험금 탐색 — KB 3.N.암 심플러스 기준",
+    "selected_policies": [
+      "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)"
+    ],
+    "case": {
+      "initial_situation": "당뇨 진단 후 외래 진료",
+      "disease": "당뇨병",
+      "disease_kcd": "E11",
+      "is_inpatient": false,
+      "is_outpatient": true,
+      "surgery": false,
+      "treatment_items": [],
+      "payment_amount": 15000,
+      "visit_dates": [
+        "2026-06-10"
+      ],
+      "annual_visit_count": 3,
+      "policy_elapsed_days": 730
+    },
+    "demo_assumptions": {},
+    "expected": [],
+    "must_not_match": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "당뇨병(당화혈색소 기준) 진단보험금",
+        "reason": "해당 업로드 약관에서 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "26대생활습관병 입원비",
+        "reason": "해당 업로드 약관에서 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "당뇨 관련 주요질환 입원급여금",
+        "reason": "해당 업로드 약관에서 확인되지 않음"
+      }
+    ],
+    "expected_summary": {
+      "eligible_count": 0,
+      "not_met_count": 0
+    },
+    "display_rule": {
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+      "show_total_as_confirmed_payment": false
+    },
+    "demo_amount_inputs": [],
+    "policy_amount_summary": []
+  },
+  {
+    "schema_version": "2.0",
+    "id": "kb3n_c1_07",
+    "service_type": "CASE1",
+    "description": "대상포진 통원 시 선택 보험에서 결과 0건 — KB 3.N.암 심플러스 기준",
+    "selected_policies": [
+      "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)"
+    ],
+    "case": {
+      "initial_situation": "대상포진 진단 후 통원 주사치료",
+      "disease": "대상포진",
+      "disease_kcd": "B02",
+      "is_inpatient": false,
+      "is_outpatient": true,
+      "surgery": false,
+      "treatment_items": [
+        "INJECTION"
+      ],
+      "payment_amount": 35000,
+      "visit_dates": [
+        "2026-06-10"
+      ],
+      "annual_visit_count": 2,
+      "policy_elapsed_days": 730
+    },
+    "demo_assumptions": {},
+    "expected": [],
+    "must_not_match": [
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "대상포진 진단비",
+        "reason": "해당 업로드 약관에서 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "질병통원일당",
+        "reason": "해당 업로드 약관에서 확인되지 않음"
+      },
+      {
+        "policy": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+        "rider": "질병입원일당(1일이상180일한도)",
+        "reason": "통원 시나리오이며 해당 업로드 약관에서 일반 질병입원일당도 확인되지 않음"
+      }
+    ],
+    "expected_summary": {
+      "eligible_count": 0,
+      "not_met_count": 0
+    },
+    "display_rule": {
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+      "show_total_as_confirmed_payment": false
+    },
+    "demo_amount_inputs": [],
+    "policy_amount_summary": []
+  }
+]
