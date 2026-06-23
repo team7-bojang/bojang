@@ -23,6 +23,7 @@ export async function getCaseDashboard(caseId: string): Promise<CaseDashboardRes
       visit_dates: ['2026-06-10'],
       surgery: false,
       annual_visit_count: 5,
+      policy_elapsed_days: 365,
     },
   };
 }

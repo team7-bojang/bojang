@@ -70,7 +70,7 @@ export function VisitSection({
       <Field label="연간 진료 횟수" required>
         <NumberField
           value={form.annual_visit_count}
-          onChange={v => patch({ annual_visit_count: v ?? 0 })}
+          onChange={v => patch({ annual_visit_count: v })}
           placeholder="예) 3"
           suffix="회"
         />

@@ -9,9 +9,12 @@ Swagger UI 가 같은 앱에서 서빙된다 (배포 시 백엔드와 함께 자
 from flask_cors import CORS
 from flask_openapi3.models.info import Info
 from flask_openapi3.openapi import OpenAPI
+from werkzeug.exceptions import HTTPException
 
 from app.api.v1 import register_v1
 from app.config import settings
+from app.core import response
+from app.core.errors import AppError
 
 _info = Info(title="AI 보험 보장 분석 API", version="1.0.0")
 
@@ -24,5 +27,20 @@ def create_app() -> OpenAPI:
     CORS(app, origins=settings.cors_origins)
 
     register_v1(app)  # /api/v1/* 도메인 라우트 + /health
+
+    # 도메인 예외(AppError) → 설계서 §2-5 에러 코드 규약에 맞춘 공통 응답 봉투로 변환
+    @app.errorhandler(AppError)
+    def handle_app_error(err: AppError):
+        return response.fail(err.code, err.message, err.http_status)
+
+    @app.errorhandler(HTTPException)
+    def handle_http_error(err: HTTPException):
+        code = err.name.lower().replace(" ", "_")
+        return response.fail(code, err.description, err.code or 500)
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(err: Exception):
+        app.logger.exception("처리되지 않은 서버 오류", exc_info=err)
+        return response.fail("internal_error", "서버 내부 오류가 발생했습니다.", 500)
 
     return app

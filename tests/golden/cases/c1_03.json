@@ -274,7 +274,7 @@
     {
       "policy": "메리츠 상해안심보험",
       "rider": "갱신형 골절(치아파절제외)진단비Ⅱ보장 특별약관",
-      "status": "not_applicable",
+      "status": "eligible",
       "rider_catalog_key": "메리츠 상해안심보험::갱신형 골절(치아파절제외)진단비Ⅱ보장 특별약관",
       "estimated_amount": 0,
       "calculation": null,

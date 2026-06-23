@@ -1000,6 +1000,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         const dummyToken = "Bearer test-token";
         let activeCaseId = null;
         let selectedPresetIds = [];
+        let registeredPolicyIds = [];
         let curStep = 0;
         let analysisData = null;
 
@@ -1076,6 +1077,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                     body: { preset_ids: selectedPresetIds }
                 });
                 if (res.success) {
+                    registeredPolicyIds = res.data.policy_ids;
                     document.getElementById('step-preset').style.display = 'none';
                     document.getElementById('step-main').style.display = 'flex';
                     curStep = 1;
@@ -1145,7 +1147,11 @@ HTML_CONTENT = """<!DOCTYPE html>
                     // Normal Case Initial Situation Input
                     const res = await fetchAPI('/cases', {
                         method: 'POST',
-                        body: { initial_situation: text }
+                        body: {
+                            service_type: 'CASE1',
+                            policy_ids: registeredPolicyIds,
+                            initial_situation: text
+                        }
                     });
                     
                     if (res.success) {
@@ -1221,7 +1227,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             // Preset values if empty
             const disease_name = data.disease_name || '기타 추간판 장애 (허리디스크)';
             const disease_kcd = data.disease_kcd || 'M51';
-            const current_days = data.current_days || 0;
+            const current_days = data.admission_days_current || data.current_days || 0;
             const policy_elapsed_days = data.policy_elapsed_days || 800;
             const surgery = data.surgery ? 'checked' : '';
 
@@ -1284,8 +1290,8 @@ HTML_CONTENT = """<!DOCTYPE html>
                         disease_kcd,
                         disease_name,
                         surgery,
-                        diag_days: current_days,
-                        current_days,
+                        admission_days_diagnosed: current_days,
+                        admission_days_current: current_days,
                         policy_elapsed_days,
                         claimed_policy_ids: []
                     }

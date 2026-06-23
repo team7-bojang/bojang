@@ -15,7 +15,8 @@ export interface CaseDashboard {
   payment_amount: number | null;
   visit_dates: string[];
   surgery: boolean;
-  annual_visit_count: number;
+  annual_visit_count: number | null;
+  policy_elapsed_days: number | null;
 }
 
 export interface CaseDashboardResponse {
