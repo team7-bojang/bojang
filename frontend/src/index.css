@@ -18,6 +18,9 @@
   --font-sans:
     'Pretendard Variable', Pretendard, system-ui, 'Apple SD Gothic Neo', 'Segoe UI', Roboto,
     sans-serif;
+
+  /* 토스페이스 이모지 폰트 (이모지 문자에 적용 → font-tossface 유틸 생성) */
+  --font-tossface: 'Tossface', sans-serif;
 }
 
 /* 스크롤은 되지만 스크롤바는 숨김 */
@@ -189,7 +192,7 @@
 }
 
 @utility animate-marquee {
-  animation: marquee-scroll 40s linear infinite;
+  animation: marquee-scroll 60s linear infinite;
 }
 
 @layer base {

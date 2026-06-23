@@ -1,5 +1,4 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Bot, CheckCircle2, Sparkles, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -50,8 +49,9 @@ function formatWon(value: number) {
 export function HeroFlowAnimation({ className }: { className?: string }) {
   const reduceMotion = useReducedMotion() ?? false;
   const [caseKey, setCaseKey] = useState<CaseKey>('case1');
-  // reduce-motion이면 결과 단계를 바로 보여준다.
-  const [stepIndex, setStepIndex] = useState(reduceMotion ? STEP_ORDER.length - 1 : 0);
+  // 단계 진행은 콘텐츠 전달이므로 항상 홈부터 순환한다.
+  // (reduce-motion은 전환·카운트업·막대 상승 같은 장식 모션만 제거)
+  const [stepIndex, setStepIndex] = useState(0);
   // 홈 단계 타자기 효과: 표시할 글자 수만 상태로 두고 텍스트는 렌더에서 slice.
   const [typedCount, setTypedCount] = useState(reduceMotion ? TYPING_TARGET.case1.length : 0);
   // step/caseKey가 바뀌면 렌더 중에 글자 수를 리셋한다 (effect 내 동기 setState 회피).
@@ -76,19 +76,17 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
   // 탭 변경 시 흐름을 홈부터 재시작. (타자기 글자 수는 위 렌더 리셋에서 처리)
   const selectCase = (next: CaseKey) => {
     setCaseKey(next);
-    setStepIndex(reduceMotion ? STEP_ORDER.length - 1 : 0);
+    setStepIndex(0);
   };
 
-  // 단계 자동 순환 (reduce-motion이면 정지). 단계별 체류 시간이 다르므로 setTimeout 체인.
+  // 단계 자동 순환. 단계별 체류 시간이 다르므로 setTimeout 체인.
+  // (reduce-motion이어도 흐름 전달을 위해 순환은 유지 — 장식 모션만 아래에서 제거)
   useEffect(() => {
-    if (reduceMotion) {
-      return;
-    }
     const timer = window.setTimeout(() => {
       setStepIndex(prev => (prev + 1) % STEP_ORDER.length);
     }, STEP_HOLD_MS[step]);
     return () => window.clearTimeout(timer);
-  }, [step, caseKey, reduceMotion]);
+  }, [step, caseKey]);
 
   // 홈 단계 진입 시 타자기 효과 (케이스별 질문).
   useEffect(() => {
@@ -119,7 +117,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
       )}
     >
       {/* 케이스 선택 탭 */}
-      <div className="mb-4 flex gap-1 rounded-xl bg-canvas p-1">
+      <div className="mb-4 flex gap-1 rounded-xl bg-primary-tint/30 p-1">
         {CASES.map(({ key, label }) => (
           <button
             key={key}
@@ -137,7 +135,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
       </div>
 
       <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-primary">
-        <Sparkles className="size-4" />
+        <span className="font-tossface">✨</span>
         {STEP_LABEL[step]}
       </div>
 
@@ -153,10 +151,10 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
           {step === 'home' && (
             <div className="flex flex-col gap-3">
               <div className="flex items-start gap-2">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
-                  <Bot className="size-4" />
+                <span className="font-tossface flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-tint text-base">
+                  🤖
                 </span>
-                <p className="rounded-2xl rounded-tl-sm bg-canvas px-3 py-2 text-xs leading-5 text-ink">
+                <p className="rounded-2xl rounded-tl-sm bg-primary-tint/40 px-3 py-2 text-xs leading-5 text-ink">
                   어떤 상황인지 편하게 적어주세요 🙂
                 </p>
               </div>
@@ -176,7 +174,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
               ].map(([label, value]) => (
                 <div
                   key={label}
-                  className="flex items-center justify-between rounded-xl border border-line bg-canvas/60 px-3 py-2 text-xs"
+                  className="flex items-center justify-between rounded-xl border border-line bg-primary-tint/20 px-3 py-2 text-xs"
                 >
                   <span className="text-muted">{label}</span>
                   <span className="font-semibold text-ink">{value}</span>
@@ -188,9 +186,9 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
           {/* 결과 — Case1: 청구 가능 보장 (금액 카운트업, 룰렛 느낌) */}
           {step === 'result' && caseKey === 'case1' && (
             <div className="flex flex-col gap-3">
-              <div className="rounded-xl bg-canvas/70 px-4 py-4 text-center">
+              <div className="rounded-xl bg-primary-tint/30 px-4 py-4 text-center">
                 <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-success">
-                  <CheckCircle2 className="size-4" />
+                  <span className="font-tossface">✅</span>
                   청구 가능 보장 2건을 찾았어요
                 </div>
                 <p className="mt-1 text-[11px] font-semibold text-muted">예상 보험금</p>
@@ -215,10 +213,10 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
           {step === 'result' && caseKey === 'case2' && (
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                <TrendingUp className="size-4" />
+                <span className="font-tossface">📈</span>
                 조건을 채우면 더 받을 수 있어요
               </div>
-              <div className="flex items-end justify-center gap-6 rounded-xl bg-canvas/70 px-4 pb-3 pt-4">
+              <div className="flex items-end justify-center gap-6 rounded-xl bg-primary-tint/30 px-4 pb-3 pt-4">
                 {/* 현재 막대 */}
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex h-32 items-end">
