@@ -914,9 +914,9 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
             "admission_days_current": c.get("admission_days_current") or c.get("current_days"),
             "admission_days_diagnosed": c.get("admission_days_diagnosed") or c.get("diag_days"),
             "treatment_items": c.get("treatment_items") or [],
-            "payment_amount": c.get("payment_amount") if is_outpatient else None,
-            "visit_date": visit_date if is_outpatient else None,
-            "surgery": bool(c.get("surgery")),
+            "payment_amount": c.get("payment_amount"),
+            "visit_date": visit_date,
+            "surgery": c.get("surgery"),
             "annual_visit_count": c.get("annual_visit_count") or 1,
         },
     }
