@@ -1,8 +1,8 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
+import { useCountUp } from '@/features/landing/hooks/useCountUp';
 import { cn } from '@/lib/utils';
-import { useCountUp } from '@/features/landing/components/useCountUp';
 
 type CaseKey = 'case1' | 'case2';
 type StepKey = 'home' | 'confirm' | 'result';
@@ -52,41 +52,43 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
   // 단계 진행은 콘텐츠 전달이므로 항상 홈부터 순환한다.
   // (reduce-motion은 전환·카운트업·막대 상승 같은 장식 모션만 제거)
   const [stepIndex, setStepIndex] = useState(0);
+  const [flowRevision, setFlowRevision] = useState(0);
   // 홈 단계 타자기 효과: 표시할 글자 수만 상태로 두고 텍스트는 렌더에서 slice.
   const [typedCount, setTypedCount] = useState(reduceMotion ? TYPING_TARGET.case1.length : 0);
-  // step/caseKey가 바뀌면 렌더 중에 글자 수를 리셋한다 (effect 내 동기 setState 회피).
-  const [typingKey, setTypingKey] = useState('case1-home');
 
   const step = STEP_ORDER[stepIndex];
-  const currentTypingKey = `${caseKey}-${step}`;
-  if (typingKey !== currentTypingKey) {
-    setTypingKey(currentTypingKey);
-    setTypedCount(reduceMotion ? TYPING_TARGET[caseKey].length : 0);
-  }
-
-  const typed = TYPING_TARGET[caseKey].slice(0, typedCount);
+  const typed = reduceMotion ? TYPING_TARGET[caseKey] : TYPING_TARGET[caseKey].slice(0, typedCount);
 
   // 금액 카운트업 (case1 결과 단계 진입 시 동작).
   const payable = useCountUp(
     PAYABLE_AMOUNT,
     caseKey === 'case1' && step === 'result',
-    reduceMotion
+    reduceMotion,
+    1100,
+    String(flowRevision)
   );
 
   // 탭 변경 시 흐름을 홈부터 재시작. (타자기 글자 수는 위 렌더 리셋에서 처리)
   const selectCase = (next: CaseKey) => {
     setCaseKey(next);
     setStepIndex(0);
+    setFlowRevision(prev => prev + 1);
+    setTypedCount(reduceMotion ? TYPING_TARGET[next].length : 0);
   };
 
   // 단계 자동 순환. 단계별 체류 시간이 다르므로 setTimeout 체인.
   // (reduce-motion이어도 흐름 전달을 위해 순환은 유지 — 장식 모션만 아래에서 제거)
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setStepIndex(prev => (prev + 1) % STEP_ORDER.length);
+      const next = (stepIndex + 1) % STEP_ORDER.length;
+      const nextStep = STEP_ORDER[next];
+
+      setStepIndex(next);
+      setFlowRevision(prev => prev + 1);
+      setTypedCount(reduceMotion || nextStep !== 'home' ? TYPING_TARGET[caseKey].length : 0);
     }, STEP_HOLD_MS[step]);
     return () => window.clearTimeout(timer);
-  }, [step, caseKey]);
+  }, [step, stepIndex, caseKey, reduceMotion]);
 
   // 홈 단계 진입 시 타자기 효과 (케이스별 질문).
   useEffect(() => {
@@ -160,7 +162,14 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
               </div>
               <div className="ml-auto max-w-[80%] rounded-2xl rounded-tr-sm bg-primary px-3 py-2 text-sm leading-5 text-white">
                 {typed}
-                <span className="ml-0.5 inline-block w-0.5 animate-pulse bg-white/80">&nbsp;</span>
+                <span
+                  className={cn(
+                    'ml-0.5 inline-block w-0.5 bg-white/80',
+                    !reduceMotion && 'animate-pulse'
+                  )}
+                >
+                  &nbsp;
+                </span>
               </div>
             </div>
           )}
@@ -221,7 +230,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex h-32 items-end">
                     <motion.div
-                      className="w-12 rounded-t-md bg-[#bfe5df]"
+                      className="w-12 rounded-t-md bg-chart-base"
                       initial={reduceMotion ? false : { height: 0 }}
                       animate={{ height: `${(CURRENT_AMOUNT / EXPECTED_AMOUNT) * 8}rem` }}
                       transition={{ duration: 0.7, ease: 'easeOut' }}
@@ -238,8 +247,8 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
                     animate={{ height: '8rem' }}
                     transition={{ duration: 0.7, ease: 'easeOut' }}
                   >
-                    <div className="bg-[#bfe5df]" style={{ height: `${currentRatio}%` }} />
-                    <div className="bg-[#18c9b5]" style={{ height: `${addedRatio}%` }} />
+                    <div className="bg-chart-base" style={{ height: `${currentRatio}%` }} />
+                    <div className="bg-chart-gain" style={{ height: `${addedRatio}%` }} />
                   </motion.div>
                   <span className="text-[10px] font-semibold text-primary">조건 충족 시</span>
                   <span className="text-sm font-black text-primary">

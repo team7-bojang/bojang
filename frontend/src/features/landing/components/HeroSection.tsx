@@ -8,7 +8,10 @@ import { RotatingHeadline } from '@/features/landing/components/RotatingHeadline
 /** 1페이지: 히어로 (카피 + CTA + 흐름 애니메이션). */
 export function HeroSection() {
   return (
-    <section className="flex min-h-screen items-center bg-linear-to-b from-surface to-primary-tint/40">
+    <section
+      id="hero"
+      className="flex min-h-screen items-center bg-linear-to-b from-surface to-primary-tint/40"
+    >
       <div className="mx-auto grid w-full max-w-7xl items-center gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(360px,440px)] lg:py-24">
         <div className="flex flex-col gap-6">
           <span className="inline-flex w-fit items-center rounded-full bg-primary-tint px-3 py-1 text-base font-semibold text-primary">

@@ -17,7 +17,6 @@ export function AppHeader() {
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-5 sm:px-8">
         <Link to="/" className="flex items-center gap-2 text-primary">
           <span className="font-logo text-2xl font-extrabold text-ink">보장zip</span>
-          {/* <ShieldCheck className="size-6" /> */}
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">

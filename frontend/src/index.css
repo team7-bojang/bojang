@@ -2,7 +2,7 @@
 
 /* 로고 전용 폰트 (Freesentation ExtraBold) — jsDelivr CDN, OFL 라이선스 */
 @font-face {
-  font-family: 'Freesentation';
+  font-family: Freesentation;
   src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-8ExtraBold.woff2')
     format('woff2');
   font-weight: 800;
@@ -19,8 +19,11 @@
   --color-success: #15803d;
   --color-success-tint: #cdeed7;
   --color-ink: #0b1220;
+  --color-ink-deep: #0a3f3a;
   --color-muted: #475569;
   --color-line: #d5e0dd;
+  --color-chart-base: #bfe5df;
+  --color-chart-gain: #18c9b5;
 
   --radius-card: 0.8rem;
 
@@ -32,7 +35,7 @@
   --font-tossface: 'Tossface', sans-serif;
 
   /* 로고 텍스트 전용 폰트 (→ font-logo 유틸 생성, weight 800만 로드) */
-  --font-logo: 'Freesentation', sans-serif;
+  --font-logo: Freesentation, sans-serif;
 }
 
 /* 스크롤은 되지만 스크롤바는 숨김 */
@@ -203,10 +206,6 @@
   }
 }
 
-@utility animate-marquee {
-  animation: marquee-scroll 60s linear infinite;
-}
-
 @layer base {
   * {
     border-color: var(--color-line);
@@ -231,6 +230,10 @@
 }
 
 @layer components {
+  .animate-marquee {
+    animation: marquee-scroll 60s linear infinite;
+  }
+
   .firework {
     position: absolute;
     z-index: 0;

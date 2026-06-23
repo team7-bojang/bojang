@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 서비스(보장체크)의 첫 진입점이 될 정적 랜딩페이지를 `/`에 추가하고, 기존 보험 등록 화면을 `/home`으로 이동한다.
+**Goal:** 서비스(보장zip)의 첫 진입점이 될 정적 랜딩페이지를 `/`에 추가하고, 기존 보험 등록 화면을 `/home`으로 이동한다.
 
 **Architecture:** `frontend/src/features/landing/` 아래에 섹션별 컴포넌트를 만들고 `pages/LandingPage.tsx`에서 조립한다. 히어로 우측은 단순화된 미니 UI 흐름 애니메이션, 2페이지는 시나리오 무한 마퀴, 3페이지는 핵심 가치 3카드, 하단은 footer. 백엔드 호출 없음(정적). CTA는 모두 `/home`으로 라우팅.
 
@@ -40,17 +40,36 @@
 수정:
 - `frontend/src/App.tsx` — `/` → LandingPage, 기존 홈을 `/home`으로
 - `frontend/src/pages/ResultPage.tsx` — `navigate('/')` 3곳을 `navigate('/home')`으로
+- `frontend/src/components/common/AppHeader.tsx` — 로고 텍스트를 `보장zip`으로 변경
+- `frontend/src/features/auth/constants.ts` — 회원가입 타이틀 브랜드명을 `보장zip`으로 변경
+- `frontend/src/features/home/components/Chatbot.tsx` — 챗봇 인사말 브랜드명을 `보장zip`으로 변경
+- `frontend/index.html` — `<title>`과 tossface 폰트 링크 변경
+- `frontend/vercel.json` — CSP `style-src`에 jsdelivr 도메인 추가
 
 ---
 
-## Task 1: 라우팅 변경 + 플레이스홀더 LandingPage
+## Task 1: 라우팅 변경 + 브랜드명 변경 + 플레이스홀더 LandingPage
 
-기존 `/`(HomePage)를 `/home`으로 옮기고, `/`에 새 LandingPage를 연결한다. 결과 페이지의 "처음으로" 이동도 `/home`으로 맞춘다. 먼저 최소 플레이스홀더로 라우팅이 동작하는지 확인한 뒤, 이후 태스크에서 섹션을 채운다.
+기존 `/`(HomePage)를 `/home`으로 옮기고, `/`에 새 LandingPage를 연결한다. 결과 페이지의 "처음으로" 이동도 `/home`으로 맞춘다. 브랜드명을 `보장zip`으로 일괄 변경하고, 먼저 최소 플레이스홀더로 라우팅이 동작하는지 확인한 뒤 이후 태스크에서 섹션을 채운다.
 
 **Files:**
 - Create: `frontend/src/pages/LandingPage.tsx`
 - Modify: `frontend/src/App.tsx`
 - Modify: `frontend/src/pages/ResultPage.tsx:146,173,176`
+- Modify: `frontend/src/components/common/AppHeader.tsx`
+- Modify: `frontend/src/features/auth/constants.ts`
+- Modify: `frontend/src/features/home/components/Chatbot.tsx`
+- Modify: `frontend/index.html`
+- Modify: `frontend/vercel.json`
+
+- [ ] **Step 1-1: 브랜드명 및 외부 폰트 설정 일괄 변경**
+
+다음 파일에서 기존 브랜드명과 폰트/CSP 설정을 함께 정리한다.
+- `frontend/src/components/common/AppHeader.tsx`: 로고 텍스트 `보장zip`
+- `frontend/src/features/auth/constants.ts`: `AUTH_COPY.signup.title`의 서비스명 `보장zip`
+- `frontend/src/features/home/components/Chatbot.tsx`: 챗봇 인사 문구의 서비스명 `보장zip`
+- `frontend/index.html`: `<title>`을 `보장zip`으로 변경하고 tossface 폰트 링크 사용
+- `frontend/vercel.json`: `style-src`에 `https://cdn.jsdelivr.net` 추가
 
 - [ ] **Step 1: 플레이스홀더 LandingPage 생성**
 
@@ -252,12 +271,12 @@ Expected: 통과.
 작은 카운트업 훅을 먼저 만들고(Step 1), 메인 컴포넌트를 작성한다(Step 2).
 
 **Files:**
-- Create: `frontend/src/features/landing/components/useCountUp.ts`
+- Create: `frontend/src/features/landing/hooks/useCountUp.ts`
 - Create: `frontend/src/features/landing/components/HeroFlowAnimation.tsx`
 
 - [ ] **Step 1: 카운트업 훅 작성**
 
-`frontend/src/features/landing/components/useCountUp.ts`:
+`frontend/src/features/landing/hooks/useCountUp.ts`:
 
 ```ts
 import { useEffect, useRef, useState } from 'react';
@@ -313,7 +332,7 @@ import { Bot, CheckCircle2, Sparkles, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { cn } from '@/lib/utils';
-import { useCountUp } from '@/features/landing/components/useCountUp';
+import { useCountUp } from '@/features/landing/hooks/useCountUp';
 
 type CaseKey = 'case1' | 'case2';
 type StepKey = 'home' | 'confirm' | 'result';
@@ -521,7 +540,7 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex h-32 items-end">
                     <motion.div
-                      className="w-12 rounded-t-md bg-[#bfe5df]"
+                      className="w-12 rounded-t-md bg-chart-base"
                       initial={reduceMotion ? false : { height: 0 }}
                       animate={{ height: `${(CURRENT_AMOUNT / EXPECTED_AMOUNT) * 8}rem` }}
                       transition={{ duration: 0.7, ease: 'easeOut' }}
@@ -538,8 +557,8 @@ export function HeroFlowAnimation({ className }: { className?: string }) {
                     animate={{ height: '8rem' }}
                     transition={{ duration: 0.7, ease: 'easeOut' }}
                   >
-                    <div className="bg-[#bfe5df]" style={{ height: `${currentRatio}%` }} />
-                    <div className="bg-[#18c9b5]" style={{ height: `${addedRatio}%` }} />
+                    <div className="bg-chart-base" style={{ height: `${currentRatio}%` }} />
+                    <div className="bg-chart-gain" style={{ height: `${addedRatio}%` }} />
                   </motion.div>
                   <span className="text-[10px] font-semibold text-primary">조건 충족 시</span>
                   <span className="text-xs font-black text-primary">
@@ -659,7 +678,7 @@ git add frontend/src/App.tsx \
   frontend/src/pages/ResultPage.tsx \
   frontend/src/pages/LandingPage.tsx \
   frontend/src/features/landing/components/RotatingHeadline.tsx \
-  frontend/src/features/landing/components/useCountUp.ts \
+  frontend/src/features/landing/hooks/useCountUp.ts \
   frontend/src/features/landing/components/HeroFlowAnimation.tsx \
   frontend/src/features/landing/components/HeroSection.tsx
 git commit -m "feat(frontend): 랜딩 히어로 섹션 및 라우트 추가"
@@ -681,7 +700,7 @@ git commit -m "feat(frontend): 랜딩 히어로 섹션 및 라우트 추가"
 
 - [ ] **Step 1: index.css에 마퀴 keyframe/유틸 추가**
 
-`frontend/src/index.css`의 `@utility animate-coverage-bar-rise { ... }` 블록 바로 뒤(180행 부근, `@layer base` 시작 전)에 다음을 추가한다:
+`frontend/src/index.css`에 폰트·토큰·마퀴 설정을 함께 추가한다. `@font-face`는 `@theme`보다 위에 두고, `--font-tossface`, `--font-logo`, 차트용 색상 토큰은 `@theme` 안에 둔다. `index.html`은 tossface 폰트 링크를 사용하도록 함께 확인한다. `@utility animate-coverage-bar-rise { ... }` 블록 바로 뒤(180행 부근, `@layer base` 시작 전)에 `@keyframes`를 추가하고, 실제 클래스는 `@layer components` 안에 둔다:
 
 ```css
 @keyframes marquee-scroll {
@@ -693,7 +712,7 @@ git commit -m "feat(frontend): 랜딩 히어로 섹션 및 라우트 추가"
   }
 }
 
-@utility animate-marquee {
+.animate-marquee {
   animation: marquee-scroll 40s linear infinite;
 }
 ```
@@ -839,7 +858,7 @@ export function ValueSection() {
     <section className="bg-surface py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <div className="text-center">
-          <h2 className="text-2xl font-extrabold text-ink sm:text-3xl">왜 보장체크인가요?</h2>
+          <h2 className="text-2xl font-extrabold text-ink sm:text-3xl">왜 보장zip인가요?</h2>
           <p className="mt-3 text-sm text-muted sm:text-base">
             믿을 수 있는 근거와 함께, 놓친 보장을 정확하게 찾아드립니다.
           </p>
@@ -898,7 +917,7 @@ export function LandingFooter() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-primary">
             <ShieldCheck className="size-5" />
-            <span className="text-base font-bold text-ink">보장체크</span>
+            <span className="text-base font-bold text-ink">보장zip</span>
           </div>
           <nav className="flex flex-wrap gap-x-5 gap-y-2">
             {LINKS.map(label => (
@@ -917,7 +936,7 @@ export function LandingFooter() {
           ※ 본 서비스의 분석 결과는 참고용이며, 실제 보장 여부는 약관 및 개별 상황에 따라 달라질 수
           있습니다.
         </p>
-        <p className="text-xs text-muted">© 2026 보장체크. All rights reserved.</p>
+        <p className="text-xs text-muted">© 2026 보장zip. All rights reserved.</p>
       </div>
     </footer>
   );
@@ -1005,7 +1024,8 @@ git commit -m "feat(frontend): 핵심 가치·footer 섹션 추가 및 랜딩페
 
 **Spec coverage:**
 - 라우팅(`/`=랜딩, `/home`=홈, CTA→`/home`) → Task 1 ✓
-- 색상 토큰만 사용 → 전 컴포넌트가 기존 토큰 클래스 사용 ✓
+- 브랜드명(`보장zip`)·HTML title·폰트 링크·CSP 설정 → Task 1 ✓
+- 색상 토큰만 사용 → 차트/다크 배경 색상까지 `@theme` 토큰으로 관리 ✓
 - 히어로(AppHeader·배지·로테이트 제목·CTA 2개·미니 UI) → Task 3,4,5,9 ✓
 - 시나리오 마퀴(무한·hover 정지·데이터 분리) → Task 2,6 ✓
 - 핵심 가치 3카드 → Task 7 ✓

@@ -25,7 +25,7 @@ const VALUES: ValueItem[] = [
 /** 3페이지: 서비스 핵심 가치 3가지 (대비를 위한 어두운 마무리 섹션). */
 export function ValueSection() {
   return (
-    <section className="flex min-h-screen flex-col justify-center bg-linear-to-b from-ink to-[#0a3f3a] py-20 text-white sm:py-24">
+    <section className="flex min-h-screen flex-col justify-center bg-linear-to-b from-ink to-ink-deep py-20 text-white sm:py-24">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <div className="text-center">
           <span className="inline-flex w-fit items-center rounded-full bg-primary-soft/15 px-3 py-1 text-xs font-semibold text-primary-soft">

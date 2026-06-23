@@ -1,6 +1,9 @@
 import { ShieldCheck } from 'lucide-react';
 
-const LINKS = ['서비스 소개', '이용약관', '개인정보처리방침', '고객센터'];
+const LINKS = [
+  { label: '서비스 소개', href: '#hero' },
+  { label: '고객센터', href: '/home' },
+];
 
 /** 랜딩 하단 footer (정적). */
 export function LandingFooter() {
@@ -13,14 +16,14 @@ export function LandingFooter() {
             <span className="font-logo text-lg font-extrabold text-ink">보장zip</span>
           </div>
           <nav className="flex flex-wrap gap-x-5 gap-y-2">
-            {LINKS.map(label => (
-              <button
+            {LINKS.map(({ label, href }) => (
+              <a
                 key={label}
-                type="button"
+                href={href}
                 className="text-sm text-muted transition-colors hover:text-ink"
               >
                 {label}
-              </button>
+              </a>
             ))}
           </nav>
         </div>
