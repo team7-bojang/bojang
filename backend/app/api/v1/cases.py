@@ -10,7 +10,7 @@ from app.core.errors import ForbiddenError, NotFoundError
 from app.schemas.case import CaseCreateRequest, PaymentTextRequest
 from app.services import case_service
 
-bp = APIBlueprint("cases", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="cases")])
+bp = APIBlueprint("cases", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="cases")], abp_security=[{"jwt": []}])
 
 
 @bp.post("/cases")

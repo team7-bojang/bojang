@@ -121,9 +121,19 @@ def get_my_policies(user_id: str) -> list[dict]:
     return results
 
 
-def get_source(policy_id: str, page: int) -> dict:
-    """특정 보험 상품의 특정 페이지 약관 원문 텍스트를 조회합니다."""
+def get_source(policy_id: str, page: int, user_id: str) -> dict:
+    """특정 보험 상품의 특정 페이지 약관 원문 텍스트를 조회합니다.
+
+    선탑재 약관은 인증 유저 접근 허용.
+    사용자 업로드 약관은 소유자만 접근 가능.
+    """
     db = get_client()
+
+    policy_res = db.table("policies").select("id, user_id, is_preset").eq("id", policy_id).maybe_single().execute()
+    if not policy_res.data:
+        raise NotFoundError("해당 약관을 찾을 수 없습니다.")
+    if not policy_res.data.get("is_preset") and policy_res.data.get("user_id") != user_id:
+        raise ForbiddenError("접근 권한이 없습니다.")
 
     # riders 테이블에서 policy_id와 page가 매칭되는 레코드의 raw_text 검색
     res_riders = db.table("riders").select("*").eq("policy_id", policy_id).eq("page", page).execute()

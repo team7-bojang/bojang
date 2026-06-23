@@ -13,7 +13,9 @@ from app.core import response
 from app.schemas.analysis import CompareRequest, SearchRequest
 from app.services import analysis_service
 
-bp = APIBlueprint("analysis", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="analysis")])
+bp = APIBlueprint(
+    "analysis", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="analysis")], abp_security=[{"jwt": []}]
+)
 
 
 @bp.post("/analysis/search")

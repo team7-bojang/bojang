@@ -1,0 +1,739 @@
+{
+  "schema_version": "1.0",
+  "policy_under_review": {
+    "insurer": "KB손해보험",
+    "policy_name": "KB 3.N.암 심플러스(Simple us) 간편건강보험(연만기갱신형)(무배당)(26.05)(일반심사형)",
+    "uploaded_file": "kb손해보험_암_질병_약관.pdf",
+    "note": "기존 golden_set의 'KB 9회주는 암보험Plus'와 다른 상품이므로, rider 명칭/조건은 이 PDF 기준으로 새로 매핑함."
+  },
+  "decision_legend": {
+    "direct_extractable": "테스트 시나리오 조건으로 바로 후보 특약 추출 가능",
+    "conditional_extractable": "질병/치료 키워드상 후보 추출은 가능하나, 추가 조건 확인이 필요",
+    "not_extractable": "이 약관에서 해당 테스트 시나리오에 맞는 직접 보장을 찾기 어려움",
+    "not_applicable": "약관 내 보장은 있으나 해당 질병/상황에는 적용 제외"
+  },
+  "source_basis": {
+    "scenario_source": [
+      "테스트_시나리오_정답셋_면책감액_v2_따뜻한챗봇톤_최종반영(1).docx",
+      "golden_set_v2.json"
+    ],
+    "policy_source": "kb손해보험_암_질병_약관.pdf"
+  },
+  "extractable_by_scenario": [
+    {
+      "scenario_id": "c2_01",
+      "service_type": "CASE2",
+      "description": "뇌경색 3일 퇴원과 7일 입원 비교",
+      "input_case": {
+        "disease": "뇌경색",
+        "disease_kcd": "I63",
+        "is_inpatient": true,
+        "surgery": false,
+        "treatment_items": [
+          "MRI_MRA"
+        ],
+        "admission_days_current": 3,
+        "admission_days_diagnosed": 7,
+        "policy_elapsed_days": 730
+      },
+      "scenario_match_for_this_policy": "conditional_extractable",
+      "extractable_riders": [
+        {
+          "rider": "뇌혈관질환진단비Ⅳ",
+          "match_reason": "I63 뇌경색은 뇌혈관질환 후보로 검색 가능",
+          "trigger_type": "DIAGNOSIS",
+          "directly_payable_from_scenario": true,
+          "source_pages": [
+            203,
+            204
+          ],
+          "key_rules": {
+            "limit": "최초 1회",
+            "reduction": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%; 갱신계약 100%"
+          }
+        },
+        {
+          "rider": "혈전용해치료비Ⅱ(최초1회한)",
+          "match_reason": "뇌졸중/심장질환 + 혈전용해치료 조건 특약. 현재 시나리오에는 혈전용해치료가 명시되지 않아 추가 질문 필요",
+          "trigger_type": "TREATMENT",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "혈전용해치료 여부"
+          ],
+          "source_pages": [
+            205,
+            206
+          ],
+          "key_rules": {
+            "limit": "세부보장별 최초 1회",
+            "reduction": "가입 후 1년 미만 50%, 1년 이상 100%"
+          }
+        },
+        {
+          "rider": "간병인사용 질병입원일당Ⅱ(요양병원 제외, 1-180일)",
+          "match_reason": "입원 시나리오라 후보 추출은 가능하지만, 일반 질병입원일당이 아니라 간병인 사용 조건이 필요",
+          "trigger_type": "INPATIENT_CARE",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "간병인 사용 여부",
+            "간병인 사용시간",
+            "요양병원 여부"
+          ],
+          "source_pages": [
+            214,
+            215,
+            216
+          ],
+          "key_rules": {
+            "limit": "1회 입원당 180일",
+            "reduction": "간병인 사용시간과 가입경과기간에 따라 5%/10%/25%/50%/100%"
+          }
+        },
+        {
+          "rider": "간호간병통합서비스 질병입원일당(1-180일)",
+          "match_reason": "입원 시나리오라 후보 추출은 가능하지만, 간호간병통합서비스 이용 여부가 필요",
+          "trigger_type": "INPATIENT_NURSING_CARE",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "간호간병통합서비스 이용 여부"
+          ],
+          "source_pages": [
+            218,
+            219,
+            220
+          ],
+          "key_rules": {
+            "limit": "1회 입원당 180일"
+          }
+        }
+      ],
+      "not_in_this_policy": [
+        "뇌혈관질환입원일당(4일이상120일한도)",
+        "일반 질병입원일당(1일이상180일한도)"
+      ]
+    },
+    {
+      "scenario_id": "c2_02",
+      "service_type": "CASE2",
+      "description": "급성심근경색 3일과 4일 경계 비교",
+      "input_case": {
+        "disease": "급성심근경색증",
+        "disease_kcd": "I21",
+        "is_inpatient": true,
+        "surgery": false,
+        "treatment_items": [
+          "OTHER"
+        ],
+        "policy_elapsed_days": 730
+      },
+      "scenario_match_for_this_policy": "conditional_extractable",
+      "extractable_riders": [
+        {
+          "rider": "허혈성심장질환진단비Ⅳ",
+          "match_reason": "I21 급성심근경색은 허혈성심장질환 후보로 검색 가능",
+          "trigger_type": "DIAGNOSIS",
+          "directly_payable_from_scenario": true,
+          "source_pages": [
+            204,
+            205
+          ],
+          "key_rules": {
+            "limit": "최초 1회",
+            "reduction": "최초계약 180일 미만 10%, 180일 이상 1년 미만 50%, 1년 이상 100%; 갱신계약 100%"
+          }
+        },
+        {
+          "rider": "혈전용해치료비Ⅱ(최초1회한)",
+          "match_reason": "특정심장질환 + 혈전용해치료 조건. 현재 시나리오에는 혈전용해치료가 명시되지 않음",
+          "trigger_type": "TREATMENT",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "혈전용해치료 여부"
+          ],
+          "source_pages": [
+            205,
+            206
+          ]
+        },
+        {
+          "rider": "간병인사용 질병입원일당Ⅱ(요양병원 제외, 1-180일)",
+          "match_reason": "입원 후보는 가능하지만 일반 입원일당이 아니라 간병인 사용 조건 필요",
+          "trigger_type": "INPATIENT_CARE",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "간병인 사용 여부",
+            "간병인 사용시간"
+          ],
+          "source_pages": [
+            214,
+            215,
+            216
+          ]
+        }
+      ],
+      "not_in_this_policy": [
+        "허혈심장질환입원일당(4일이상120일한도)",
+        "급성심근경색증진단비라는 별도 담보명",
+        "일반 질병입원일당"
+      ]
+    },
+    {
+      "scenario_id": "c2_03",
+      "service_type": "CASE2",
+      "description": "당뇨성 신증 5일과 10일 비교",
+      "input_case": {
+        "disease": "당뇨성 신증",
+        "disease_kcd": "E112",
+        "is_inpatient": true,
+        "treatment_items": [
+          "INJECTION"
+        ]
+      },
+      "scenario_match_for_this_policy": "not_extractable",
+      "extractable_riders": [],
+      "reason": "이 약관에서 당뇨병/당뇨성 신증 전용 진단비나 당뇨 관련 입원급여금은 확인되지 않음. 일반 주사치료 보장도 없음.",
+      "possible_generic_candidates_if_conditions_added": [
+        {
+          "rider": "간병인사용 질병입원일당Ⅱ(요양병원 제외, 1-180일)",
+          "condition": "질병 입원 + 간병인 사용 시에만 후보",
+          "source_pages": [
+            214,
+            215,
+            216
+          ]
+        },
+        {
+          "rider": "질병1~5종수술비Ⅱ(매회지급)",
+          "condition": "질병 치료 목적 수술이 있을 때만 후보",
+          "source_pages": [
+            221,
+            222
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "c2_04",
+      "service_type": "CASE2",
+      "description": "가입 90일 미만 중증 갑상선암 면책·감액 확인",
+      "input_case": {
+        "disease": "중증 갑상선암",
+        "disease_kcd": "C73",
+        "policy_elapsed_days": 89,
+        "treatment_items": []
+      },
+      "scenario_match_for_this_policy": "direct_extractable",
+      "extractable_riders": [
+        {
+          "rider": "중증갑상선암진단비",
+          "match_reason": "중증갑상선암 전용 담보가 존재함",
+          "trigger_type": "DIAGNOSIS",
+          "source_pages": [
+            106,
+            107
+          ],
+          "expected_status_for_case": "waiting_period_not_met",
+          "key_rules": {
+            "waiting_period_days": 90,
+            "reduction": "가입 후 1년간 50%",
+            "note": "90일 미만이면 보장개시일 전 진단으로 무효/미지급 검토"
+          }
+        },
+        {
+          "rider": "유사암진단비Ⅲ",
+          "match_reason": "갑상선암(C73)은 유사암 범위에 포함되는 담보 후보",
+          "trigger_type": "DIAGNOSIS",
+          "source_pages": [
+            90,
+            91
+          ],
+          "expected_status_for_case": "eligible_with_reduction",
+          "key_rules": {
+            "limit": "기타피부암, 갑상선암, 제자리암, 경계성종양 각 1회",
+            "reduction": "가입 후 1년간 50%, 단 90일 미만 10%"
+          }
+        },
+        {
+          "rider": "암진단비(유사암제외)",
+          "match_reason": "암진단비 담보는 있으나 갑상선암은 유사암 제외 대상",
+          "trigger_type": "DIAGNOSIS",
+          "source_pages": [
+            88,
+            89,
+            90
+          ],
+          "expected_status_for_case": "not_applicable",
+          "key_rules": {
+            "exclusion": "갑상선암(C73)은 암(유사암제외)에서 제외"
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "c2_05",
+      "service_type": "CASE2",
+      "description": "가입 1년 미만 뇌경색 진단과 5일 입원 감액",
+      "input_case": {
+        "disease": "뇌경색",
+        "disease_kcd": "I63",
+        "is_inpatient": true,
+        "surgery": false,
+        "admission_days_diagnosed": 5,
+        "treatment_items": [
+          "MRI_MRA"
+        ],
+        "policy_elapsed_days": 364
+      },
+      "scenario_match_for_this_policy": "conditional_extractable",
+      "extractable_riders": [
+        {
+          "rider": "뇌혈관질환진단비Ⅳ",
+          "match_reason": "뇌혈관질환 진단비는 직접 후보. 가입 1년 미만이면 감액 조건 적용",
+          "trigger_type": "DIAGNOSIS",
+          "directly_payable_from_scenario": true,
+          "source_pages": [
+            203,
+            204
+          ],
+          "expected_status_for_case": "eligible_with_reduction",
+          "key_rules": {
+            "reduction": "180일 이상 1년 미만 50%"
+          }
+        },
+        {
+          "rider": "혈전용해치료비Ⅱ(최초1회한)",
+          "match_reason": "뇌졸중 + 혈전용해치료를 받았으면 후보. 시나리오에는 MRI만 있어 추가 질문 필요",
+          "trigger_type": "TREATMENT",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "혈전용해치료 여부"
+          ],
+          "source_pages": [
+            205,
+            206
+          ]
+        },
+        {
+          "rider": "간병인사용 질병입원일당Ⅱ(요양병원 제외, 1-180일)",
+          "match_reason": "5일 입원은 후보 검색 가능하지만 간병인 사용 조건 필요",
+          "trigger_type": "INPATIENT_CARE",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "간병인 사용 여부",
+            "간병인 사용시간"
+          ],
+          "source_pages": [
+            214,
+            215,
+            216
+          ]
+        },
+        {
+          "rider": "간호간병통합서비스 질병입원일당(1-180일)",
+          "match_reason": "5일 입원은 후보 검색 가능하지만 간호간병통합서비스 이용 조건 필요",
+          "trigger_type": "INPATIENT_NURSING_CARE",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "간호간병통합서비스 이용 여부"
+          ],
+          "source_pages": [
+            218,
+            219,
+            220
+          ]
+        }
+      ],
+      "not_in_this_policy": [
+        "뇌졸중진단비 별도 담보",
+        "뇌혈관질환입원일당(4일이상120일한도)",
+        "일반 질병입원일당"
+      ]
+    },
+    {
+      "scenario_id": "c1_01",
+      "service_type": "CASE1",
+      "description": "갑상선암 진단 통원 시 다중 보험 보장 탐색",
+      "input_case": {
+        "disease": "갑상선암",
+        "disease_kcd": "C73",
+        "is_outpatient": true,
+        "surgery": false,
+        "treatment_items": [],
+        "policy_elapsed_days": 730
+      },
+      "scenario_match_for_this_policy": "direct_extractable",
+      "extractable_riders": [
+        {
+          "rider": "유사암진단비Ⅲ",
+          "match_reason": "갑상선암(C73)은 유사암진단비Ⅲ의 직접 후보",
+          "trigger_type": "DIAGNOSIS",
+          "directly_payable_from_scenario": true,
+          "source_pages": [
+            90,
+            91
+          ],
+          "key_rules": {
+            "limit": "갑상선암 1회한",
+            "reduction": "가입 후 1년간 50%, 단 90일 미만 10%"
+          }
+        },
+        {
+          "rider": "중증갑상선암진단비",
+          "match_reason": "중증갑상선암이면 후보. 일반 갑상선암 진단만으로는 중증 조건 확인 필요",
+          "trigger_type": "DIAGNOSIS",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "중증갑상선암 해당 여부"
+          ],
+          "source_pages": [
+            106,
+            107
+          ]
+        },
+        {
+          "rider": "암직접치료통원일당(종합병원)",
+          "match_reason": "갑상선암 진단 후 종합병원에서 직접치료 목적 통원 치료를 받은 경우 후보. 단순 진단만으로는 부족",
+          "trigger_type": "OUTPATIENT_DIRECT_CANCER_TREATMENT",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "종합병원 통원 여부",
+            "암 직접치료 여부"
+          ],
+          "source_pages": [
+            195,
+            196
+          ]
+        }
+      ],
+      "not_applicable_riders": [
+        {
+          "rider": "암진단비(유사암제외)",
+          "reason": "갑상선암은 유사암으로 분류되어 유사암 제외 암진단비에서 제외",
+          "source_pages": [
+            88,
+            89,
+            90
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "c1_02",
+      "service_type": "CASE1",
+      "description": "급성심근경색 진단과 5일 입원 시 DB·KB 중복 탐색",
+      "input_case": {
+        "disease": "급성심근경색증",
+        "disease_kcd": "I21",
+        "is_inpatient": true,
+        "surgery": false,
+        "treatment_items": [
+          "MRI_MRA",
+          "INJECTION"
+        ],
+        "policy_elapsed_days": 730
+      },
+      "scenario_match_for_this_policy": "conditional_extractable",
+      "extractable_riders": [
+        {
+          "rider": "허혈성심장질환진단비Ⅳ",
+          "match_reason": "I21 급성심근경색은 허혈성심장질환 후보",
+          "trigger_type": "DIAGNOSIS",
+          "directly_payable_from_scenario": true,
+          "source_pages": [
+            204,
+            205
+          ],
+          "key_rules": {
+            "limit": "최초 1회",
+            "reduction": "가입경과에 따라 10%/50%/100%"
+          }
+        },
+        {
+          "rider": "혈전용해치료비Ⅱ(최초1회한)",
+          "match_reason": "주사치료가 입력되어도 약관상 혈전용해제 주입인지 별도 확인 필요",
+          "trigger_type": "TREATMENT",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "혈전용해제 투여 여부"
+          ],
+          "source_pages": [
+            205,
+            206
+          ]
+        },
+        {
+          "rider": "간병인사용 질병입원일당Ⅱ(요양병원 제외, 1-180일)",
+          "match_reason": "5일 입원 후보지만 간병인 사용 조건 필요",
+          "trigger_type": "INPATIENT_CARE",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "간병인 사용 여부",
+            "간병인 사용시간"
+          ],
+          "source_pages": [
+            214,
+            215,
+            216
+          ]
+        }
+      ],
+      "not_in_this_policy": [
+        "급성심근경색증진단비라는 별도 담보명",
+        "허혈성심장질환입원일당",
+        "일반 질병입원일당"
+      ]
+    },
+    {
+      "scenario_id": "c1_03",
+      "service_type": "CASE1",
+      "description": "손목골절 수술·7일 입원·깁스",
+      "input_case": {
+        "disease": "손목골절",
+        "disease_kcd": "S62",
+        "is_inpatient": true,
+        "surgery": true,
+        "treatment_items": [
+          "XRAY",
+          "CAST"
+        ]
+      },
+      "scenario_match_for_this_policy": "conditional_extractable",
+      "extractable_riders": [
+        {
+          "rider": "상해1~5종수술비(매회지급)",
+          "match_reason": "상해의 직접결과로 별표상 수술을 받은 경우 후보. 골절수술 여부 및 수술종 분류 확인 필요",
+          "trigger_type": "SURGERY",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "실제 수술명",
+            "1~5종수술Ⅱ 분류표 해당 여부"
+          ],
+          "source_pages": [
+            86,
+            87
+          ]
+        },
+        {
+          "rider": "간병인사용 상해입원일당Ⅱ(요양병원 제외, 1-180일)",
+          "match_reason": "상해 입원 + 간병인 사용 시 후보. 일반 상해입원일당은 아님",
+          "trigger_type": "INPATIENT_CARE",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "간병인 사용 여부",
+            "간병인 사용시간"
+          ],
+          "source_pages": [
+            81,
+            82
+          ]
+        },
+        {
+          "rider": "간호간병통합서비스 상해입원일당(1-180일)",
+          "match_reason": "상해 입원 + 간호간병통합서비스 이용 시 후보",
+          "trigger_type": "INPATIENT_NURSING_CARE",
+          "directly_payable_from_scenario": false,
+          "requires_additional_answers": [
+            "간호간병통합서비스 이용 여부"
+          ],
+          "source_pages": [
+            83,
+            84,
+            85
+          ]
+        }
+      ],
+      "not_in_this_policy": [
+        "골절진단비",
+        "골절수술비 전용 담보",
+        "깁스치료비",
+        "상해급여/비급여 실손의료비"
+      ]
+    },
+    {
+      "scenario_id": "c1_04",
+      "service_type": "CASE1",
+      "description": "손목 부상 후 골절 확정·응급실 통원",
+      "input_case": {
+        "disease": "손목골절",
+        "disease_kcd": "S62",
+        "is_outpatient": true,
+        "treatment_items": [
+          "XRAY",
+          "EMERGENCY"
+        ]
+      },
+      "scenario_match_for_this_policy": "not_extractable",
+      "extractable_riders": [],
+      "reason": "이 약관에서 상해 응급실내원비, 골절진단비, 깁스치료비, 상해 MRI/CT 검사비 전용 담보는 확인되지 않음."
+    },
+    {
+      "scenario_id": "c1_05",
+      "service_type": "CASE1",
+      "description": "대장 용종 내시경 제거 후 진단비 탐색",
+      "input_case": {
+        "disease": "대장 양성종양 및 용종",
+        "disease_kcd": "D12",
+        "is_outpatient": true,
+        "surgery": true,
+        "treatment_items": []
+      },
+      "scenario_match_for_this_policy": "not_extractable",
+      "extractable_riders": [],
+      "reason": "이 약관에는 '대장 양성종양 및 용종 진단비'가 확인되지 않음. '소장암 및 대장암 진단비'는 악성신생물 암 담보라 D12 양성종양/용종과 직접 매칭하지 않음.",
+      "related_but_not_applicable": [
+        {
+          "rider": "소장암 및 대장암 진단비",
+          "reason": "대장암 담보이므로 D12 대장 양성종양 및 용종에는 not_applicable",
+          "source_pages": [
+            94,
+            95
+          ]
+        },
+        {
+          "rider": "암 종합검사지원비(급여, 각 연간1회한)",
+          "reason": "암/유사암 진단 및 치료 필요소견에 따른 검사 담보라, 단순 대장 용종 제거 시나리오에는 직접 적용 곤란",
+          "source_pages": [
+            113,
+            114,
+            115
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "c1_06",
+      "service_type": "CASE1",
+      "description": "당뇨 외래 진단보험금 탐색",
+      "input_case": {
+        "disease": "당뇨병",
+        "disease_kcd": "E11",
+        "is_outpatient": true,
+        "treatment_items": []
+      },
+      "scenario_match_for_this_policy": "not_extractable",
+      "extractable_riders": [],
+      "reason": "이 약관에서 당뇨병 진단보험금, 생활습관병 입원비, 당뇨 관련 주요질환 입원급여금은 확인되지 않음."
+    },
+    {
+      "scenario_id": "c1_07",
+      "service_type": "CASE1",
+      "description": "대상포진 통원 시 선택 보험에서 결과 0건",
+      "input_case": {
+        "disease": "대상포진",
+        "disease_kcd": "B02",
+        "is_outpatient": true,
+        "treatment_items": [
+          "INJECTION"
+        ]
+      },
+      "scenario_match_for_this_policy": "not_extractable",
+      "extractable_riders": [],
+      "reason": "이 약관에서 대상포진 진단비/통원비/주사치료 보장은 확인되지 않음."
+    }
+  ],
+  "high_confidence_extractable_rider_catalog_for_this_policy": [
+    {
+      "rider": "유사암진단비Ⅲ",
+      "use_in_scenarios": [
+        "c1_01",
+        "c2_04"
+      ],
+      "source_pages": [
+        90,
+        91
+      ],
+      "trigger_keywords": [
+        "갑상선암",
+        "C73",
+        "유사암",
+        "제자리암",
+        "경계성종양"
+      ]
+    },
+    {
+      "rider": "중증갑상선암진단비",
+      "use_in_scenarios": [
+        "c1_01",
+        "c2_04"
+      ],
+      "source_pages": [
+        106,
+        107
+      ],
+      "trigger_keywords": [
+        "중증갑상선암",
+        "C73"
+      ]
+    },
+    {
+      "rider": "뇌혈관질환진단비Ⅳ",
+      "use_in_scenarios": [
+        "c2_01",
+        "c2_05"
+      ],
+      "source_pages": [
+        203,
+        204
+      ],
+      "trigger_keywords": [
+        "뇌혈관",
+        "뇌경색",
+        "I63",
+        "I6"
+      ]
+    },
+    {
+      "rider": "허혈성심장질환진단비Ⅳ",
+      "use_in_scenarios": [
+        "c2_02",
+        "c1_02"
+      ],
+      "source_pages": [
+        204,
+        205
+      ],
+      "trigger_keywords": [
+        "허혈성심장질환",
+        "급성심근경색",
+        "I21",
+        "I2"
+      ]
+    },
+    {
+      "rider": "상해1~5종수술비(매회지급)",
+      "use_in_scenarios": [
+        "c1_03"
+      ],
+      "source_pages": [
+        86,
+        87
+      ],
+      "trigger_keywords": [
+        "상해",
+        "수술",
+        "S62"
+      ]
+    }
+  ],
+  "overall_summary": {
+    "direct_extractable_scenarios": [
+      "c1_01",
+      "c2_04"
+    ],
+    "conditional_extractable_scenarios": [
+      "c2_01",
+      "c2_02",
+      "c2_05",
+      "c1_02",
+      "c1_03"
+    ],
+    "not_extractable_scenarios": [
+      "c2_03",
+      "c1_04",
+      "c1_05",
+      "c1_06",
+      "c1_07"
+    ],
+    "important_note": "기존 테스트의 KB 기대값(c1_05 대장 양성종양 및 용종 진단비 등)은 이 PDF 상품에서는 그대로 재사용하면 안 됨."
+  }
+}

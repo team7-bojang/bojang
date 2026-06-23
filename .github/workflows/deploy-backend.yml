@@ -23,12 +23,10 @@ jobs:
             cd /developers/bojang
             git pull origin develop
 
-            cd backend
-            source /developers/envs/bojang-backend/bin/activate
-            pip install -r requirements.txt
+            /developers/envs/bojang-backend/bin/pip install -r backend/requirements.txt
 
             sudo systemctl restart bojang-backend
             sleep 3
 
-            curl -fsS http://localhost:8000/health
+            curl -fsS http://127.0.0.1:8000/health
             sudo systemctl status bojang-backend --no-pager
