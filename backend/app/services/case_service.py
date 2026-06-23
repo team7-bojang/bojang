@@ -22,6 +22,7 @@ ALLOWED_TREATMENT_ITEMS = {
     "BRACE_SPLINT",
     "EMERGENCY",
     "OTHER",
+    "ETC",
 }
 
 
@@ -802,18 +803,22 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
             if val is not None:
                 try:
                     num_str = re.sub(r"[^0-9]", "", str(val))
-                    updates["admission_days_diagnosed"] = int(num_str) if num_str else None
-                    is_inpt = True
-                    is_outpt = False
+                    days_val = int(num_str) if num_str else None
+                    updates["admission_days_diagnosed"] = days_val
+                    if days_val and days_val > 0:
+                        is_inpt = True
+                        is_outpt = False
                 except Exception:
                     pass
         elif q_id == "admission_days_current":
             if val is not None:
                 try:
                     num_str = re.sub(r"[^0-9]", "", str(val))
-                    updates["admission_days_current"] = int(num_str) if num_str else None
-                    is_inpt = True
-                    is_outpt = False
+                    days_val = int(num_str) if num_str else None
+                    updates["admission_days_current"] = days_val
+                    if days_val and days_val > 0:
+                        is_inpt = True
+                        is_outpt = False
                 except Exception:
                     pass
         elif q_id == "treatment_items":
@@ -909,9 +914,9 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
             "admission_days_current": c.get("admission_days_current") or c.get("current_days"),
             "admission_days_diagnosed": c.get("admission_days_diagnosed") or c.get("diag_days"),
             "treatment_items": c.get("treatment_items") or [],
-            "payment_amount": c.get("payment_amount") if is_outpatient else None,
-            "visit_date": visit_date if is_outpatient else None,
-            "surgery": bool(c.get("surgery")),
+            "payment_amount": c.get("payment_amount"),
+            "visit_date": visit_date,
+            "surgery": c.get("surgery"),
             "annual_visit_count": c.get("annual_visit_count") or 1,
         },
     }
@@ -938,7 +943,7 @@ def patch_dashboard(user_id: str, case_id: str, data: dict) -> dict:
     if "treatment_items" in data:
         items = data["treatment_items"] or []
         for it in items:
-            if it not in ALLOWED_TREATMENT_ITEMS:
+            if it not in ALLOWED_TREATMENT_ITEMS and not it.startswith("ETC:"):
                 raise ValueError(f"유효하지 않은 치료 항목 코드입니다: {it}")
 
     # 3. 내원일자 날짜 포맷 및 범위 검사
@@ -1132,7 +1137,7 @@ def get_next_question(case: dict) -> dict | None:
         }
 
     # 6. 치료 항목 (treatment_items) 확인 필요
-    if not case.get("treatment_items"):
+    if case.get("treatment_items") is None:
         return {
             "question_id": "treatment_items",
             "question_text": "이번 입원 중 함께 받은 치료가 있다면 골라주세요. (여러 개 선택 가능)",

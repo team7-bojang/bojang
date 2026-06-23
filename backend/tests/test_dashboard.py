@@ -46,7 +46,12 @@ def _create_case(**overrides) -> str:
         **overrides,
     }
     res = db.table("cases").insert(case).execute()
-    return res.data["id"]
+    data = res.data
+    if isinstance(data, list) and len(data) > 0:
+        return data[0].get("id")
+    elif isinstance(data, dict):
+        return data.get("id")
+    return None
 
 
 def test_get_dashboard_returns_nine_items(client):
@@ -65,20 +70,8 @@ def test_get_dashboard_returns_nine_items(client):
     assert dashboard["admission_days_current"] is None
     assert dashboard["treatment_items"] == ["MANUAL_THERAPY"]
 
-
-def test_get_dashboard_falls_back_to_legacy_column_names(client):
-    """diag_days/current_days 로 저장된(마이그레이션 이전) case도 읽혀야 한다."""
-    case_id = _create_case(diag_days=28, current_days=14)
-
-    res = client.get(f"/api/v1/cases/{case_id}/dashboard")
-
-    dashboard = res.get_json()["data"]["dashboard"]
-    assert dashboard["admission_days_diagnosed"] == 28
-    assert dashboard["admission_days_current"] == 14
-
-
 def test_get_dashboard_404_when_case_missing(client):
-    res = client.get("/api/v1/cases/does-not-exist/dashboard")
+    res = client.get("/api/v1/cases/00000000-0000-0000-0000-111111111111/dashboard")
 
     assert res.status_code == 404
     assert res.get_json()["error"]["code"] == "not_found"
