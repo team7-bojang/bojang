@@ -1,0 +1,185 @@
+{
+  "schema_version": "2.0",
+  "id": "c1_05",
+  "service_type": "CASE1",
+  "description": "대장 용종 내시경 제거 후 진단비 탐색",
+  "selected_policies": [
+    "KB 9회주는 암보험Plus"
+  ],
+  "case": {
+    "initial_situation": "건강검진에서 대장 용종 발견 후 내시경 제거",
+    "disease": "대장 양성종양 및 용종",
+    "disease_kcd": "D12",
+    "is_inpatient": false,
+    "is_outpatient": true,
+    "surgery": true,
+    "treatment_items": [],
+    "payment_amount": 280000,
+    "visit_dates": [
+      "2026-06-05"
+    ],
+    "annual_visit_count": 1,
+    "policy_elapsed_days": 730
+  },
+  "demo_assumptions": {
+    "대장 양성종양 및 용종 진단비": {
+      "coverage_amount": 100000
+    }
+  },
+  "expected": [
+    {
+      "policy": "KB 9회주는 암보험Plus",
+      "rider": "대장 양성종양 및 용종 진단비(연간1회한)",
+      "status": "eligible",
+      "rider_catalog_key": "KB 9회주는 암보험Plus::대장 양성종양 및 용종 진단비(연간1회한)",
+      "estimated_amount": 100000,
+      "calculation": "진단 1회 × 100,000원",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액(경과기간에 따라 50% 또는 100%)",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "대장 양성종양 및 용종 진단비",
+          "field": "coverage_amount",
+          "amount": 100000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "대장 양성종양 및 용종 진단비(연간1회한) 특별약관 제1조(보험금의 지급사유)",
+          "page": 272
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 100,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액(경과기간에 따라 50% 또는 100%)"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "진단 1회 × 100,000원"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "100,000원"
+        }
+      ]
+    },
+    {
+      "policy": "KB 9회주는 암보험Plus",
+      "rider": "통합암진단비Ⅱ(유사암제외)",
+      "status": "not_applicable",
+      "rider_catalog_key": "KB 9회주는 암보험Plus::통합암진단비Ⅱ(유사암제외)",
+      "estimated_amount": 0,
+      "calculation": null,
+      "note": "용종은 암이 아님",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "암구분별 해당 보장의 보험가입금액 (특정소액암진단비Ⅱ: 최초계약 1년미만 50%, 최초계약 1년이상 100%, 갱신계약 100%; 생식기암 및 비뇨기관암진단비(자궁,전립선,방광제외)·소화기관암진단비·혈액암진단비·두경부암진단비·11대특정암진단비·폐암진단비·간암,담낭암,기타담도암 및 췌장암진단비·3대특정고액암진단비: 해당 보장의 보험가입금액 100%)",
+        "claim_formula": null,
+        "demo_input": null,
+        "policy_source": {
+          "article": "통합암진단비Ⅱ(유사암제외) 특별약관 제2조(보험금의 지급사유)",
+          "page": 404
+        },
+        "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "약관 지급 기준",
+          "detail": "암구분별 해당 보장의 보험가입금액 (특정소액암진단비Ⅱ: 최초계약 1년미만 50%, 최초계약 1년이상 100%, 갱신계약 100%; 생식기암 및 비뇨기관암진단비(자궁,전립선,방광제외)·소화기관암진단비·혈액암진단비·두경부암진단비·11대특정암진단비·폐암진단비·간암,담낭암,기타담도암 및 췌장암진단비·3대특정고액암진단비: 해당 보장의 보험가입금액 100%)"
+        },
+        {
+          "step": 2,
+          "title": "미지급 판정",
+          "detail": "용종은 암이 아님"
+        },
+        {
+          "step": 3,
+          "title": "최종 예상보험금",
+          "detail": "0원"
+        }
+      ]
+    },
+    {
+      "policy": "KB 9회주는 암보험Plus",
+      "rider": "질병입원일당(1일이상)",
+      "status": "not_applicable",
+      "rider_catalog_key": "KB 9회주는 암보험Plus::질병입원일당(1일이상)",
+      "estimated_amount": 0,
+      "calculation": null,
+      "note": "입원 아님",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액",
+        "claim_formula": null,
+        "demo_input": null,
+        "policy_source": {
+          "article": "질병입원일당(1일이상) 특별약관 제1조(보험금의 지급사유)",
+          "page": 179
+        },
+        "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액"
+        },
+        {
+          "step": 2,
+          "title": "미지급 판정",
+          "detail": "입원 아님"
+        },
+        {
+          "step": 3,
+          "title": "최종 예상보험금",
+          "detail": "0원"
+        }
+      ]
+    }
+  ],
+  "must_not_match": [],
+  "expected_summary": {
+    "eligible_count": 1,
+    "not_met_count": 2
+  },
+  "display_rule": {
+    "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+    "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+    "show_total_as_confirmed_payment": false
+  },
+  "demo_amount_inputs": [
+    {
+      "label": "대장 양성종양 및 용종 진단비",
+      "field": "coverage_amount",
+      "amount": 100000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    }
+  ],
+  "policy_amount_summary": [
+    {
+      "policy": "KB 9회주는 암보험Plus",
+      "estimated_amount": 100000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "대장 양성종양 및 용종 진단비(연간1회한)",
+          "calculation": "진단 1회 × 100,000원",
+          "estimated_amount": 100000
+        }
+      ],
+      "total_calculation": "100,000원 = 100,000원"
+    }
+  ]
+}

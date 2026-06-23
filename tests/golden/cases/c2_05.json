@@ -1,0 +1,335 @@
+{
+  "schema_version": "2.0",
+  "id": "c2_05",
+  "service_type": "CASE2",
+  "description": "가입 1년 미만 뇌경색 진단과 5일 입원 감액",
+  "selected_policies": [
+    "DB 계속받는 3대질병보험"
+  ],
+  "case": {
+    "initial_situation": "뇌경색 진단 후 5일 입원, 수술 없음",
+    "disease": "뇌경색",
+    "disease_kcd": "I63",
+    "is_inpatient": true,
+    "is_outpatient": false,
+    "surgery": false,
+    "admission_days_current": 5,
+    "admission_days_diagnosed": 5,
+    "treatment_items": [
+      "MRI_MRA"
+    ],
+    "annual_visit_count": 1,
+    "policy_elapsed_days": 364,
+    "contract_type": "비갱신형",
+    "age": 55
+  },
+  "demo_assumptions": {
+    "뇌혈관질환진단비(비갱신형/갱신형)": {
+      "coverage_amount": 10000000
+    },
+    "뇌혈관질환입원일당(4일이상120일한도)": {
+      "coverage_amount_per_day": 20000
+    },
+    "질병입원일당(1일이상180일한도)": {
+      "coverage_amount_per_day": 10000
+    },
+    "뇌졸중진단비(비갱신형/갱신형)": {
+      "coverage_amount": 10000000
+    }
+  },
+  "expected": [
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "뇌혈관질환진단비(비갱신형/갱신형)",
+      "status": "eligible",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::뇌혈관질환진단비(비갱신형/갱신형)",
+      "estimated_amount": 5000000,
+      "calculation": "10,000,000원 × 50%",
+      "reduction": {
+        "applied": true,
+        "rate": 0.5,
+        "until_elapsed_days": 365
+      },
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "이 특별약관 보험가입금액의 100% (경과기간 1년 이상) 또는 50% (보험계약일로부터 1년 미만, 15세이상 비갱신형 및 15세이상 갱신형(최초) 계약 한정)",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "뇌혈관질환진단비(비갱신형/갱신형)",
+          "field": "coverage_amount",
+          "amount": 10000000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "뇌혈관질환진단비(비갱신형/갱신형) 특별약관 1.(보험금의 지급사유)",
+          "page": 85
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 10,000,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "이 특별약관 보험가입금액의 100% (경과기간 1년 이상) 또는 50% (보험계약일로부터 1년 미만, 15세이상 비갱신형 및 15세이상 갱신형(최초) 계약 한정)"
+        },
+        {
+          "step": 3,
+          "title": "가입기간 감액",
+          "detail": "가입 후 364일, 약관상 지급률 50% 적용"
+        },
+        {
+          "step": 4,
+          "title": "보험금 계산",
+          "detail": "10,000,000원 × 50%"
+        },
+        {
+          "step": 5,
+          "title": "최종 예상보험금",
+          "detail": "5,000,000원"
+        }
+      ]
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "뇌졸중진단비(비갱신형/갱신형)",
+      "status": "eligible",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::뇌졸중진단비(비갱신형/갱신형)",
+      "estimated_amount": 5000000,
+      "calculation": "10,000,000원 × 50%",
+      "reduction": {
+        "applied": true,
+        "rate": 0.5,
+        "until_elapsed_days": 365
+      },
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액의 100% (보험계약일로부터 1년이상) 또는 50% (보험계약일로부터 1년미만, 15세이상 비갱신형 및 15세이상 갱신형(최초) 계약 한정)",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "뇌졸중진단비(비갱신형/갱신형)",
+          "field": "coverage_amount",
+          "amount": 10000000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "뇌졸중진단비(비갱신형/갱신형) 특별약관 1.(보험금의 지급사유)",
+          "page": null
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 10,000,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액의 100% (경과기간 1년 이상) 또는 50% (보험계약일로부터 1년 미만, 15세이상 비갱신형 및 15세이상 갱신형(최초) 계약 한정)"
+        },
+        {
+          "step": 3,
+          "title": "가입기간 감액",
+          "detail": "가입 후 364일, 약관상 지급률 50% 적용. 뇌경색(I63)은 뇌졸중 범위에 포함됨"
+        },
+        {
+          "step": 4,
+          "title": "보험금 계산",
+          "detail": "10,000,000원 × 50%"
+        },
+        {
+          "step": 5,
+          "title": "최종 예상보험금",
+          "detail": "5,000,000원"
+        }
+      ]
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "뇌혈관질환입원일당(4일이상120일한도)",
+      "status": "eligible",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::뇌혈관질환입원일당(4일이상120일한도)",
+      "estimated_amount": 20000,
+      "calculation": "20,000원 × (5일 - 공제 3일) × 50%",
+      "payable_days": 2,
+      "reduction": {
+        "applied": true,
+        "rate": 0.5,
+        "until_elapsed_days": 365
+      },
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액의 100% (1년미만 경과기간은 50%)",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "뇌혈관질환입원일당(4일이상120일한도)",
+          "field": "coverage_amount_per_day",
+          "amount": 20000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "뇌혈관질환입원일당(4일이상120일한도)(비갱신형/갱신형) 특별약관 1.(보험금의 지급사유)",
+          "page": 97
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 20,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액의 100% (1년미만 경과기간은 50%)"
+        },
+        {
+          "step": 3,
+          "title": "가입기간 감액",
+          "detail": "가입 후 364일, 약관상 지급률 50% 적용"
+        },
+        {
+          "step": 4,
+          "title": "보험금 계산",
+          "detail": "20,000원 × (5일 - 공제 3일) × 50%"
+        },
+        {
+          "step": 5,
+          "title": "최종 예상보험금",
+          "detail": "20,000원"
+        }
+      ]
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "질병입원일당(1일이상180일한도)",
+      "status": "eligible",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::질병입원일당(1일이상180일한도)",
+      "estimated_amount": 50000,
+      "calculation": "10,000원 × 5일",
+      "payable_days": 5,
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "보험가입금액",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "질병입원일당(1일이상180일한도)",
+          "field": "coverage_amount_per_day",
+          "amount": 10000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "질병입원일당(1일이상180일한도) 특별약관 1.(보험금의 지급사유)",
+          "page": 60
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 10,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "보험가입금액"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "10,000원 × 5일"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "50,000원"
+        }
+      ]
+    }
+  ],
+  "must_not_match": [
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "뇌혈관질환사망(비갱신형/갱신형)",
+      "reason": "사망 사건 없음"
+    }
+  ],
+  "expected_summary": {
+    "eligible_count": 4,
+    "not_met_count": 0
+  },
+  "display_rule": {
+    "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+    "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+    "show_total_as_confirmed_payment": false
+  },
+  "comparison_basis": "COMBINED",
+  "demo_amount_inputs": [
+    {
+      "label": "뇌혈관질환진단비(비갱신형/갱신형)",
+      "field": "coverage_amount",
+      "amount": 10000000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "뇌졸중진단비(비갱신형/갱신형)",
+      "field": "coverage_amount",
+      "amount": 10000000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "뇌혈관질환입원일당(4일이상120일한도)",
+      "field": "coverage_amount_per_day",
+      "amount": 20000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "질병입원일당(1일이상180일한도)",
+      "field": "coverage_amount_per_day",
+      "amount": 10000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    }
+  ],
+  "policy_amount_summary": [
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "estimated_amount": 10070000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "뇌혈관질환진단비(비갱신형/갱신형)",
+          "calculation": "10,000,000원 × 50%",
+          "estimated_amount": 5000000
+        },
+        {
+          "rider": "뇌졸중진단비(비갱신형/갱신형)",
+          "calculation": "10,000,000원 × 50%",
+          "estimated_amount": 5000000
+        },
+        {
+          "rider": "뇌혈관질환입원일당(4일이상120일한도)",
+          "calculation": "20,000원 × (5일 - 공제 3일) × 50%",
+          "estimated_amount": 20000
+        },
+        {
+          "rider": "질병입원일당(1일이상180일한도)",
+          "calculation": "10,000원 × 5일",
+          "estimated_amount": 50000
+        }
+      ],
+      "total_calculation": "5,000,000원 + 5,000,000원 + 20,000원 + 50,000원 = 10,070,000원"
+    }
+  ]
+}

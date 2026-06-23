@@ -7,8 +7,11 @@
 
   // 저장 시 자동 실행할 코드 정리 작업
   "editor.codeActionsOnSave": {
-    // ESLint 규칙 위반 자동 수정
+    // ESLint 규칙 위반 자동 수정 (프론트엔드 JS/TS)
     "source.fixAll.eslint": "always",
+
+    // Ruff lint 자동 수정 (파이썬 — 미사용 import 제거 등 자동수정 가능 항목)
+    "source.fixAll.ruff": "always",
 
     // 사용하지 않는 import 제거 및 import 정렬
     "source.organizeImports": "always"
@@ -55,7 +58,13 @@
 
   // Python 파일은 Ruff Formatter 사용
   "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff"
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    // 파이썬은 ruff 스코프 키로 명시 (generic source.organizeImports가 Pylance로
+    // 라우팅돼 충돌하는 것을 막음). 저장 시: lint 자동수정 + 미사용 import 제거·정렬.
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "always",
+      "source.organizeImports.ruff": "always"
+    }
   },
 
   // Python 자동 import 추천 활성화
@@ -67,6 +76,6 @@
 
   // Python 타입 검사
   "python.analysis.typeCheckingMode": "basic",
-  "python-envs.defaultEnvManager": "ms-python.python:conda",
-  "python-envs.defaultPackageManager": "ms-python.python:conda"
+  "python-envs.defaultEnvManager": "ms-python.python:venv",
+  "python-envs.defaultPackageManager": "ms-python.python:pip"
 }

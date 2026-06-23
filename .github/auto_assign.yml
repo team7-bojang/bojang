@@ -1,0 +1,13 @@
+addAssignees: author
+
+addReviewers: true
+reviewers:
+  - dlxorud1256
+  - jinmiee
+  - joyun04
+  - seowooda
+
+numberOfReviewers: 3
+skipKeywords:
+  - wip
+  - draft

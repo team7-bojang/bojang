@@ -49,7 +49,7 @@ scripts/eval_golden.py   골든셋 자동 채점 러너
 
 ## 네이밍·코드 규약
 
-- **Backend (Python)**: ruff(line-length 100, py312, double-quote). 규칙셋 `E,F,I,B,UP`. 파일/함수 `snake_case`, 클래스 `PascalCase`. 서비스 파일은 `<도메인>_service.py`, 블루프린트 변수는 `bp`.
+- **Backend (Python)**: ruff(line-length 120, py312, double-quote). 규칙셋 `E,F,I,B,UP`. 파일/함수 `snake_case`, 클래스 `PascalCase`. 서비스 파일은 `<도메인>_service.py`, 블루프린트 변수는 `bp`.
 - **Frontend (TS)**: ESLint + Prettier. `frontend/src/` 아래 `components/ features/ hooks/ pages/ store/ types/` 역할별 디렉터리. Axios 인스턴스는 `src/api/client.ts`(요청 인터셉터가 Supabase 토큰 자동 첨부).
 - **타입 계약 동기화**: 프론트 도메인 타입(`frontend/src/types`)은 백엔드 Pydantic 스키마(`backend/app/schemas`)와 항상 일치해야 한다. 수기 작성보다 OpenAPI 자동 생성 권장.
 - **프롬프트**: 코드에 프롬프트 문자열을 하드코딩하지 않고 `prompts/` 의 파일을 로드한다 (`parsing/` → `app/parsing/structurer.py`, `explanation/` → `app/rag/explainer.py`).

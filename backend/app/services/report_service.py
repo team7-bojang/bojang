@@ -60,7 +60,8 @@ def create_report(user_id: str, case_id: str) -> dict:
                 "done": False,
             }
         )
-    if case.get("current_days") and case["current_days"] > 0:
+    admission_days_current = case.get("admission_days_current", case.get("current_days"))
+    if admission_days_current and admission_days_current > 0:
         checklist.append({"task": "입원 기간이 명시된 '입퇴원확인서' 챙기기", "done": False})
 
     # 소멸시효 문구
@@ -82,8 +83,7 @@ def create_report(user_id: str, case_id: str) -> dict:
             "disease_kcd": case.get("disease_kcd"),
             "disease_name": case.get("disease_name"),
             "surgery": case.get("surgery"),
-            "current_days": case.get("current_days"),
-            "initial_situation": case.get("initial_situation"),
+            "admission_days_current": admission_days_current,
         },
         "eligible_covers": eligible_covers,
         "missed_covers": missed_covers,

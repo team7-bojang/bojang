@@ -144,8 +144,5 @@ def patch_dashboard():
 @require_auth
 def get_my_cases():
     """내 분석 이력 목록 조회 (F-05)."""
-    try:
-        data = case_service.get_my_cases(g.user_id)
-        return response.ok(data)
-    except Exception as e:
-        return response.fail("server_error", str(e), 500)
+    data = case_service.get_my_cases(g.user_id)
+    return response.ok(data)

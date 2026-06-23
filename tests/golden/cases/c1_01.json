@@ -1,0 +1,325 @@
+{
+  "schema_version": "2.0",
+  "id": "c1_01",
+  "service_type": "CASE1",
+  "description": "갑상선암 진단 통원 시 3개 보험 중복 탐색",
+  "selected_policies": [
+    "DB 계속받는 3대질병보험",
+    "KB 9회주는 암보험Plus",
+    "한화생명 e암보험(비갱신형)"
+  ],
+  "case": {
+    "initial_situation": "갑상선암 조직검사 확정, 수술 전 통원",
+    "disease": "갑상선암",
+    "disease_kcd": "C73",
+    "is_inpatient": false,
+    "is_outpatient": true,
+    "surgery": false,
+    "treatment_items": [],
+    "payment_amount": 45000,
+    "visit_dates": [
+      "2026-06-10"
+    ],
+    "annual_visit_count": 1,
+    "policy_elapsed_days": 730
+  },
+  "demo_assumptions": {
+    "DB 갑상선암진단비": {
+      "coverage_amount": 3000000
+    },
+    "KB 갑상선암(초기제외)진단비": {
+      "coverage_amount": 3000000
+    },
+    "한화 유사암 진단자금": {
+      "coverage_amount": 2000000
+    }
+  },
+  "expected": [
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "갑상선암진단비(비갱신형/갱신형)",
+      "status": "eligible",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::갑상선암진단비(비갱신형/갱신형)",
+      "estimated_amount": 3000000,
+      "calculation": "3,000,000원 × 100%",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "① 15세이상 비갱신형 계약 및 15세이상 갱신형(최초) 계약: 보험계약일로부터 1년미만 보험가입금액의 50%, 보험계약일로부터 1년이상 보험가입금액의 100% / ② 15세미만 계약 또는 갱신형(갱신) 계약: 보험가입금액의 100%",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "DB 갑상선암진단비",
+          "field": "coverage_amount",
+          "amount": 3000000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "갑상선암진단비(비갱신형/갱신형) 특별약관 1.(보험금의 지급사유)",
+          "page": 89
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 3,000,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "① 15세이상 비갱신형 계약 및 15세이상 갱신형(최초) 계약: 보험계약일로부터 1년미만 보험가입금액의 50%, 보험계약일로부터 1년이상 보험가입금액의 100% / ② 15세미만 계약 또는 갱신형(갱신) 계약: 보험가입금액의 100%"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "3,000,000원 × 100%"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "3,000,000원"
+        }
+      ]
+    },
+    {
+      "policy": "KB 9회주는 암보험Plus",
+      "rider": "갑상선암(초기제외)진단비",
+      "status": "eligible",
+      "rider_catalog_key": "KB 9회주는 암보험Plus::갑상선암(초기제외)진단비",
+      "estimated_amount": 3000000,
+      "calculation": "3,000,000원 × 100%",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "최초의 계약 보험계약일부터 1년미만: 보험가입금액의 50%, 보험계약일부터 1년이상: 보험가입금액의 100%, 갱신된 계약: 보험가입금액의 100%",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "KB 갑상선암(초기제외)진단비",
+          "field": "coverage_amount",
+          "amount": 3000000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "갑상선암(초기제외)진단비 특별약관 제1조(보험금의 지급사유)",
+          "page": 257
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 3,000,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "최초의 계약 보험계약일부터 1년미만: 보험가입금액의 50%, 보험계약일부터 1년이상: 보험가입금액의 100%, 갱신된 계약: 보험가입금액의 100%"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "3,000,000원 × 100%"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "3,000,000원"
+        }
+      ]
+    },
+    {
+      "policy": "한화생명 e암보험(비갱신형)",
+      "rider": "유사암 진단자금",
+      "status": "eligible",
+      "rider_catalog_key": "한화생명 e암보험(비갱신형)::유사암 진단자금",
+      "estimated_amount": 2000000,
+      "calculation": "2,000,000원 × 100%",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "별표 1 '보험금 지급기준표' 참조",
+        "claim_formula": null,
+        "demo_input": {
+          "label": "한화 유사암 진단자금",
+          "field": "coverage_amount",
+          "amount": 2000000,
+          "source": "demo_policy_certificate"
+        },
+        "policy_source": {
+          "article": "제13조(보험금의 지급사유) 제5호, 제14조(보험금 지급에 관한 세부규정) ①⑨⑫",
+          "page": 30
+        },
+        "result_meaning": "약관의 지급 산식에 데모 보험가입금액 또는 데모 병원비를 대입한 예상값"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "계산 입력값",
+          "detail": "데모 보험증권 가입금액: 2,000,000원"
+        },
+        {
+          "step": 2,
+          "title": "약관 지급 기준",
+          "detail": "별표 1 '보험금 지급기준표' 참조"
+        },
+        {
+          "step": 3,
+          "title": "보험금 계산",
+          "detail": "2,000,000원 × 100%"
+        },
+        {
+          "step": 4,
+          "title": "최종 예상보험금",
+          "detail": "2,000,000원"
+        }
+      ]
+    },
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "rider": "암직접치료입원일당(요양병원제외)(1일이상180일한도)",
+      "status": "not_applicable",
+      "rider_catalog_key": "DB 계속받는 3대질병보험::암직접치료입원일당(요양병원제외)(1일이상180일한도)",
+      "estimated_amount": 0,
+      "calculation": null,
+      "note": "입원 아님",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "제자리암·경계성종양·기타피부암·갑상선암으로 입원 시 보험가입금액의 10%, 암으로 입원 시 보험가입금액의 100%",
+        "claim_formula": null,
+        "demo_input": null,
+        "policy_source": {
+          "article": "암직접치료입원일당(요양병원제외)(1일이상180일한도)(비갱신형/갱신형) 특별약관 3.(보험금의 지급사유)",
+          "page": 74
+        },
+        "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "약관 지급 기준",
+          "detail": "제자리암·경계성종양·기타피부암·갑상선암으로 입원 시 보험가입금액의 10%, 암으로 입원 시 보험가입금액의 100%"
+        },
+        {
+          "step": 2,
+          "title": "미지급 판정",
+          "detail": "입원 아님"
+        },
+        {
+          "step": 3,
+          "title": "최종 예상보험금",
+          "detail": "0원"
+        }
+      ]
+    },
+    {
+      "policy": "한화생명 e암보험(비갱신형)",
+      "rider": "암진단자금",
+      "status": "not_applicable",
+      "rider_catalog_key": "한화생명 e암보험(비갱신형)::암진단자금",
+      "estimated_amount": 0,
+      "calculation": null,
+      "note": "갑상선암은 유사암",
+      "amount_basis": {
+        "coverage_kind": "정액",
+        "policy_rule": "별표 1 '보험금 지급기준표' 참조",
+        "claim_formula": null,
+        "demo_input": null,
+        "policy_source": {
+          "article": "제13조(보험금의 지급사유) 제2호, 제14조(보험금 지급에 관한 세부규정) ⑨⑩⑪",
+          "page": 30
+        },
+        "result_meaning": "현재 조건에서 지급대상이 아니므로 0원"
+      },
+      "calculation_steps": [
+        {
+          "step": 1,
+          "title": "약관 지급 기준",
+          "detail": "별표 1 '보험금 지급기준표' 참조"
+        },
+        {
+          "step": 2,
+          "title": "미지급 판정",
+          "detail": "갑상선암은 유사암"
+        },
+        {
+          "step": 3,
+          "title": "최종 예상보험금",
+          "detail": "0원"
+        }
+      ]
+    }
+  ],
+  "must_not_match": [],
+  "expected_summary": {
+    "eligible_count": 3,
+    "not_met_count": 2
+  },
+  "display_rule": {
+    "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+    "disclaimer": "약관의 지급 산식에 데모 보험가입금액·병원비를 적용한 테스트 예상값입니다. 실제 보험증권, 진료비 세부내역과 보험사 심사 결과에 따라 달라질 수 있습니다.",
+    "show_total_as_confirmed_payment": false
+  },
+  "demo_amount_inputs": [
+    {
+      "label": "DB 갑상선암진단비",
+      "field": "coverage_amount",
+      "amount": 3000000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "KB 갑상선암(초기제외)진단비",
+      "field": "coverage_amount",
+      "amount": 3000000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    },
+    {
+      "label": "한화 유사암 진단자금",
+      "field": "coverage_amount",
+      "amount": 2000000,
+      "source": "demo_policy_certificate",
+      "note": "실제 사용자 보험증권 대신 테스트를 위해 가정한 가입금액"
+    }
+  ],
+  "policy_amount_summary": [
+    {
+      "policy": "DB 계속받는 3대질병보험",
+      "estimated_amount": 3000000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "갑상선암진단비(비갱신형/갱신형)",
+          "calculation": "3,000,000원 × 100%",
+          "estimated_amount": 3000000
+        }
+      ],
+      "total_calculation": "3,000,000원 = 3,000,000원"
+    },
+    {
+      "policy": "KB 9회주는 암보험Plus",
+      "estimated_amount": 3000000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "갑상선암(초기제외)진단비",
+          "calculation": "3,000,000원 × 100%",
+          "estimated_amount": 3000000
+        }
+      ],
+      "total_calculation": "3,000,000원 = 3,000,000원"
+    },
+    {
+      "policy": "한화생명 e암보험(비갱신형)",
+      "estimated_amount": 2000000,
+      "amount_label": "약관 산식 + 데모 입력값 기준 예상보험금",
+      "calculation_breakdown": [
+        {
+          "rider": "유사암 진단자금",
+          "calculation": "2,000,000원 × 100%",
+          "estimated_amount": 2000000
+        }
+      ],
+      "total_calculation": "2,000,000원 = 2,000,000원"
+    }
+  ]
+}

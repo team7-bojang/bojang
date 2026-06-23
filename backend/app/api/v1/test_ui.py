@@ -1173,6 +1173,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                     body: { preset_ids: selectedPresetIds }
                 });
                 if (res.success) {
+                    registeredPolicyIds = res.data.policy_ids;
                     document.getElementById('step-preset').style.display = 'none';
                     document.getElementById('step-main').style.display = 'flex';
                     curStep = 1;

@@ -5,7 +5,7 @@
 """
 
 from app.core.constants import JudgeStatus
-from app.core.errors import NotFoundError
+from app.core.errors import ForbiddenError, NotFoundError
 from app.db import get_client
 from app.judge import judge
 from app.rag.explainer import explain
@@ -251,6 +251,8 @@ def search_analysis(user_id: str, case_id: str) -> dict:
     if not res_case.data:
         raise NotFoundError("해당 상황 정보(Case)를 찾을 수 없습니다.")
     case_data = res_case.data[0]
+    if case_data.get("user_id") != user_id:
+        raise ForbiddenError("다른 사용자의 case에 접근할 수 없습니다.")
 
     # 2. 내 가입 보험 목록 조회 (cases.policy_ids 기반 조회)
     case_policy_ids = case_data.get("policy_ids") or []
@@ -278,8 +280,9 @@ def search_analysis(user_id: str, case_id: str) -> dict:
     query = f"{case_data.get('disease_name', '')} {case_data.get('disease_kcd', '')}"
     if case_data.get("surgery"):
         query += " 수술"
-    if case_data.get("current_days"):
-        query += f" {case_data['current_days']}일 입원"
+    admission_days_current = case_data.get("admission_days_current", case_data.get("current_days"))
+    if admission_days_current:
+        query += f" {admission_days_current}일 입원"
 
     treatment_mapping = {
         "MANUAL_THERAPY": "도수치료 체외충격파 증식치료",
@@ -500,6 +503,8 @@ def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days
     if not res_case.data:
         raise NotFoundError("해당 상황 정보(Case)를 찾을 수 없습니다.")
     case_data = res_case.data[0]
+    if case_data.get("user_id") != user_id:
+        raise ForbiddenError("다른 사용자의 case에 접근할 수 없습니다.")
 
     # 2. 내 가입 보험 목록 조회 (cases.policy_ids 기반 조회)
     case_policy_ids = case_data.get("policy_ids") or []

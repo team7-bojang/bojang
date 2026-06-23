@@ -1,13 +1,28 @@
 import json
 import re
 import uuid
-from datetime import UTC, datetime
+from datetime import date
 
 from openai import OpenAI
 
 from app.config import settings
 from app.core.errors import NotFoundError
 from app.db import get_client
+
+ALLOWED_TREATMENT_ITEMS = {
+    "MRI_MRA",
+    "CT",
+    "XRAY",
+    "MANUAL_THERAPY",
+    "PHYSICAL_THERAPY",
+    "ECSWT",
+    "INJECTION",
+    "MEDICATION",
+    "CAST",
+    "BRACE_SPLINT",
+    "EMERGENCY",
+    "OTHER",
+}
 
 
 def _classify_intent_llm(situation: str) -> tuple[str, str, str]:
@@ -70,10 +85,7 @@ def _classify_intent_rule(situation: str) -> tuple[str, str, str]:
         "진료비 세부산정내역서가 있다면 더 정확한 분석이 가능해요."
     )
 
-    if any(
-        word in situation
-        for word in ["입원", "수술", "mri", "ct", "도수", "정밀", "뇌경색", "위암", "디스크"]
-    ):
+    if any(word in situation for word in ["입원", "수술", "mri", "ct", "도수", "정밀", "뇌경색", "위암", "디스크"]):
         recommended = "MEDICAL_DETAIL_STATEMENT"
         message = (
             "입원, 수술 또는 정밀검사가 포함되어 있네요. "
@@ -107,7 +119,6 @@ def create_case(
 질병·암·실손·상해 관련 청구 상황으로 다시 입력해 주세요.""",
         }
 
-    db = get_client()
     case_id = str(uuid.uuid4())
 
     # 1. Preset 선택 등록 (CASE2인 경우 단일 선택 유효성 검증)
@@ -436,6 +447,8 @@ def create_case(
     case_data = {
         "id": case_id,
         "user_id": user_id,
+        "service_type": service_type,
+        "policy_ids": policy_ids,
         "disease_kcd": disease_kcd,
         "disease_name": disease_name,
         "disease_kcd_candidates": disease_kcd_candidates,
@@ -453,6 +466,13 @@ def create_case(
     }
 
     db.table("cases").insert(case_data).execute()
+
+    if service_type == "CASE2":
+        recommended_input_method, available_input_methods, message_out = None, [], None
+    else:
+        recommended_input_method = rec_method
+        available_input_methods = ["PAYMENT", "MEDICAL_DETAIL_STATEMENT"]
+        message_out = message
 
     return {
         "case_id": case_id,
@@ -670,6 +690,13 @@ def patch_extracted_info(user_id: str, case_id: str, info: dict) -> dict:
 def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
     """부족 정보에 대한 추가 답변 리스트(v2.1)를 저장합니다."""
     db = get_client()
+    res = db.table("cases").select("*").eq("id", case_id).execute()
+    if not res.data:
+        raise NotFoundError("해당 case를 찾을 수 없습니다.")
+    case = res.data[0]
+    if case.get("user_id") != user_id:
+        raise ForbiddenError("다른 사용자의 case에 접근할 수 없습니다.")
+    return case
 
     updates = {}
     is_inpt = None
@@ -839,9 +866,7 @@ def get_my_cases(user_id: str) -> list[dict]:
         res_results = db.table("analysis_results").select("*").eq("case_id", c["id"]).execute()
         analysis_data = res_results.data or []
 
-        eligible_count = sum(
-            1 for r in analysis_data if r.get("status") in ["eligible", "potential"]
-        )
+        eligible_count = sum(1 for r in analysis_data if r.get("status") in ["eligible", "potential"])
 
         res_reports = db.table("reports").select("id").eq("case_id", c["id"]).execute()
         report_id = res_reports.data[0]["id"] if res_reports.data else None

@@ -20,11 +20,8 @@ bp = APIBlueprint("analysis", __name__, url_prefix="/api/v1", abp_tags=[Tag(name
 @require_auth
 def search_analysis(body: SearchRequest):
     """상황 기준 보장 교차 검색 (RAG + 룰 엔진 연동) (SCR-04)."""
-    try:
-        data = analysis_service.search_analysis(g.user_id, body.case_id)
-        return response.ok(data)
-    except Exception as e:
-        return response.fail("server_error", str(e), 500)
+    data = analysis_service.search_analysis(g.user_id, body.case_id)
+    return response.ok(data)
 
 
 @bp.post("/analysis/compare")
