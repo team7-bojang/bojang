@@ -586,6 +586,9 @@ def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
         
     db.table("cases").update(updates).eq("id", case_id).execute()
 
+    res_c = db.table("cases").select("*").eq("id", case_id).execute()
+    latest_case = res_c.data[0] if res_c.data else case
+
     return {
         "case_id": case_id,
         "input_method": "PAYMENT",
@@ -603,6 +606,7 @@ def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
             "threshold_basis": threshold_basis,
         },
         "treatment_types": get_treatment_types(),
+        "next_question": get_next_question(latest_case),
     }
 
 
@@ -668,6 +672,9 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_name: str) ->
     }
     db.table("cases").update(updates).eq("id", case_id).execute()
 
+    res_c = db.table("cases").select("*").eq("id", case_id).execute()
+    latest_case = res_c.data[0] if res_c.data else updates
+
     print(
         f"[case_service] 세부산정내역서({file_name}) 분석 완료: "
         f"질병={disease_name}({disease_kcd}), 치료항목={treatment_items}"
@@ -696,6 +703,7 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_name: str) ->
             ],
         },
         "needs_confirmation": True,
+        "next_question": get_next_question(latest_case),
     }
 
 
@@ -1074,7 +1082,24 @@ def get_next_question(case: dict) -> dict | None:
             "options": case.get("disease_kcd_candidates") or []
         }
 
-    # 2. 의사 권고 진단일수 (diag_days) 확인 필요 (CASE2인 경우)
+    # 2. 결제 자료 입력 유도 (CASE1인 경우에만 적용)
+    # 아직 결제 문자나 파일 내용이 들어오지 않아 payment_amount가 비어 있을 때
+    if service_type == "CASE1" and case.get("payment_amount") is None:
+        return {
+            "question_id": "input_method",
+            "question_text": (
+                "상황을 확인했어요. 분석을 진행할 자료의 입력 방식을 선택해 주세요.\n\n"
+                "문자나 카드내역만 있어도 빠르게 확인할 수 있어요. (대신 치료 내용이 부족하면 제가 짧게 몇 가지 더 여쭤볼게요)\n\n"
+                "진료비 세부산정내역서가 있다면 치료 항목을 직접 고르는 과정이 생략됩니다."
+            ),
+            "input_type": "select_button",
+            "options": [
+                {"value": "PAYMENT", "label": "💳 문자·카드내역으로 빠르게 확인"},
+                {"value": "MEDICAL_DETAIL_STATEMENT", "label": "📄 진료비 세부산정내역서로 자세히 확인"}
+            ]
+        }
+
+    # 3. 의사 권고 진단일수 (diag_days) 확인 필요 (CASE2인 경우)
     if service_type == "CASE2" and case.get("admission_days_diagnosed") is None:
         return {
             "question_id": "admission_days_diagnosed",
@@ -1083,7 +1108,7 @@ def get_next_question(case: dict) -> dict | None:
             "placeholder": "예: 4일"
         }
 
-    # 3. 현재 입원일수 (current_days) 확인 필요
+    # 4. 현재 입원일수 (current_days) 확인 필요
     if case.get("admission_days_current") is None:
         # 외래 통원이 아닌 경우에만 입원일수 확인
         if not (case.get("is_outpatient") and not case.get("is_inpatient")):
@@ -1094,7 +1119,7 @@ def get_next_question(case: dict) -> dict | None:
                 "placeholder": "예: 3일"
             }
 
-    # 4. 수술 여부 (surgery) 확인 필요
+    # 5. 수술 여부 (surgery) 확인 필요
     if case.get("surgery") is None:
         return {
             "question_id": "surgery",
@@ -1106,8 +1131,7 @@ def get_next_question(case: dict) -> dict | None:
             ]
         }
 
-    # 5. 치료 항목 (treatment_items) 확인 필요
-    # 치료 항목이 비어 있거나 없는 경우
+    # 6. 치료 항목 (treatment_items) 확인 필요
     if not case.get("treatment_items"):
         return {
             "question_id": "treatment_items",
@@ -1122,7 +1146,7 @@ def get_next_question(case: dict) -> dict | None:
             ]
         }
 
-    # 6. 연간 내원 횟수 (annual_visit_count) 확인 필요
+    # 7. 연간 내원 횟수 (annual_visit_count) 확인 필요
     if case.get("annual_visit_count") is None:
         return {
             "question_id": "annual_visit_count",
@@ -1131,7 +1155,7 @@ def get_next_question(case: dict) -> dict | None:
             "placeholder": "예: 1번"
         }
 
-    # 7. 가입 기간 경과 (policy_elapsed_days) 확인 필요
+    # 8. 가입 기간 경과 (policy_elapsed_days) 확인 필요
     if case.get("policy_elapsed_days") is None:
         return {
             "question_id": "policy_elapsed_days",

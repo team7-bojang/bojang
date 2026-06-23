@@ -29,8 +29,9 @@ def search_analysis(body: SearchRequest):
 def compare_scenarios(body: CompareRequest):
     """조건별 비교 분석 (v2.1)."""
     try:
+        scenarios_list = [sc.model_dump() for sc in body.scenarios]
         data = analysis_service.compare_scenarios(
-            g.user_id, body.case_id, body.current_days, body.target_days
+            g.user_id, body.case_id, scenarios_list
         )
         return response.ok(data)
     except Exception as e:

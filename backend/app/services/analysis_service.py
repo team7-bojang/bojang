@@ -494,8 +494,18 @@ def search_analysis(user_id: str, case_id: str) -> dict:
     }
 
 
-def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days: int) -> dict:
-    """현재 입원 경과일수와 비교 대상 입원일수를 기준으로 보장 조건 차이를 비교합니다 (v2.1)."""
+def compare_scenarios(
+    user_id: str,
+    case_id: str,
+    scenarios_input: list[dict] = None,
+    current_days: int = None,
+    target_days: int = None,
+) -> dict:
+    """입원 경과일수를 기준으로 보장 조건 차이를 비교합니다 (v2.1).
+    
+    scenarios_input이 전달되면 프론트엔드 맞춤형 다중 시나리오 비교 결과({scenarios, comparisons})를 반환하고,
+    기존처럼 current_days와 target_days가 전달되면 기존 포맷의 비교 결과({comparison, slider, ...})를 반환합니다.
+    """
     db = get_client()
 
     # 1. 상황 정보 조회
@@ -519,11 +529,12 @@ def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days
     if not my_policies:
         my_policies = DUMMY_POLICIES
         is_dummy_used = True
-        notice = (
-            "실제 DB에 등록된 보험이 없어, 테스트를 위해 임의의 데모 보험 데이터"
-            "(DB손해 3대질병)를 임시로 추가하여 퇴원 시점 비교표를 구성했습니다."
-        )
-        print("[analysis_service] 가입보험 없음 -> 임의 데모 보험 비교.")
+        if not scenarios_input:
+            notice = (
+                "실제 DB에 등록된 보험이 없어, 테스트를 위해 임의의 데모 보험 데이터"
+                "(DB손해 3대질병)를 임시로 추가하여 퇴원 시점 비교표를 구성했습니다."
+            )
+            print("[analysis_service] 가입보험 없음 -> 임의 데모 보험 비교.")
 
     policy_ids = [p["id"] for p in my_policies]
     policy_names = {p["id"]: p["name"] for p in my_policies}
@@ -541,12 +552,110 @@ def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days
 
     if not my_riders:
         my_riders = DUMMY_RIDERS
-        if not notice:
+        if not scenarios_input and not notice:
             notice = (
                 "비교 가능한 입원 특약 데이터가 부족하여, 임의의 데모 입원 특약"
                 "(DB손해 질병입원일당) 데이터를 임시로 보완하여 비교를 진행했습니다."
             )
             print("[analysis_service] 입원특약 없음 -> 임의 데모 입원특약 비교.")
+
+    # ─── 분기 1: 신규 다중 시나리오 방식 (scenarios_input이 전달된 경우) ───
+    if scenarios_input is not None:
+        comparisons = []
+        for r in my_riders:
+            trigger = r.get("trigger_type")
+            policy_id = r.get("policy_id")
+            policy_name = policy_names.get(policy_id, "기타보험")
+
+            outcomes = []
+            for sc in scenarios_input:
+                days = sc.get("days", 0)
+
+                # 질병군 및 특약 매칭 규칙 조회
+                req_groups, excl_groups = get_disease_rules_for_rider(db, r.get("id"), r.get("name") or "", r.get("trigger_type"))
+
+                # 입원 특약은 시나리오 일수(days)로 판정, 그 외는 case의 기본 일수로 판정
+                actual_days = days if trigger == "입원" else (case_data.get("admission_days_current") or 1)
+
+                temp_case = {
+                    "disease_kcd": case_data.get("disease_kcd", ""),
+                    "disease_name": case_data.get("disease_name", ""),
+                    "surgery": bool(case_data.get("surgery", False)),
+                    "diag_days": actual_days,
+                    "current_days": actual_days,
+                    "policy_elapsed_days": case_data.get("policy_elapsed_days"),
+                    "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
+                    "treatment_codes": case_data.get("treatment_items") or [],
+                    "coverage_amounts": case_data.get("coverage_amounts"),
+                    "covered_amounts": case_data.get("covered_amounts"),
+                    "payment_amount": case_data.get("payment_amount"),
+                }
+
+                judge_rider = {
+                    "id": r.get("id"),
+                    "name": r.get("name"),
+                    "trigger_type": r.get("trigger_type", ""),
+                    "boundaries": r.get("boundaries", []),
+                    "exclusions": r.get("exclusions", []),
+                    "limits": r.get("limits", []),
+                    "waiting_period_days": r.get("waiting_period_days"),
+                    "reductions": r.get("reductions", []),
+                    "deduct_days": r.get("deduct_days", 0),
+                    "unit_amount": r.get("unit_amount"),
+                    "unit_type": r.get("unit_type"),
+                    "claim_rule": r.get("claim_rule"),
+                    "source_pages": r.get("source_pages", []),
+                    "require_groups": req_groups,
+                    "exclude_groups": excl_groups,
+                    "require_treatments": get_rider_treatment_codes(db, r.get("id"), r.get("name")),
+                    "treatment_codes": get_rider_treatment_codes(db, r.get("id"), r.get("name")),
+                }
+
+                judgement = judge(temp_case, judge_rider)
+                status = judgement["status"]
+                gap_days = judgement.get("gap_days")
+
+                calc_text = None
+                if status == JudgeStatus.BOUNDARY_NOT_MET:
+                    matched_b = judgement.get("matched_boundary") or "조건"
+                    calc_text = f"{matched_b} 조건 미달"
+                elif status == JudgeStatus.ELIGIBLE:
+                    calc_text = judgement.get("calc")
+                    if not calc_text:
+                        unit_amount = r.get("unit_amount") or 10000
+                        deduct_days = r.get("deduct_days") or 0
+                        effective_days = max(0, actual_days - deduct_days)
+                        if trigger == "입원":
+                            if deduct_days > 0:
+                                calc_text = f"{deduct_days + 1}일째부터 지급, {effective_days}일 지급 ({unit_amount * effective_days:,}원)"
+                            else:
+                                calc_text = f"{effective_days}일 지급 ({unit_amount * effective_days:,}원)"
+                        else:
+                            calc_text = f"{unit_amount:,}원 지급"
+
+                outcomes.append({
+                    "status": status.value if hasattr(status, "value") else str(status),
+                    "calc": calc_text,
+                    "gap_days": gap_days
+                })
+
+            comparisons.append({
+                "policy": policy_name,
+                "rider": r["name"],
+                "outcomes": outcomes
+            })
+
+        scenarios_output = [{"name": sc.get("name", "")} for sc in scenarios_input]
+        return {
+            "scenarios": scenarios_output,
+            "comparisons": comparisons
+        }
+
+    # ─── 분기 2: 기존 단일/이중 일수 비교 방식 (current_days, target_days가 전달된 경우) ───
+    if current_days is None:
+        current_days = case_data.get("admission_days_current") or 1
+    if target_days is None:
+        target_days = current_days
 
     comparison_results = []
     all_breakpoints = set()
@@ -555,26 +664,22 @@ def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days
 
     for r in my_riders:
         trigger = r.get("trigger_type")
-
         policy_id = r.get("policy_id")
         policy_name = policy_names.get(policy_id, "기타보험")
         insurer = policy_insurers.get(policy_id, "기타보험사")
 
         boundaries = r.get("boundaries") or []
-        rider_breakpoints = []
         is_special = False
 
         for b in boundaries:
             cond_days = b.get("condition_days", 0)
             if cond_days > 1:
                 all_breakpoints.add(cond_days)
-                rider_breakpoints.append(cond_days)
                 is_special = True
                 if cond_days > slider_max:
                     slider_max = cond_days
 
         scenarios = []
-        # 입원 특약은 current_days/target_days 두 시나리오 비교, 그 외(진단/수술)는 입원일수와 무관하므로 1회만 판정
         if trigger == "입원":
             if current_days == target_days:
                 scenario_days_list = [None]
@@ -582,11 +687,11 @@ def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days
                 scenario_days_list = [current_days, target_days]
         else:
             scenario_days_list = [None]
-        for days in scenario_days_list:
-            # 질병군 및 특약 매칭 규칙 조회
-            req_groups, excl_groups = get_disease_rules_for_rider(db, r.get("id"), r.get("name") or "", r.get("trigger_type"))
 
+        for days in scenario_days_list:
+            req_groups, excl_groups = get_disease_rules_for_rider(db, r.get("id"), r.get("name") or "", r.get("trigger_type"))
             actual_days = days if days is not None else current_days
+
             temp_case = {
                 "disease_kcd": case_data.get("disease_kcd", ""),
                 "disease_name": case_data.get("disease_name", ""),
@@ -636,7 +741,6 @@ def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days
                 deduct_days = r.get("deduct_days") or 0
                 effective_days = max(0, actual_days - deduct_days)
                 
-                # judge 결과의 calc를 우선 반영
                 calc_text = judgement.get("calc")
                 if not calc_text:
                     if trigger == "입원":
@@ -657,7 +761,7 @@ def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days
             scenarios.append(
                 {
                     "days": days,
-                    "status": status,
+                    "status": status.value if hasattr(status, "value") else str(status),
                     "type": "special" if is_special else "base",
                     "label": "특약 조건" if is_special else ("입원일당" if trigger == "입원" else "진단/수술"),
                     "calc": calc_text,

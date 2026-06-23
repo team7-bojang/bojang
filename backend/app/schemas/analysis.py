@@ -36,51 +36,33 @@ class SearchRequest(BaseModel):
 
 
 # ── POST /analysis/compare (API 15) v2.1 ──
+class ScenarioInput(BaseModel):
+    days: int
+    name: str
+
+
 class CompareRequest(BaseModel):
     case_id: str
-    current_days: int
-    target_days: int
+    scenarios: list[ScenarioInput]
 
 
-class SliderInfo(BaseModel):
-    min: int
-    max: int
-    current: int
-    target: int
-    breakpoints: list[int]
+class ScenarioOutput(BaseModel):
+    name: str
 
 
-class CompareScenario(BaseModel):
-    days: int
+class Outcome(BaseModel):
     status: str
-    type: str  # "base" | "special"
-    label: str
     calc: str | None = None
-    amount_note: str | None = None
     gap_days: int | None = None
 
 
-class CompareEvidence(BaseModel):
-    article_no: str | None = None
-    page: int | None = None
-    quote: str | None = None
-
-
-class CompareRiderResult(BaseModel):
-    rider_name: str
-    policy_name: str
-    insurer: str
-    verified: bool
-    scenarios: list[CompareScenario] | None = None
-    base_calc: str | None = None
-    evidence: CompareEvidence | None = None
+class Comparison(BaseModel):
+    policy: str
+    rider: str
+    outcomes: list[Outcome]
 
 
 class CompareResponse(BaseModel):
-    has_special_coverage: bool
-    top_message: str
-    missed_amount_note: str | None = None
-    slider: SliderInfo | None = None
-    comparison: list[CompareRiderResult]
-    disclaimer: str
-    notice: str | None = None
+    scenarios: list[ScenarioOutput]
+    comparisons: list[Comparison]
+
