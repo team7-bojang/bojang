@@ -41,3 +41,8 @@ Thumbs.db
 
 # ─────────────── Scratch Scripts ───────────────
 scratch/
+
+# ─────────────── Test Cases & Golden Set ───────────────
+tests/golden_set_v2/
+cases/
+*.docx

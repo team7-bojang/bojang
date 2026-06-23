@@ -4,6 +4,14 @@ from app.db import get_client
 from app.rag.embedder import embed
 
 
+def clean_for_match(text: str) -> str:
+    if not text:
+        return ""
+    # 공백, 성, 증, 특약명 등 제거하여 유연한 매칭 지원
+    return text.replace(" ", "").replace("성", "").replace("증", "").replace("특별약관", "").replace("특약", "")
+
+
+
 class Retriever:
     def __init__(self):
         # get_client()를 통해 Real/Mock Supabase 연동
@@ -152,6 +160,12 @@ class Retriever:
                 elif is_disease_query and "상해" in rider_name:
                     keyword_score -= 1.0
                 else:
+                    # 상해/질병 상황별 실손 가산점 보강
+                    if is_injury_query and "상해" in rider_name:
+                        keyword_score += 1.5
+                    elif is_disease_query and "질병" in rider_name:
+                        keyword_score += 1.5
+
                     has_hosp = any(w in query for w in ["입원", "치료"])
                     has_outpatient = any(w in query for w in ["통원", "치료", "외래"])
                     if "입원" in rider_name and has_hosp:
@@ -162,13 +176,16 @@ class Retriever:
                         keyword_score += 0.4
 
             # 동적 질병 그룹 가산점 (DB 룰 연동 적용)
-            has_dynamic_match = False
+            dynamic_match_count = 0
+            rider_name_clean = clean_for_match(rider_name)
             for gk in group_keywords:
-                if gk in rider_name or gk in content:
-                    has_dynamic_match = True
-                    break
-            if has_dynamic_match:
-                keyword_score += 1.5
+                gk_clean = clean_for_match(gk)
+                if gk_clean in rider_name_clean:
+                    keyword_score += 1.2 + (len(gk_clean) * 0.2)
+                    dynamic_match_count += 1
+                elif gk in content:
+                    keyword_score += 0.6
+                    dynamic_match_count += 1
 
             # 질병 관련 특약 가산점 (질병 상황 시 일반 질병 특약 매칭 보정)
             is_disease_rider = "질병" in rider_name
@@ -177,12 +194,14 @@ class Retriever:
                     keyword_score += 1.5
 
             # 특정 "진단비" 메인 특약 가산점 (질환 진단 쿼리 시 진단비/진단자금 특약 보정)
-            if is_disease_query and any(w in rider_name for w in ["진단비", "진단자금", "진단금"]):
+            if is_disease_query and any(clean_for_match(w) in rider_name_clean for w in ["진단비", "진단자금", "진단금", "진단"]):
                 keyword_score += 0.5
 
             # 일반 암진단비 / 일반 3대질병진단비 보정 가산점 (특정 부위/한정 암 제외)
-            if any(w in rider_name for w in ["암진단비", "암진단자금"]) and not any(
-                w in rider_name
+            has_cancer = "암" in rider_name_clean
+            has_diag_word = any(clean_for_match(w) in rider_name_clean for w in ["진단비", "진단자금", "진단금", "진단"])
+            if has_cancer and has_diag_word and not any(
+                clean_for_match(w) in rider_name_clean
                 for w in [
                     "소아",
                     "남성",
@@ -214,13 +233,17 @@ class Retriever:
                 "유사암진단",
                 "유사암수술",
             ]:
-                if limit_kw in rider_name or limit_kw in content:
-                    if limit_kw not in query:
+                limit_kw_clean = clean_for_match(limit_kw)
+                if limit_kw_clean in rider_name_clean or limit_kw in content:
+                    if limit_kw_clean not in clean_for_match(query):
                         keyword_score -= 0.8
 
             for word in query_words:
-                if word in content or word in rider_name:
-                    keyword_score += 0.05
+                word_clean = clean_for_match(word)
+                if word_clean in rider_name_clean:
+                    keyword_score += 1.5  # rider_name에 직접 쿼리 단어가 매칭되는 경우 강력 추천
+                elif word in content:
+                    keyword_score += 0.1
                     # 핵심 도메인 키워드 추가 가중치
                     if word in [
                         "디스크",
@@ -244,30 +267,17 @@ class Retriever:
         # (다양한 특약이 노출될 수 있도록 보장)
         unique_rider_chunks = []
         seen_riders = set()
-        policy_trigger_counts = {}  # (policy_id, trigger_type) 별 노출 개수 카운트
         for chunk, score in scored_chunks:
             rider_obj = chunk.get("riders") or {}
             rider_name = rider_obj.get("name")
             policy_id = rider_obj.get("policy_id")
-            trigger_type = rider_obj.get("trigger_type") or "기타"
 
             # (policy_id, rider_name) 쌍으로 중복을 방지하여 보험사별로 동일 특약은 1개만 남김
             rider_key = (policy_id, rider_name) if rider_name else chunk.get("id")
 
             if rider_key not in seen_riders:
-                # 보험사별 + 담보유형(진단/입원/수술)별 최대 노출 개수 제한 (다양성 극대화)
-                if policy_id:
-                    trigger_key = (policy_id, trigger_type)
-                    current_count = policy_trigger_counts.get(trigger_key, 0)
-
-                    # 진단/입원/수술 각각 최대 4개씩만 허용 (나머지 기타는 최대 2개)
-                    max_allowed = 4 if trigger_type in ["진단", "입원", "수술"] else 2
-                    if current_count >= max_allowed:
-                        continue  # 해당 담보 유형은 이미 충분히 노출되었으므로 스킵
-                    policy_trigger_counts[trigger_key] = current_count + 1
-
                 seen_riders.add(rider_key)
                 unique_rider_chunks.append((chunk, score))
 
         # 최종 상위 k개 반환
-        return [item[0] for item in unique_rider_chunks[: max(k, 25)]]
+        return [item[0] for item in unique_rider_chunks[: max(k, 80)]]

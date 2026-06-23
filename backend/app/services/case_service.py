@@ -253,7 +253,8 @@ def create_case(
         "C16": "위암",
         "C34": "폐암",
         "I60": "지주막하출혈",
-        "I61": "뇌내출혈"
+        "I61": "뇌내출혈",
+        "I21": "급성심근경색증"
     }
 
     seen_kcds = set()
@@ -335,6 +336,10 @@ def create_case(
             disease_kcd = "I63"
             disease_name = "뇌경색증"
             disease_match_confidence = "high"
+        elif "심근경색" in initial_situation or "심장" in initial_situation:
+            disease_kcd = "I21"
+            disease_name = "급성 심근경색증"
+            disease_match_confidence = "high"
         elif "비염" in initial_situation:
             disease_kcd = "J30"
             disease_name = "알레르기성 비염"
@@ -362,6 +367,7 @@ def create_case(
                 {"kcd": "I63", "name": "뇌경색증"},
                 {"kcd": "J30", "name": "알레르기성 비염"},
                 {"kcd": "C16", "name": "위의 악성 신생물 (위암)"},
+                {"kcd": "I21", "name": "급성 심근경색증"},
             ]
 
     # 4. 입원/통원 여부 매핑
@@ -496,7 +502,7 @@ def save_payment(user_id: str, case_id: str, payment_text: str) -> dict:
 
     # 3. 병원명 파싱
     hospital_name = "OO정형외과"
-    hosp_match = re.search(r"([가-힣\w]+(?:병원|의원|약국))", payment_text)
+    hosp_match = re.search(r"([가-힣\w]+(?:병원|의원|약국|센터|의료원))", payment_text)
     if hosp_match:
         hospital_name = hosp_match.group(1)
 
@@ -615,6 +621,26 @@ def patch_extracted_info(user_id: str, case_id: str, info: dict) -> dict:
     if is_outpt is not None:
         updates["is_outpatient"] = bool(is_outpt)
 
+    # 최상위 검수 완료 데이터 바인딩 추가
+    if "disease_name" in info:
+        updates["disease_name"] = info["disease_name"]
+    if "disease_kcd" in info:
+        updates["disease_kcd"] = info["disease_kcd"]
+    if "surgery" in info:
+        updates["surgery"] = bool(info["surgery"])
+    if "policy_elapsed_days" in info:
+        updates["policy_elapsed_days"] = int(info["policy_elapsed_days"]) if info["policy_elapsed_days"] is not None else None
+    if "current_days" in info:
+        updates["admission_days_current"] = int(info["current_days"]) if info["current_days"] is not None else None
+    if "diag_days" in info:
+        updates["admission_days_diagnosed"] = int(info["diag_days"]) if info["diag_days"] is not None else None
+    if "claimed_policy_ids" in info:
+        updates["claimed_policy_ids"] = info["claimed_policy_ids"] or []
+    if "treatment_items" in info:
+        updates["treatment_items"] = info["treatment_items"] or []
+    if "payment_amount" in info:
+        updates["payment_amount"] = info["payment_amount"]
+
     if input_method == "PAYMENT" and "confirmed_payment" in info:
         pay_info = info["confirmed_payment"] or {}
         if "payment_amount" in pay_info:
@@ -667,8 +693,12 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
             updates["surgery"] = bool(val)
         elif q_id == "admission_days_diagnosed":
             updates["admission_days_diagnosed"] = int(val) if val is not None else None
+            is_inpt = True
+            is_outpt = False
         elif q_id == "admission_days_current":
             updates["admission_days_current"] = int(val) if val is not None else None
+            is_inpt = True
+            is_outpt = False
         elif q_id == "treatment_items":
             updates["treatment_items"] = val
         elif q_id == "annual_visit_count":

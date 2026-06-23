@@ -124,6 +124,93 @@ DUMMY_CHUNKS = [
 ]
 
 
+_disease_group_code_rules_cache = None
+_rider_disease_rules_cache = None
+
+
+def get_disease_groups_for_kcd(db, kcd: str | None) -> list[str]:
+    global _disease_group_code_rules_cache
+    if not kcd:
+        return []
+    try:
+        if _disease_group_code_rules_cache is None:
+            rules_res = db.table("disease_group_code_rules").select("*").execute()
+            _disease_group_code_rules_cache = rules_res.data or []
+            
+        rules_data = _disease_group_code_rules_cache
+        matched_group_ids = []
+        excluded_group_ids = []
+        kcd_clean = kcd[:3].upper()
+        for rule in rules_data:
+            start = rule.get("code_start")
+            end = rule.get("code_end")
+            group_id = rule.get("group_id")
+            
+            in_range = False
+            if start:
+                start = start.upper()
+                if end:
+                    end = end.upper()
+                    if start <= kcd_clean <= end:
+                        in_range = True
+                else:
+                    if kcd.upper().startswith(start):
+                        in_range = True
+                        
+            if in_range:
+                if rule.get("rule_type") == "include":
+                    matched_group_ids.append(group_id)
+                elif rule.get("rule_type") == "exclude":
+                    excluded_group_ids.append(group_id)
+        
+        return [gid for gid in matched_group_ids if gid not in excluded_group_ids]
+    except Exception as e:
+        print(f"[AnalysisService] Failed to query disease groups for {kcd}: {e}")
+        return []
+
+
+def get_disease_rules_for_rider(db, rider_id: str, rider_name: str, trigger_type: str | None) -> tuple[list[str], list[str]]:
+    global _rider_disease_rules_cache
+    require_groups = []
+    exclude_groups = []
+    try:
+        if _rider_disease_rules_cache is None:
+            res = db.table("rider_disease_rules").select("*").execute()
+            _rider_disease_rules_cache = res.data or []
+            
+        rules = _rider_disease_rules_cache
+        
+        specific_rules = [r for r in rules if r.get("rider_id") == rider_id]
+        
+        matched_rules = []
+        if specific_rules:
+            matched_rules = specific_rules
+        else:
+            for r in rules:
+                if r.get("rider_id") is None and r.get("rider_name_pattern"):
+                    pattern = r["rider_name_pattern"].replace("%", "")
+                    if pattern in rider_name:
+                          req_trigger = r.get("require_trigger_type")
+                          if req_trigger and req_trigger != trigger_type:
+                              continue
+                          matched_rules.append(r)
+                        
+        for r in matched_rules:
+            gid = r.get("group_id")
+            rtype = r.get("rule_type")
+            if not gid:
+                continue
+            if rtype == "required":
+                require_groups.append(gid)
+            elif rtype == "excluded":
+                exclude_groups.append(gid)
+                
+        return list(set(require_groups)), list(set(exclude_groups))
+    except Exception as e:
+        print(f"[AnalysisService] Failed to query rider disease rules for {rider_name}: {e}")
+        return [], []
+
+
 def get_rider_treatment_codes(db, rider_id: str, rider_name: str) -> list[str]:
     """해당 특약에 지정된 치료 종류 코드 목록을 조회합니다 (실제 DB 조회 + 특약명 폴백)."""
     try:
@@ -165,9 +252,12 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         raise NotFoundError("해당 상황 정보(Case)를 찾을 수 없습니다.")
     case_data = res_case.data[0]
 
-    # 2. 내 가입 보험 목록 조회
-    res_my = db.table("policies").select("*").eq("user_id", user_id).execute()
-    my_policies = res_my.data or []
+    # 2. 내 가입 보험 목록 조회 (cases.policy_ids 기반 조회)
+    case_policy_ids = case_data.get("policy_ids") or []
+    my_policies = []
+    if case_policy_ids:
+        res_my = db.table("policies").select("*").in_("id", case_policy_ids).execute()
+        my_policies = res_my.data or []
 
     notice = None
     is_dummy_used = False
@@ -191,6 +281,21 @@ def search_analysis(user_id: str, case_id: str) -> dict:
     if case_data.get("current_days"):
         query += f" {case_data['current_days']}일 입원"
 
+    treatment_mapping = {
+        "MANUAL_THERAPY": "도수치료 체외충격파 증식치료",
+        "PHYSICAL_THERAPY": "물리치료",
+        "MRI_MRA": "MRI MRA 자기공명영상",
+        "XRAY": "엑스레이 X-ray",
+        "INJECTION": "주사",
+        "EMERGENCY": "응급실",
+        "CAST": "깁스 깁스치료"
+    }
+    treatment_items = case_data.get("treatment_items") or []
+    for item in treatment_items:
+        kw = treatment_mapping.get(item)
+        if kw:
+            query += f" {kw}"
+
     retriever = Retriever()
     chunks = []
 
@@ -200,6 +305,19 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         except Exception as e:
             print(f"[analysis_service] RAG retriever.search failed: {e}")
             chunks = []
+
+        # RAG 검색 결과에 누락된 rider가 있을 수 있으므로,
+        # policy_ids에 속한 모든 rider를 DB에서 직접 로드하여 보강
+        rag_rider_ids = {c.get("riders", {}).get("id") for c in chunks if c.get("riders")}
+        for pid in policy_ids:
+            try:
+                res_r = db.table("riders").select("*").eq("policy_id", pid).execute()
+                for r in res_r.data or []:
+                    if r["id"] not in rag_rider_ids:
+                        chunks.append({"rider_id": r["id"], "riders": r, "content": r.get("raw_text") or ""})
+                        rag_rider_ids.add(r["id"])
+            except Exception as e:
+                print(f"[analysis_service] Failed to load riders for {pid}: {e}")
 
     if not chunks:
         chunks = DUMMY_CHUNKS
@@ -226,17 +344,27 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             continue
         analyzed_rider_ids.add(rider_id)
 
+        # 질병군 및 특약 매칭 규칙 조회
+        req_groups, excl_groups = get_disease_rules_for_rider(db, rider_id, rider.get("name") or "", rider.get("trigger_type"))
+
         # 판정 엔진 입력에 맞게 캐스팅
         judge_case = {
             "disease_kcd": case_data.get("disease_kcd", ""),
+            "disease_name": case_data.get("disease_name", ""),
             "surgery": bool(case_data.get("surgery", False)),
-            "diag_days": int(case_data.get("diag_days") or 0),
-            "current_days": int(case_data.get("current_days") or 0),
+            "diag_days": int(case_data.get("admission_days_diagnosed") or case_data.get("diag_days") or 0),
+            "current_days": int(case_data.get("admission_days_current") or case_data.get("current_days") or 0),
             "policy_elapsed_days": case_data.get("policy_elapsed_days"),
             "treatment_items": case_data.get("treatment_items") or [],
+            "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
+            "treatment_codes": case_data.get("treatment_items") or [],
+            "coverage_amounts": case_data.get("coverage_amounts"),
+            "covered_amounts": case_data.get("covered_amounts"),
+            "payment_amount": case_data.get("payment_amount"),
         }
 
         judge_rider = {
+            "id": rider_id,
             "name": rider.get("name"),
             "trigger_type": rider.get("trigger_type", ""),
             "boundaries": rider.get("boundaries", []),
@@ -249,16 +377,15 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "unit_type": rider.get("unit_type"),
             "claim_rule": rider.get("claim_rule"),
             "source_pages": rider.get("source_pages", []),
+            "require_groups": req_groups,
+            "exclude_groups": excl_groups,
+            "require_treatments": get_rider_treatment_codes(db, rider_id, rider.get("name")),
             "treatment_codes": get_rider_treatment_codes(db, rider_id, rider.get("name")),
         }
 
         # 룰 엔진 판정 실행
         judgement = judge(judge_case, judge_rider)
         status = judgement["status"]
-
-        # 관련 없는 담보(not_applicable)는 제외
-        if status == JudgeStatus.NOT_APPLICABLE:
-            continue
 
         # RAG 설명문 생성
         rider_chunks = [c for c in chunks if c.get("rider_id") == rider_id]
@@ -267,7 +394,14 @@ def search_analysis(user_id: str, case_id: str) -> dict:
 
         import os
 
-        if os.environ.get("MOCK_LLM") == "True":
+        if status == JudgeStatus.NOT_APPLICABLE:
+            explanation_data = {
+                "explanation": judgement.get("reason") or f"지급 상태가 [{status}]로 판정되었습니다.",
+                "article": rider.get("article_no"),
+                "page": rider.get("page"),
+                "quote": rider.get("raw_text"),
+            }
+        elif os.environ.get("MOCK_LLM") == "True":
             explanation_data = {
                 "explanation": (
                     f"약관 {rider.get('article_no', '조항')}에 근거하여 "
@@ -324,6 +458,9 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "status": status,
             "missed": missed,
             "gap_days": judgement.get("gap_days"),
+            "payable_days": judgement.get("payable_days"),
+            "estimated_amount": judgement.get("expected_amount") or 0,
+            "reduction": judgement.get("reduction"),
             "calc": judgement.get("calc"),
             "explanation": explanation_data.get("explanation"),
             "evidence": evidence,
@@ -364,9 +501,12 @@ def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days
         raise NotFoundError("해당 상황 정보(Case)를 찾을 수 없습니다.")
     case_data = res_case.data[0]
 
-    # 2. 내 가입 보험 목록 조회
-    res_my = db.table("policies").select("*").eq("user_id", user_id).execute()
-    my_policies = res_my.data or []
+    # 2. 내 가입 보험 목록 조회 (cases.policy_ids 기반 조회)
+    case_policy_ids = case_data.get("policy_ids") or []
+    my_policies = []
+    if case_policy_ids:
+        res_my = db.table("policies").select("*").in_("id", case_policy_ids).execute()
+        my_policies = res_my.data or []
 
     notice = None
     is_dummy_used = False
@@ -410,8 +550,6 @@ def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days
 
     for r in my_riders:
         trigger = r.get("trigger_type")
-        if trigger != "입원":
-            continue
 
         policy_id = r.get("policy_id")
         policy_name = policy_names.get(policy_id, "기타보험")
@@ -431,16 +569,35 @@ def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days
                     slider_max = cond_days
 
         scenarios = []
-        for days in [current_days, target_days]:
+        # 입원 특약은 current_days/target_days 두 시나리오 비교, 그 외(진단/수술)는 입원일수와 무관하므로 1회만 판정
+        if trigger == "입원":
+            if current_days == target_days:
+                scenario_days_list = [None]
+            else:
+                scenario_days_list = [current_days, target_days]
+        else:
+            scenario_days_list = [None]
+        for days in scenario_days_list:
+            # 질병군 및 특약 매칭 규칙 조회
+            req_groups, excl_groups = get_disease_rules_for_rider(db, r.get("id"), r.get("name") or "", r.get("trigger_type"))
+
+            actual_days = days if days is not None else current_days
             temp_case = {
                 "disease_kcd": case_data.get("disease_kcd", ""),
+                "disease_name": case_data.get("disease_name", ""),
                 "surgery": bool(case_data.get("surgery", False)),
-                "diag_days": days,
-                "current_days": days,
+                "diag_days": actual_days,
+                "current_days": actual_days,
                 "policy_elapsed_days": case_data.get("policy_elapsed_days"),
+                "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
+                "treatment_codes": case_data.get("treatment_items") or [],
+                "coverage_amounts": case_data.get("coverage_amounts"),
+                "covered_amounts": case_data.get("covered_amounts"),
+                "payment_amount": case_data.get("payment_amount"),
             }
 
             judge_rider = {
+                "id": r.get("id"),
                 "name": r.get("name"),
                 "trigger_type": r.get("trigger_type", ""),
                 "boundaries": r.get("boundaries", []),
@@ -453,6 +610,10 @@ def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days
                 "unit_type": r.get("unit_type"),
                 "claim_rule": r.get("claim_rule"),
                 "source_pages": r.get("source_pages", []),
+                "require_groups": req_groups,
+                "exclude_groups": excl_groups,
+                "require_treatments": get_rider_treatment_codes(db, r.get("id"), r.get("name")),
+                "treatment_codes": get_rider_treatment_codes(db, r.get("id"), r.get("name")),
             }
 
             judgement = judge(temp_case, judge_rider)
@@ -462,28 +623,44 @@ def compare_scenarios(user_id: str, case_id: str, current_days: int, target_days
             amount_note = None
             gap_days = judgement.get("gap_days")
 
-            if status == JudgeStatus.ELIGIBLE:
+            if status == JudgeStatus.BOUNDARY_NOT_MET:
+                matched_b = judgement.get("matched_boundary") or "조건"
+                calc_text = f"{matched_b} 조건 미달 (gap_days: {gap_days})"
+            elif status == JudgeStatus.ELIGIBLE:
                 unit_amount = r.get("unit_amount") or 10000
-                if is_special:
-                    if "정액" in (r.get("unit_basis") or ""):
-                        calc_text = f"{unit_amount:,}원 (정액)"
-                        amount_note = f"{unit_amount:,}원"
+                deduct_days = r.get("deduct_days") or 0
+                effective_days = max(0, actual_days - deduct_days)
+                
+                # judge 결과의 calc를 우선 반영
+                calc_text = judgement.get("calc")
+                if not calc_text:
+                    if trigger == "입원":
+                        if deduct_days > 0:
+                            calc_text = f"{deduct_days + 1}일째부터 지급, {effective_days}일 지급 (deduct_days: {deduct_days})"
+                        else:
+                            calc_text = f"{effective_days}일 지급"
                     else:
-                        calc_text = f"{unit_amount:,}원 × {days}일"
-                        amount_note = f"{unit_amount * days:,}원"
+                        calc_text = f"{unit_amount:,}원 지급"
+                
+                if "일시금" in (r.get("unit_type") or "") or "정액" in (r.get("unit_basis") or ""):
+                    amount_note = f"{unit_amount:,}원"
+                elif trigger == "입원":
+                    amount_note = f"{unit_amount * effective_days:,}원"
                 else:
-                    calc_text = f"{unit_amount:,}원 × {days}일"
-                    amount_note = f"{unit_amount * days:,}원"
+                    amount_note = f"{unit_amount:,}원"
 
             scenarios.append(
                 {
                     "days": days,
                     "status": status,
                     "type": "special" if is_special else "base",
-                    "label": "특약 조건" if is_special else "입원일당",
+                    "label": "특약 조건" if is_special else ("입원일당" if trigger == "입원" else "진단/수술"),
                     "calc": calc_text,
                     "amount_note": amount_note,
                     "gap_days": gap_days,
+                    "payable_days": judgement.get("payable_days"),
+                    "estimated_amount": judgement.get("expected_amount") or 0,
+                    "reduction": judgement.get("reduction"),
                 }
             )
 

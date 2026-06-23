@@ -17,11 +17,21 @@ class InMemoryDB:
         self.treatment_types = []
         self.disease_group_aliases = []
         self.disease_group_code_rules = []
+        self.disease_groups = []
+        self.rider_treatment_rules = []
         self._initialized = False
 
     def initialize_if_needed(self):
         if self._initialized:
             return
+
+        # disease_groups 사전 모의 생성
+        self.disease_groups.extend([
+            {"id": "stroke", "name": "뇌혈관질환", "user_label": "뇌졸중/뇌경색"},
+            {"id": "cancer", "name": "암", "user_label": "암/악성신생물"},
+            {"id": "disc_disease", "name": "추간판장애", "user_label": "허리디스크/목디스크"},
+            {"id": "fracture", "name": "골절", "user_label": "골절/뼈부러짐"},
+        ])
 
         # disease_group_aliases 및 rules 사전 모의 생성
         self.disease_group_aliases.extend([
@@ -29,11 +39,17 @@ class InMemoryDB:
             {"id": 2, "group_id": "disc_disease", "alias": "목디스크", "source": "service"},
             {"id": 3, "group_id": "disc_disease", "alias": "디스크", "source": "service"},
             {"id": 4, "group_id": "fracture", "alias": "골절", "source": "service"},
+            {"id": 5, "group_id": "stroke", "alias": "뇌경색", "source": "service"},
+            {"id": 6, "group_id": "stroke", "alias": "뇌졸중", "source": "service"},
+            {"id": 7, "group_id": "cancer", "alias": "암", "source": "service"},
+            {"id": 8, "group_id": "cancer", "alias": "위암", "source": "service"},
         ])
         
         self.disease_group_code_rules.extend([
-            {'id': 1, 'group_id': 'disc_disease', 'rule_type': 'include', 'code_start': 'M50', 'code_end': 'M51', 'code_system': 'KCD', 'confidence': 'medium', 'note': '디스크'},
-            {'id': 2, 'group_id': 'fracture', 'rule_type': 'include', 'code_start': 'S02', 'code_end': 'S92', 'code_system': 'KCD', 'confidence': 'policy_review_required', 'note': '골절'},
+            {'id': 1, 'group_id': 'stroke', 'rule_type': 'include', 'code_start': 'I60', 'code_end': 'I69', 'code_system': 'KCD', 'confidence': 'high', 'note': '뇌혈관질환'},
+            {'id': 2, 'group_id': 'cancer', 'rule_type': 'include', 'code_start': 'C00', 'code_end': 'D09', 'code_system': 'KCD', 'confidence': 'high', 'note': '악성신생물'},
+            {'id': 3, 'group_id': 'disc_disease', 'rule_type': 'include', 'code_start': 'M50', 'code_end': 'M51', 'code_system': 'KCD', 'confidence': 'medium', 'note': '디스크'},
+            {'id': 4, 'group_id': 'fracture', 'rule_type': 'include', 'code_start': 'S02', 'code_end': 'S92', 'code_system': 'KCD', 'confidence': 'policy_review_required', 'note': '골절'},
         ])
 
         # treatment_types 사전 생성
@@ -203,8 +219,186 @@ class InMemoryDB:
                 print(f"[MockDB] Failed to load 보험약관데이터.json: {e}")
         else:
             print(f"[MockDB] 보험약관데이터.json not found at {data_path}")
+            # 보험약관데이터.json 없을 때 골든셋 평가에 필요한 최소 특약 데이터 하드코딩
+            self._load_golden_preset_riders()
 
         self._initialized = True
+
+    def _load_golden_preset_riders(self):
+        """골든셋 평가용 최소 특약 데이터를 Mock DB에 직접 적재."""
+        golden_riders = [
+            # ── DB 3대질병 (p-db-3dae) ──────────────────────────────────────────
+            {
+                "id": "r-db-hosp-daily",
+                "policy_id": "p-db-3dae",
+                "name": "질병입원일당(1일이상180일한도)",
+                "trigger_type": "입원",
+                "is_main": False,
+                "verified": True,
+                "unit_amount": 10000,
+                "unit_type": "1일당",
+                "boundaries": [{"condition_days": 1, "effect": "1일 이상 입원 시 첫날부터 지급"}],
+                "deduct_days": 0,
+                "limits": [{"scope": "per_hospitalization", "unit": "days", "value": 180}],
+                "waiting_period_days": 0,
+                "reductions": [],
+                "exclusions": [],
+                "claim_rule": None,
+                "article_no": "제12조",
+                "page": 45,
+                "raw_text": (
+                    "피보험자가 질병으로 인하여 1일 이상 입원하여 치료를 받은 경우 "
+                    "첫날부터 입원 1일당 가입금액을 지급합니다. (180일 한도)"
+                ),
+            },
+            {
+                "id": "r-db-stroke-daily",
+                "policy_id": "p-db-3dae",
+                "name": "뇌혈관질환입원일당(4일이상120일한도)",
+                "trigger_type": "입원",
+                "is_main": False,
+                "verified": True,
+                "unit_amount": 30000,
+                "unit_type": "1일당",
+                "boundaries": [{"condition_days": 4, "effect": "4일 이상 입원 시 첫날부터 지급"}],
+                "deduct_days": 0,
+                "limits": [{"scope": "per_hospitalization", "unit": "days", "value": 120}],
+                "waiting_period_days": 0,
+                "reductions": [],
+                "exclusions": ["비뇌혈관성 질환"],
+                "claim_rule": None,
+                "article_no": "제13조",
+                "page": 48,
+                "raw_text": (
+                    "피보험자가 뇌혈관질환(KCD I60~I69)으로 4일 이상 입원 시 "
+                    "첫날부터 입원 1일당 뇌혈관질환입원일당을 지급합니다. (120일 한도)"
+                ),
+            },
+            # ── 현대 실손 (p-hd-silsil) ─────────────────────────────────────────
+            {
+                "id": "r-hd-silsil-hosp",
+                "policy_id": "p-hd-silsil",
+                "name": "질병급여실손의료비(입원)",
+                "trigger_type": "입원",
+                "is_main": False,
+                "verified": True,
+                "unit_amount": 50000000,
+                "unit_type": "일시금",
+                "boundaries": [],
+                "deduct_days": 0,
+                "limits": [],
+                "waiting_period_days": 0,
+                "reductions": [],
+                "exclusions": [],
+                "claim_rule": {
+                    "formula": "min(50000000, actual_cost * 0.8)",
+                    "copay_ratio": 0.2,
+                    "deductible": {"type": "fixed", "value": 0},
+                },
+                "article_no": "제3조",
+                "page": 12,
+                "raw_text": (
+                    "피보험자가 질병으로 입원하여 치료받은 경우 국민건강보험법에서 정한 "
+                    "요양급여 중 본인부담금의 80%를 보상합니다. (5천만원 한도)"
+                ),
+            },
+            # ── 한화 e암보험 (p-hw-cancer) ───────────────────────────────────────
+            {
+                "id": "r-hw-cancer-diag",
+                "policy_id": "p-hw-cancer",
+                "name": "암진단비(유사암제외)(감액없음)",
+                "trigger_type": "진단",
+                "is_main": False,
+                "verified": True,
+                "unit_amount": 30000000,
+                "unit_type": "일시금",
+                "boundaries": [{"condition_days": 0, "effect": "암(유사암 제외) 진단 확정 시 지급"}],
+                "deduct_days": 0,
+                "limits": [],
+                "waiting_period_days": 90,
+                "reductions": [],
+                "exclusions": ["유사암", "제자리암", "경계성종양"],
+                "claim_rule": None,
+                "article_no": "제8조",
+                "page": 22,
+                "raw_text": (
+                    "피보험자가 암(유사암, 제자리암, 경계성종양 제외)으로 진단 확정 시 "
+                    "암진단비를 지급합니다. 감액없이 가입금액 전액 지급. (90일 면책)"
+                ),
+            },
+            {
+                "id": "r-hw-cancer-surgery",
+                "policy_id": "p-hw-cancer",
+                "name": "암수술비(복강경하,흉강경하)(유사암포함, 연간1회한)",
+                "trigger_type": "수술",
+                "is_main": False,
+                "verified": True,
+                "unit_amount": 2000000,
+                "unit_type": "일시금",
+                "boundaries": [{"condition_days": 0, "effect": "암 수술 시 지급 (복강경/흉강경 포함)"}],
+                "deduct_days": 0,
+                "limits": [{"scope": "annual", "unit": "count", "value": 1}],
+                "waiting_period_days": 90,
+                "reductions": [{"elapsed_days": 730, "ratio": 0.5}],
+                "exclusions": [],
+                "claim_rule": None,
+                "article_no": "제9조",
+                "page": 25,
+                "raw_text": (
+                    "피보험자가 암 수술(복강경하·흉강경하 포함, 유사암 포함)을 받은 경우 "
+                    "연간 1회 한하여 암수술비를 지급합니다. 가입 2년 미만인 경우 50% 감액."
+                ),
+            },
+            # ── 메리츠 상해안심 (p-mr-sanghae) ──────────────────────────────────
+            {
+                "id": "r-mr-fracture-diag",
+                "policy_id": "p-mr-sanghae",
+                "name": "골절진단비Ⅱ",
+                "trigger_type": "진단",
+                "is_main": False,
+                "verified": True,
+                "unit_amount": 500000,
+                "unit_type": "일시금",
+                "boundaries": [{"condition_days": 0, "effect": "골절 진단 확정 시 지급"}],
+                "deduct_days": 0,
+                "limits": [],
+                "waiting_period_days": 0,
+                "reductions": [],
+                "exclusions": ["치아 파절", "병적 골절"],
+                "claim_rule": None,
+                "article_no": "제20조",
+                "page": 72,
+                "raw_text": (
+                    "피보험자가 상해로 인하여 골절 진단을 받은 경우 골절진단비Ⅱ를 지급합니다. "
+                    "단, 치아 파절 및 병적 골절은 제외합니다."
+                ),
+            },
+        ]
+
+        for rider in golden_riders:
+            rider_id = rider["id"]
+            policy_id = rider["policy_id"]
+            self.riders.append(rider)
+
+            # RAG 검색용 청크 생성
+            content = (
+                f"특약명: {rider['name']}\n"
+                f"보장개요: {rider.get('raw_text', '')}\n"
+                f"지급기준: {rider.get('unit_type', '')} {rider.get('unit_amount', '')}\n"
+                f"제외사항: {' '.join(rider.get('exclusions', []))}"
+            )
+            self.rider_chunks.append({
+                "id": str(uuid.uuid4()),
+                "rider_id": rider_id,
+                "content": content,
+                "embedding": None,
+                "meta": {
+                    "policy_id": policy_id,
+                    "page": rider.get("page"),
+                    "article_no": rider.get("article_no"),
+                    "trigger_type": rider.get("trigger_type"),
+                },
+            })
 
 
 db_instance = InMemoryDB()
@@ -251,6 +445,10 @@ class MockQueryBuilder:
 
     def eq(self, column, value):
         self._filters.append(("eq", column, value))
+        return self
+
+    def in_(self, column, value):
+        self._filters.append(("in", column, value))
         return self
 
     def neq(self, column, value):
@@ -321,6 +519,8 @@ class MockQueryBuilder:
                         match = False
                     elif op == "neq" and item_val == val:
                         match = False
+                    elif op == "in" and item_val not in (val or []):
+                        match = False
                 if match:
                     filtered_indices.append(idx)
 
@@ -338,6 +538,8 @@ class MockQueryBuilder:
                 if op == "eq" and item_val != val:
                     match = False
                 elif op == "neq" and item_val == val:
+                    match = False
+                elif op == "in" and item_val not in (val or []):
                     match = False
                 elif op == "cs" and isinstance(item_val, list):
                     if val not in item_val:
@@ -421,5 +623,9 @@ class MockSupabaseClient:
             return MockQueryBuilder(table_name, db_instance.disease_group_aliases)
         elif table_name == "disease_group_code_rules":
             return MockQueryBuilder(table_name, db_instance.disease_group_code_rules)
+        elif table_name == "disease_groups":
+            return MockQueryBuilder(table_name, db_instance.disease_groups)
+        elif table_name == "rider_treatment_rules":
+            return MockQueryBuilder(table_name, db_instance.rider_treatment_rules)
         else:
             raise ValueError(f"Unknown table: {table_name}")

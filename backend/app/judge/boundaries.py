@@ -1,123 +1,129 @@
-"""정액 보장 판정 — boundaries·deduct_days·limits·waiting·reduction (claim_rule=None).
+"""정액 보장 판정 — boundaries·waiting·reduction (claim_rule=None).
 
-⚠️ 스켈레톤: 골격·우선순위만 구현. 실제 판정 규칙은 이태경 소유 — 정답셋(tests/golden)
-   기준으로 채운다. 현재는 계약(반환 구조)만 보장한다.
+판정 우선순위: waiting_period → boundary → eligible.
+금액: 가입금액(coverage_amounts) × 일수(일당) 또는 일시금, 감액(reductions) 반영.
+- 입원일당 → expected = 가입금액 × current_days
+- 진단/일시금 → expected = 가입금액
+- 미달(waiting/boundary) → expected=0, additional_amount=조건 충족 시 금액
+- 감액 → reduced_amount = 감액 전 − 지급액  (CASE 2-2)
 """
 
 from __future__ import annotations
 
 from app.core.constants import JudgeStatus
-from app.judge.types import Case, Judgement, Rider
+from app.judge.amounts import resolve_subscribed
+from app.judge.types import Case, Judgement, Rider, new_judgement
 
 
-def _empty(status: str) -> Judgement:
-    return {
-        "status": status,
-        "gap_days": None,
-        "matched_boundary": None,
-        "calc": None,
-        "reduction": None,
-        "limit_note": None,
-    }
+def _is_daily(rider: Rider, trigger: str | None) -> bool:
+    """입원일당처럼 '일수 × 단가'로 지급되는지 여부."""
+    unit_type = rider.get("unit_type") or ""
+    return ("일" in unit_type or trigger == "입원") and "일시금" not in unit_type
+
+
+def _fmt(amount: int | None) -> str:
+    return f"{amount:,}원" if amount is not None else "가입금액 미입력"
 
 
 def judge_fixed(case: Case, rider: Rider) -> Judgement:
-    # 1) 면책기간(waiting_period) 미경과 판정
-    waiting = rider.get("waiting_period_days")
-    elapsed = case.get("policy_elapsed_days")
-    if waiting and elapsed is not None and elapsed < waiting:
-        out = _empty(JudgeStatus.WAITING_PERIOD_NOT_MET)
-        out["gap_days"] = waiting - elapsed
-        return out
-
-    # 트리거 타입 체크 및 매칭
     trigger = rider.get("trigger_type")
-
-    # 상황 데이터 추출
     current_days = case.get("current_days") or 0
-    surgery = case.get("surgery") or False
-    disease_kcd = case.get("disease_kcd") or ""
-    disease_name = case.get("disease_name") or case.get("disease") or ""  # 호환성 강화
+    elapsed = case.get("policy_elapsed_days")
 
-    if trigger == "입원" and current_days == 0:
-        return _empty(JudgeStatus.NOT_APPLICABLE)
-    if trigger == "수술" and not surgery:
-        return _empty(JudgeStatus.NOT_APPLICABLE)
+    subscribed = resolve_subscribed(case, rider)
+    if subscribed is None:
+        return new_judgement(
+            JudgeStatus.NOT_APPLICABLE,
+            reason="가입 정보 없음(미가입)",
+            subscribed_amount=None,
+            expected_amount=0,
+            payable_days=0,
+            additional_amount=0,
+        )
 
-    # 뇌혈관 입원일당 등 특정 질병 제한 특약 처리
-    rider_name = rider.get("name", "")
-    if "뇌혈관" in rider_name or "뇌졸중" in rider_name:
-        if not (
-            disease_kcd.startswith("I6") or "뇌경색" in disease_name or "뇌졸중" in disease_name
-        ):
-            return _empty(JudgeStatus.NOT_APPLICABLE)
+    daily = _is_daily(rider, trigger)
+    deduct = rider.get("deduct_days") or 0  # 공제일수 (입원일당만, 첫 N일 미지급)
+    payable_days = max(0, current_days - deduct)
+    base = subscribed * payable_days if daily else subscribed
 
-    if "암" in rider_name:
-        if not (disease_kcd.startswith("C") or "암" in disease_name):
-            return _empty(JudgeStatus.NOT_APPLICABLE)
+    # 1) 면책기간(waiting_period) 미경과
+    waiting = rider.get("waiting_period_days")
+    if waiting and elapsed is not None and elapsed < waiting:
+        return new_judgement(
+            JudgeStatus.WAITING_PERIOD_NOT_MET,
+            gap_days=waiting - elapsed,
+            subscribed_amount=subscribed,
+            expected_amount=0,
+            payable_days=0,
+            additional_amount=base,
+            reason=f"가입 후 {waiting}일 경과 필요",
+        )
 
-    # 2) boundary(condition_days) vs current_days 비교
+    # 2) boundary(일수) 미달 — 입원일당 등
     boundaries = rider.get("boundaries") or []
-
     if trigger == "입원" and boundaries:
-        # 입원일 경계 만족 여부 체크
-        sorted_bounds = sorted(boundaries, key=lambda x: x.get("condition_days", 0))
-        matched_b = None
+        thresholds = sorted(b.get("condition_days", 0) for b in boundaries)
+        need = thresholds[0]
+        if current_days < need:
+            potential = (
+                subscribed * max(0, need - deduct)
+                if (daily and subscribed is not None)
+                else base
+            )
+            return new_judgement(
+                JudgeStatus.BOUNDARY_NOT_MET,
+                gap_days=need - current_days,
+                matched_boundary=f"{need}일 이상",
+                subscribed_amount=subscribed,
+                expected_amount=0,
+                payable_days=0,
+                additional_amount=potential,
+                reason=f"입원 {need}일 이상 필요",
+            )
 
-        for b in sorted_bounds:
-            cond_days = b.get("condition_days", 0)
-            if current_days >= cond_days:
-                matched_b = b
-            else:
-                # 경계 미달 (gap_days 계산)
-                gap = cond_days - current_days
-                out = _empty(JudgeStatus.BOUNDARY_NOT_MET)
-                out["gap_days"] = gap
-                out["matched_boundary"] = f"{cond_days}일 이상"
-                return out
-
-        if not matched_b:
-            first_cond = sorted_bounds[0].get("condition_days", 0)
-            out = _empty(JudgeStatus.BOUNDARY_NOT_MET)
-            out["gap_days"] = first_cond - current_days
-            return out
-
-    # 3) calc 및 reductions 반영
-    unit_amount = rider.get("unit_amount") or 30000
-    unit_type = rider.get("unit_type") or ""
-
-    if ("일" in unit_type or trigger == "입원") and "일시금" not in unit_type:
-        calc = f"{unit_amount:,}원 x {current_days}일 = {unit_amount * current_days:,}원"
-        final_amount = unit_amount * current_days
-    else:
-        calc = f"{unit_amount:,}원 지급"
-        final_amount = unit_amount
-
+    # 3) eligible — 금액 산출 + 감액(reductions) 반영
+    expected = base
+    reduced = 0 if base is not None else None
     reduction = None
+    reason = None
     limit_note = None
-    reductions = rider.get("reductions") or []
 
-    if reductions and elapsed is not None:
-        for red in reductions:
-            until_days = red.get("until_elapsed_days")
-            if until_days and elapsed < until_days:
-                rate = red.get("rate", 1.0)
-                reduction = {"condition": f"계약일로부터 {until_days}일 미만", "rate": rate}
-                if ("일" in unit_type or trigger == "입원") and "일시금" not in unit_type:
-                    calc = f"({calc}) x {int(rate * 100)}% 감액 = {int(final_amount * rate):,}원"
-                else:
-                    calc = (
-                        f"{unit_amount:,}원 x {int(rate * 100)}% 감액 = "
-                        f"{int(final_amount * rate):,}원"
-                    )
+    if base is not None:
+        for red in rider.get("reductions") or []:
+            until = red.get("until_elapsed_days")
+            rate = red.get("rate", 1.0)
+            if until and elapsed is not None and elapsed < until:
+                expected = int(base * rate)
+                reduced = base - expected
+                reduction = {"applied": True, "condition": f"가입 후 {until}일 미만", "rate": rate, "until_elapsed_days": until}
+                reason = "가입기간 미충족"  # CASE 2-2 감액 사유
                 limit_note = red.get("note")
                 break
 
-    return {
-        "status": JudgeStatus.ELIGIBLE,
-        "gap_days": None,
-        "matched_boundary": "지급 기준 충족",
-        "calc": calc,
-        "reduction": reduction,
-        "limit_note": limit_note,
-    }
+    if base is None:
+        calc = None
+    elif daily:
+        if deduct:
+            calc = f"{_fmt(subscribed)} x ({current_days}일 - 공제 {deduct}일) = {_fmt(base)}"
+        else:
+            calc = f"{_fmt(subscribed)} x {current_days}일 = {_fmt(base)}"
+        if reduced:
+            calc = f"({calc}) x {int(reduction['rate'] * 100)}% 감액 = {_fmt(expected)}"
+    else:
+        calc = _fmt(subscribed)
+        if reduced:
+            calc = f"{calc} x {int(reduction['rate'] * 100)}% 감액 = {_fmt(expected)}"
+
+    return new_judgement(
+        JudgeStatus.ELIGIBLE,
+        matched_boundary="지급 기준 충족",
+        calc=calc,
+        reduction=reduction,
+        limit_note=limit_note,
+        payable_days=payable_days if daily else None,
+        subscribed_amount=subscribed,
+        expected_amount=expected,
+        reduced_amount=reduced,
+        additional_amount=0,
+        reason=reason,
+    )
