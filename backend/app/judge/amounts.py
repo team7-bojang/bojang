@@ -20,41 +20,22 @@ def resolve_subscribed(case: Case, rider: Rider) -> int | None:
     못 찾으면 rider.unit_amount 로 폴백한다.
     """
     ca = case.get("coverage_amounts")
-    rid = str(rider.get("id")) if rider.get("id") is not None else None
+    rid = rider.get("id")
     rname = rider.get("name")
 
-    if isinstance(ca, dict) and ca:
+    if isinstance(ca, dict):
         for key in (rid, rname):
             if key is not None and key in ca:
                 v = ca[key]
                 return v.get("amount") if isinstance(v, dict) else v
-
-        # 이름 부분 일치 매칭 (공백 및 '특별약관', '보장' 등 제거 비교)
-        if rname:
-            rname_clean = rname.replace(" ", "").replace("특별약관", "").replace("보장", "")
-            for k, v in ca.items():
-                if not k:
-                    continue
-                k_clean = str(k).replace(" ", "").replace("특별약관", "").replace("보장", "")
-                if k_clean in rname_clean or rname_clean in k_clean:
-                    return v.get("amount") if isinstance(v, dict) else v
-        return None
-
-    elif isinstance(ca, list) and ca:
+    elif isinstance(ca, list):
         for item in ca:
             if not isinstance(item, dict):
                 continue
-            if item.get("rider_id") is not None and str(item.get("rider_id")) == rid:
+            if item.get("rider_id") == rid and rid is not None:
                 return item.get("amount")
-
-            # 리스트 아이템의 name 부분 일치 매칭
-            item_name = item.get("rider_name") or item.get("coverage_key")
-            if item_name and rname:
-                item_name_clean = str(item_name).replace(" ", "").replace("특별약관", "").replace("보장", "")
-                rname_clean = rname.replace(" ", "").replace("특별약관", "").replace("보장", "")
-                if item_name_clean in rname_clean or rname_clean in item_name_clean:
-                    return item.get("amount")
-        return None
+            if item.get("rider_name") == rname or item.get("coverage_key") == rname:
+                return item.get("amount")
 
     return rider.get("unit_amount")
 
@@ -65,39 +46,22 @@ def resolve_covered(case: Case, rider: Rider) -> int | None:
     같은 결제건이라도 급여/비급여 특약마다 보상대상 금액이 다르므로 특약별로 받는다.
     못 찾으면 case.payment_amount(총 결제금액)로 폴백한다.
     """
-    cov = case.get("covered_amounts") or case.get("coverage_amounts")
-    rid = str(rider.get("id")) if rider.get("id") is not None else None
+    cov = case.get("covered_amounts")
+    rid = rider.get("id")
     rname = rider.get("name")
-
     if isinstance(cov, dict):
         for key in (rid, rname):
             if key is not None and key in cov:
                 v = cov[key]
                 return v.get("amount") if isinstance(v, dict) else v
-
-        if rname:
-            rname_clean = rname.replace(" ", "").replace("특별약관", "").replace("보장", "")
-            for k, v in cov.items():
-                if not k:
-                    continue
-                k_clean = str(k).replace(" ", "").replace("특별약관", "").replace("보장", "")
-                if k_clean in rname_clean or rname_clean in k_clean:
-                    return v.get("amount") if isinstance(v, dict) else v
-
     elif isinstance(cov, list):
         for item in cov:
             if not isinstance(item, dict):
                 continue
-            if item.get("rider_id") is not None and str(item.get("rider_id")) == rid:
+            if item.get("rider_id") == rid and rid is not None:
                 return item.get("amount")
-
-            item_name = item.get("rider_name") or item.get("coverage_key")
-            if item_name and rname:
-                item_name_clean = str(item_name).replace(" ", "").replace("특별약관", "").replace("보장", "")
-                rname_clean = rname.replace(" ", "").replace("특별약관", "").replace("보장", "")
-                if item_name_clean in rname_clean or rname_clean in item_name_clean:
-                    return item.get("amount")
-
+            if item.get("rider_name") == rname or item.get("coverage_key") == rname:
+                return item.get("amount")
     return case.get("payment_amount")
 
 

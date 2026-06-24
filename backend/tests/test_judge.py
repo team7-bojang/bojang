@@ -14,7 +14,6 @@ _JUDGEMENT_KEYS = {
     "calc",
     "reduction",
     "limit_note",
-    "payable_days",
     "subscribed_amount",
     "expected_amount",
     "reduced_amount",

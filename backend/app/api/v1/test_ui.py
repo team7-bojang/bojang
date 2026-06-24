@@ -15,6 +15,9 @@ HTML_CONTENT = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>AI 보험 보장 분석 서비스 - 테스트 클라이언트</title>
     <link rel="icon" href="data:,">
     <!-- Modern Outfits & Inter Google Fonts -->
@@ -942,6 +945,10 @@ HTML_CONTENT = """<!DOCTYPE html>
                                     <span class="summary-val missed" id="summary-missed-count">0</span>
                                     <span class="summary-lbl">미청구(놓쳤을 가능성) 특약 수</span>
                                 </div>
+                                <div class="summary-card">
+                                    <span class="summary-val" id="summary-treatment-type" style="font-size: 1.3rem; padding: 0.25rem 0; color: #a855f7;">미정</span>
+                                    <span class="summary-lbl" id="summary-treatment-detail">진료 형태 및 일수</span>
+                                </div>
                             </div>
 
                             <!-- Tab 1: Eligible -->
@@ -1035,6 +1042,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         let activeCaseId = null;
         let selectedPresetIds = [];
         let serviceType = 'CASE1';
+        let latestNextQuestion = null;
 
         // Chatbot state control variables for sequential flow
         let inputMethodSelected = false;
@@ -1244,6 +1252,9 @@ HTML_CONTENT = """<!DOCTYPE html>
             const isPaymentInput = inputField.dataset.mode === 'payment';
             const isPaymentEdit = inputField.dataset.mode === 'payment_edit';
             const isAnnualCountInput = inputField.dataset.mode === 'annual_visit_count';
+            const isDiseaseInput = inputField.dataset.mode === 'disease';
+            const isAdmissionDaysCurrent = inputField.dataset.mode === 'admission_days_current';
+            const isAdmissionDaysDiagnosed = inputField.dataset.mode === 'admission_days_diagnosed';
 
             try {
                 if (isPaymentInput) {
@@ -1306,12 +1317,35 @@ HTML_CONTENT = """<!DOCTYPE html>
                     });
                     if (res.success) {
                         globalTreatmentTypes = res.data.treatment_types || [];
-                        if (res.data.case) {
-                            rebuildQuestions(res.data.case);
-                        }
+                        latestNextQuestion = res.data.next_question;
                     }
                     currentQuestionIndex = 0;
                     askNextQuestion();
+                } else if (isDiseaseInput) {
+                    inputField.dataset.mode = ''; // Reset
+                    inputField.placeholder = "치료 상황을 말해보세요 (예: '뇌경색 3일 입원')";
+                    
+                    const res = await fetchAPI(`/cases/${activeCaseId}/answers`, {
+                        method: 'POST',
+                        body: {
+                            answers: [
+                                { question_id: "disease_name", value: text },
+                                { question_id: "disease_kcd", value: "R69" } // 상세불명 질환 코드로 기본 설정
+                            ]
+                        }
+                    });
+                    if (res.success) {
+                        globalTreatmentTypes = res.data.treatment_types || [];
+                        latestNextQuestion = res.data.next_question;
+                    }
+                    currentQuestionIndex = 0;
+                    askNextQuestion();
+                } else if (isAdmissionDaysCurrent || isAdmissionDaysDiagnosed) {
+                    const qId = isAdmissionDaysCurrent ? 'admission_days_current' : 'admission_days_diagnosed';
+                    inputField.dataset.mode = ''; // Reset
+                    inputField.placeholder = "치료 상황을 말해보세요 (예: '뇌경색 3일 입원')";
+                    
+                    await answerQuestion(qId, text);
                 } else {
                     // Normal Case Initial Situation Input
                     const res = await fetchAPI('/cases', {
@@ -1326,6 +1360,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                     if (res.success) {
                         const c = res.data;
                         globalTreatmentTypes = c.treatment_types || [];
+                        latestNextQuestion = c.next_question;
                         if (c.out_of_scope) {
                             addBotMessage(c.message, `
                                 <button onclick="alert('지원 범위: 질병·암·실손·상해 관련 입원/수술/진단 특약. 자동차/화재/배상책임은 제외')" class="msg-btn">지원 범위 다시 보기</button>
@@ -1337,7 +1372,6 @@ HTML_CONTENT = """<!DOCTYPE html>
                         activeCaseId = c.case_id;
                         inputMethodSelected = false;
                         currentQuestionIndex = 0;
-                        rebuildQuestions(c);
                         
                         setTimeout(() => {
                             askNextQuestion();
@@ -1579,32 +1613,142 @@ HTML_CONTENT = """<!DOCTYPE html>
 
         // Ask next interactive question
         async function askNextQuestion() {
-            if (currentQuestionIndex < chatbotQuestions.length) {
-                const q = chatbotQuestions[currentQuestionIndex];
-                
+            if (latestNextQuestion) {
+                const q = latestNextQuestion;
                 const inputField = document.getElementById('chat-input-field');
-                if (q.type === 'annual_visit_count') {
+                
+                if (q.question_id === 'annual_visit_count') {
                     inputField.dataset.mode = 'annual_visit_count';
                     inputField.placeholder = "올해 진료 횟수를 입력하세요 (예: 1)";
+                } else if (q.question_id === 'disease_kcd') {
+                    inputField.dataset.mode = 'disease';
+                    inputField.placeholder = "정확한 병명을 입력하세요 (예: 뇌경색증)";
+                } else if (q.question_id === 'admission_days_current' || q.question_id === 'admission_days_diagnosed') {
+                    inputField.dataset.mode = q.question_id;
+                    inputField.placeholder = "입원 일수를 숫자로 입력하세요 (예: 7일)";
                 } else {
                     inputField.dataset.mode = '';
-                    inputField.placeholder = "치료 상황을 말해보세요 (예: '뇌경색 3일 입원')";
+                    inputField.placeholder = q.placeholder || "내용을 입력해주세요.";
                 }
+
+                let actionsHtml = '';
                 
-                addBotMessage(q.text, q.actions);
+                if (q.input_type === 'select_button' || q.input_type === 'radio_button') {
+                    if (q.question_id === 'disease_kcd') {
+                        (q.options || []).forEach((cand, idx) => {
+                            actionsHtml += `<button onclick="answerQuestion('disease_kcd', {name: '${cand.name}', kcd: '${cand.kcd}'})" class="msg-btn">${idx + 1}. ${cand.name} (${cand.kcd})</button> `;
+                        });
+                        actionsHtml += `<button onclick="answerQuestion('disease_kcd', {name: '상세불명 질환', kcd: 'R69'})" class="msg-btn">해당 병명이 없어요</button>`;
+                    } else if (q.question_id === 'treatment_type') {
+                        actionsHtml = `
+                            <button onclick="answerQuestion('treatment_type', 'inpatient')" class="msg-btn msg-btn-primary">입원 치료</button>
+                            <button onclick="answerQuestion('treatment_type', 'outpatient')" class="msg-btn">통원 치료 (외래)</button>
+                        `;
+                    } else if (q.question_id === 'input_method') {
+                        actionsHtml = `
+                            <button onclick="selectInputMethodDirect('PAYMENT')" class="msg-btn msg-btn-primary">💳 문자·카드내역으로 빠르게 확인</button>
+                            <button onclick="selectInputMethodDirect('MEDICAL_DETAIL_STATEMENT')" class="msg-btn">📄 진료비 세부산정내역서로 자세히 확인</button>
+                        `;
+                    } else {
+                        (q.options || []).forEach(opt => {
+                            let valJson = typeof opt.value === 'string' ? `'${opt.value}'` : opt.value;
+                            actionsHtml += `<button onclick="answerQuestion('${q.question_id}', ${valJson})" class="msg-btn">${opt.label || opt.value}</button> `;
+                        });
+                    }
+                } else if (q.input_type === 'checkbox_button') {
+                    if (q.question_id === 'treatment_items') {
+                        actionsHtml = `
+                            <div style="display:flex; flex-direction:column; gap:0.75rem; width:100%; margin-top:0.5rem; text-align:left;">
+                                <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.25rem;">
+                                    <button type="button" class="msg-btn" onclick="toggleSubGroup('group-video')">영상검사</button>
+                                    <button type="button" class="msg-btn" onclick="toggleSubGroup('group-injection')">주사치료</button>
+                                    <button type="button" class="msg-btn" onclick="toggleSubGroup('group-manual')">도수·충격파</button>
+                                    <button type="button" class="msg-btn" onclick="toggleSubGroup('group-physical')">물리치료</button>
+                                    <button type="button" class="msg-btn" onclick="toggleSubGroup('group-etc')">기타</button>
+                                </div>
+                                
+                                <div id="group-video" class="sub-group-panel" style="display:none; background:rgba(255,255,255,0.03); padding:0.5rem; border-radius:6px; border:1px solid var(--border-color);">
+                                    <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main); margin-bottom:0.25rem;">
+                                        <input type="checkbox" name="chk-treatment" value="XRAY"> 엑스레이 (XRAY)
+                                    </label>
+                                    <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main);">
+                                        <input type="checkbox" name="chk-treatment" value="MRI_MRA"> MRI / MRA 검사 (MRI_MRA)
+                                    </label>
+                                </div>
+                                
+                                <div id="group-injection" class="sub-group-panel" style="display:none; background:rgba(255,255,255,0.03); padding:0.5rem; border-radius:6px; border:1px solid var(--border-color);">
+                                    <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main);">
+                                        <input type="checkbox" name="chk-treatment" value="INJECTION"> 주사치료 (INJECTION)
+                                    </label>
+                                </div>
+                                
+                                <div id="group-manual" class="sub-group-panel" style="display:none; background:rgba(255,255,255,0.03); padding:0.5rem; border-radius:6px; border:1px solid var(--border-color);">
+                                    <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main); margin-bottom:0.25rem;">
+                                        <input type="checkbox" name="chk-treatment" value="MANUAL_THERAPY"> 도수치료 (MANUAL_THERAPY)
+                                    </label>
+                                    <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main);">
+                                        <input type="checkbox" name="chk-treatment" value="ECSWT"> 체외충격파 (ECSWT)
+                                    </label>
+                                </div>
+                                
+                                <div id="group-physical" class="sub-group-panel" style="display:none; background:rgba(255,255,255,0.03); padding:0.5rem; border-radius:6px; border:1px solid var(--border-color);">
+                                    <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main);">
+                                        <input type="checkbox" name="chk-treatment" value="PHYSICAL_THERAPY"> 물리치료 (PHYSICAL_THERAPY)
+                                    </label>
+                                </div>
+                                
+                                <div id="group-etc" class="sub-group-panel" style="display:none; background:rgba(255,255,255,0.03); padding:0.5rem; border-radius:6px; border:1px solid var(--border-color);">
+                                    <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main); margin-bottom:0.25rem;">
+                                        <input type="checkbox" name="chk-treatment" value="EMERGENCY"> 응급실 진료 (EMERGENCY)
+                                    </label>
+                                    <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main); margin-bottom:0.25rem;">
+                                        <input type="checkbox" name="chk-treatment" value="CAST"> 깁스 (CAST)
+                                    </label>
+                                    <label style="font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; color:var(--text-main); margin-bottom:0.25rem;">
+                                        <input type="checkbox" name="chk-treatment" value="ETC" onchange="toggleEtcInput(this)"> 기타 (ETC)
+                                    </label>
+                                    <input type="text" id="chk-treatment-etc-detail" placeholder="상세 치료 내용을 입력하세요" 
+                                        style="display:none; width:100%; padding:0.35rem; font-size:0.8rem; border:1px solid var(--border-color); border-radius:4px; background:var(--bg-card); color:var(--text-main); margin-top:0.25rem;">
+                                </div>
+                                
+                                <div style="margin-top:0.25rem; display:flex; gap:0.5rem;">
+                                    <button onclick="submitCheckedTreatments()" class="msg-btn msg-btn-primary">선택 완료</button>
+                                    <button onclick="answerQuestion('treatment_items', [])" class="msg-btn">선택 없음</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else if (q.input_type === 'text_input') {
+                    if (q.question_id === 'admission_days_diagnosed' || q.question_id === 'admission_days_current') {
+                        actionsHtml = `
+                            <button onclick="answerQuestion('${q.question_id}', 0)" class="msg-btn">통원치료(0일)</button>
+                            <button onclick="answerQuestion('${q.question_id}', 3)" class="msg-btn">3일</button>
+                            <button onclick="answerQuestion('${q.question_id}', 14)" class="msg-btn">14일</button>
+                            <button onclick="answerQuestion('${q.question_id}', 30)" class="msg-btn">30일</button>
+                        `;
+                    } else if (q.question_id === 'annual_visit_count') {
+                        actionsHtml = `
+                            <button onclick="answerQuestion('${q.question_id}', 1)" class="msg-btn">1번</button>
+                            <button onclick="answerQuestion('${q.question_id}', 2)" class="msg-btn">2번</button>
+                            <button onclick="answerQuestion('${q.question_id}', 3)" class="msg-btn">3번</button>
+                            <button onclick="answerQuestion('${q.question_id}', 5)" class="msg-btn">5번 이상</button>
+                        `;
+                    }
+                }
+
+                addBotMessage(q.question_text, actionsHtml);
             } else {
                 try {
                     const res = await fetchAPI(`/cases/${activeCaseId}/dashboard`);
                     if (res.success) {
                         const dbVal = res.data.dashboard;
                         const msgText = (serviceType === 'CASE2') 
-                            ? '좋아요. 제가 이해한 내용을 한 번 정리해볼게요.\n맞는지 확인한 뒤 분석을 시작할 수 있어요.'
+                            ? '좋아요. 제가 이해한 내용을 한 번 정리해볼게요.\\n맞는지 확인한 뒤 분석을 시작할 수 있어요.'
                             : '내용 확인을 위해 대시보드로 넘어갈게요.';
                         addBotMessage(
                             msgText,
                             renderVerifyForm(dbVal)
                         );
-                        // 대시보드 탭 활성화 및 렌더링
                         renderDashboard(dbVal);
                         return;
                     }
@@ -1629,10 +1773,20 @@ HTML_CONTENT = """<!DOCTYPE html>
         async function answerQuestion(type, value, extraVal = null) {
             let textRep = "";
             let answers = [];
-            if (type === 'disease') {
-                textRep = `${value} (${extraVal})`;
-                answers.push({ question_id: "disease_name", value: value });
-                answers.push({ question_id: "disease_kcd", value: extraVal });
+            
+            if (type === 'disease' || type === 'disease_kcd') {
+                let nameVal = value;
+                let kcdVal = extraVal;
+                if (!kcdVal && typeof value === 'object') {
+                    nameVal = value.name;
+                    kcdVal = value.kcd;
+                } else if (!kcdVal && typeof value === 'string') {
+                    nameVal = value;
+                    kcdVal = 'R69';
+                }
+                textRep = `${nameVal} (${kcdVal})`;
+                answers.push({ question_id: "disease_name", value: nameVal });
+                answers.push({ question_id: "disease_kcd", value: kcdVal });
             } else if (type === 'treatment_type') {
                 const isInpatient = (value === 'inpatient');
                 textRep = isInpatient ? "입원 치료" : "통원 치료";
@@ -1643,14 +1797,20 @@ HTML_CONTENT = """<!DOCTYPE html>
                     answers.push({ question_id: "admission_days_diagnosed", value: 0 });
                     answers.push({ question_id: "surgery", value: false });
                 }
-            } else if (type === 'days') {
-                textRep = `${value}일 입원`;
-                answers.push({ question_id: "admission_days_current", value: value });
-                answers.push({ question_id: "admission_days_diagnosed", value: value });
+            } else if (type === 'days' || type === 'admission_days_diagnosed' || type === 'admission_days_current') {
+                const num = parseInt(String(value).replace(/[^0-9]/g, '')) || 0;
+                textRep = `${num}일 입원`;
+                
+                if (type === 'admission_days_diagnosed' || type === 'days') {
+                    answers.push({ question_id: "admission_days_diagnosed", value: num });
+                    answers.push({ question_id: "admission_days_current", value: num });
+                } else {
+                    answers.push({ question_id: "admission_days_current", value: num });
+                }
             } else if (type === 'surgery') {
                 textRep = value ? "수술 받음" : "수술 안 받음";
-                answers.push({ question_id: "surgery", value: value });
-            } else if (type === 'treatments') {
+                answers.push({ question_id: "surgery", value: !!value });
+            } else if (type === 'treatments' || type === 'treatment_items') {
                 const names = {
                     "MANUAL_THERAPY": "도수치료",
                     "ECSWT": "체외충격파",
@@ -1660,6 +1820,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                     "PHYSICAL_THERAPY": "물리치료",
                     "EMERGENCY": "응급실 진료",
                     "CAST": "깁스",
+                    "OTHER": "기타 치료",
                     "ETC": "기타"
                 };
                 textRep = value.length > 0 ? `치료 선택: ${value.map(v => {
@@ -1670,8 +1831,9 @@ HTML_CONTENT = """<!DOCTYPE html>
                 }).join(', ')}` : "치료 없음";
                 answers.push({ question_id: "treatment_items", value: value });
             } else if (type === 'annual_visit_count') {
-                textRep = `${value}번`;
-                answers.push({ question_id: "annual_visit_count", value: value });
+                const num = parseInt(String(value).replace(/[^0-9]/g, '')) || 1;
+                textRep = `${num}번`;
+                answers.push({ question_id: "annual_visit_count", value: num });
             } else if (type === 'policy_elapsed_days') {
                 const elapsedLabels = {
                     0: "90일 미만",
@@ -1680,8 +1842,12 @@ HTML_CONTENT = """<!DOCTYPE html>
                     730: "2년 이상",
                     800: "잘 모르겠어요"
                 };
-                textRep = `보험 가입 기간: ${elapsedLabels[value] || value}`;
+                let valLabel = elapsedLabels[value] || value;
+                textRep = `보험 가입 기간: ${valLabel}`;
                 answers.push({ question_id: "policy_elapsed_days", value: value });
+            } else {
+                textRep = String(value);
+                answers.push({ question_id: type, value: value });
             }
             
             addUserMessage(textRep);
@@ -1694,9 +1860,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 
                 if (res.success && res.data) {
                     globalTreatmentTypes = res.data.treatment_types || [];
-                    if (res.data.case) {
-                        rebuildQuestions(res.data.case);
-                    }
+                    latestNextQuestion = res.data.next_question;
                 }
                 
                 currentQuestionIndex = 0;
@@ -1758,7 +1922,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                         });
                         
                         if (caseRes.success) {
-                            rebuildQuestions(caseRes.data.case);
+                            latestNextQuestion = caseRes.data.next_question;
                             currentQuestionIndex = 0;
                             setTimeout(() => {
                                 askNextQuestion();
@@ -1793,11 +1957,12 @@ HTML_CONTENT = """<!DOCTYPE html>
                 // Save answers for visit type, payment amount and basic inpatient days
                 const answers = [
                     { question_id: "is_inpatient", value: isInpatient },
-                    { question_id: "is_outpatient", value: !isInpatient },
-                    { question_id: "admission_days_current", value: isInpatient ? 3 : 0 },
-                    { question_id: "admission_days_diagnosed", value: isInpatient ? 3 : 0 },
-                    { question_id: "surgery", value: false }
+                    { question_id: "is_outpatient", value: !isInpatient }
                 ];
+                if (!isInpatient) {
+                    answers.push({ question_id: "admission_days_current", value: 0 });
+                    answers.push({ question_id: "admission_days_diagnosed", value: 0 });
+                }
 
                 const res = await fetchAPI(`/cases/${activeCaseId}/answers`, {
                     method: 'POST',
@@ -1807,10 +1972,8 @@ HTML_CONTENT = """<!DOCTYPE html>
                 if (res.success) {
                     inputMethodSelected = true;
                     
-                    const latestCase = res.data.case;
                     globalTreatmentTypes = res.data.treatment_types || [];
-
-                    rebuildQuestions(latestCase);
+                    latestNextQuestion = res.data.next_question;
                     currentQuestionIndex = 0;
 
                     setTimeout(() => {
@@ -1847,7 +2010,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                         disease_name,
                         surgery,
                         admission_days_current: current_days,
-                        admission_days_diagnosed: current_days,
+                        admission_days_diagnosed: (serviceType === 'CASE2') ? current_days : null,
                         policy_elapsed_days,
                         is_inpatient,
                         is_outpatient,
@@ -1864,13 +2027,16 @@ HTML_CONTENT = """<!DOCTYPE html>
                 });
 
                 // 3. POST /analysis/compare
-                const targetDays = current_days > 3 ? 30 : 14;
+                const compareScenarios = [
+                    { days: 3, name: '통상입원 (3일)' },
+                    { days: 14, name: '장기입원 (14일)' },
+                    { days: 30, name: '집중입원 (30일)' }
+                ];
                 const compareRes = await fetchAPI('/analysis/compare', {
                     method: 'POST',
                     body: {
                         case_id: activeCaseId,
-                        current_days: current_days,
-                        target_days: targetDays
+                        scenarios: compareScenarios
                     }
                 });
 
@@ -1907,12 +2073,19 @@ HTML_CONTENT = """<!DOCTYPE html>
         async function skipReceiptInput() {
             addUserMessage("영수증 입력 건너뛰기");
             try {
-                const res = await fetchAPI(`/cases/${activeCaseId}/dashboard`);
+                const res = await fetchAPI(`/cases/${activeCaseId}/answers`, {
+                    method: 'POST',
+                    body: {
+                        answers: [
+                            { question_id: "payment_amount", value: 0 }
+                        ]
+                    }
+                });
                 if (res.success) {
-                    addBotMessage(
-                        '최종 분석 정보입니다. 내용을 확인하고 보장 분석을 시작해 주세요.',
-                        renderVerifyForm(res.data.dashboard)
-                    );
+                    inputMethodSelected = true;
+                    latestNextQuestion = res.data.next_question;
+                    currentQuestionIndex = 0;
+                    askNextQuestion();
                 }
             } catch (err) {
                 addBotMessage("대시보드 조회 실패: " + err.message);
@@ -2013,7 +2186,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                     <label>의사 권고 입원일수 (일)</label>
                     <input type="number" class="verify-input" name="diagnosed_days" value="${diagnosed_days}">
                 </div>
-            ` : `<input type="hidden" name="diagnosed_days" value="${current_days}">`;
+            ` : `<input type="hidden" name="diagnosed_days" value="">`;
 
             return `
                 <div class="verify-card" id="${formId}">
@@ -2096,7 +2269,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                         disease_name,
                         surgery,
                         admission_days_current: current_days,
-                        admission_days_diagnosed: diagnosed_days,
+                        admission_days_diagnosed: (serviceType === 'CASE2') ? diagnosed_days : null,
                         policy_elapsed_days,
                         is_inpatient,
                         is_outpatient,
@@ -2113,13 +2286,21 @@ HTML_CONTENT = """<!DOCTYPE html>
                 });
 
                 // 3. POST /analysis/compare (v2.1)
-                const targetDays = (serviceType === 'CASE2') ? diagnosed_days : (current_days > 3 ? 30 : 14);
+                const compareScenarios = (serviceType === 'CASE2')
+                    ? [
+                        { days: current_days, name: `현재 입원 (${current_days}일)` },
+                        { days: diagnosed_days, name: `의사 권고 (${diagnosed_days}일)` }
+                      ]
+                    : [
+                        { days: 3, name: '통상입원 (3일)' },
+                        { days: 14, name: '장기입원 (14일)' },
+                        { days: 30, name: '집중입원 (30일)' }
+                      ];
                 const compareRes = await fetchAPI('/analysis/compare', {
                     method: 'POST',
                     body: {
                         case_id: activeCaseId,
-                        current_days: current_days,
-                        target_days: targetDays
+                        scenarios: compareScenarios
                     }
                 });
 
@@ -2156,13 +2337,38 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
 
         // Show Dashboard Panel with data
-        function showDashboard() {
+        async function showDashboard() {
             document.getElementById('empty-dashboard').style.display = 'none';
             document.getElementById('dashboard-content').style.display = 'flex';
 
             // Summary Counters
             document.getElementById('summary-eligible-count').innerText = analysisData.search.summary.eligible_count || 0;
             document.getElementById('summary-missed-count').innerText = analysisData.search.summary.missed_count || 0;
+
+            try {
+                const dashRes = await fetchAPI(`/cases/${activeCaseId}/dashboard`);
+                if (dashRes.success) {
+                    const dbVal = dashRes.data.dashboard;
+                    let typeText = "미정";
+                    let detailText = "진료 정보 없음";
+                    
+                    if (dbVal.is_inpatient) {
+                        typeText = "입원 치료";
+                        detailText = `${dbVal.disease_name || "질환"} | ${dbVal.admission_days_current || 0}일 입원`;
+                    } else if (dbVal.is_outpatient) {
+                        typeText = "통원 치료";
+                        detailText = `${dbVal.disease_name || "질환"} | 외래 진료`;
+                    } else {
+                        typeText = "미정";
+                        detailText = `${dbVal.disease_name || "질환"} | 형태 미정`;
+                    }
+                    
+                    document.getElementById('summary-treatment-type').innerText = typeText;
+                    document.getElementById('summary-treatment-detail').innerText = detailText;
+                }
+            } catch (e) {
+                console.error("Failed to load dashboard summary for card", e);
+            }
 
             // Render cards
             renderCoverageCards();

@@ -60,7 +60,6 @@ class Judgement(TypedDict):
     calc: str | None
     reduction: dict[str, Any] | None
     limit_note: str | None
-    payable_days: NotRequired[int | None]
     # ── 금액(하늘색) ──
     subscribed_amount: int | None  # 가입금액 (입력에서 받은 값)
     expected_amount: int | None  # 예상보험금 (이 특약 1건, 감액 반영 후)
@@ -76,7 +75,6 @@ _DEFAULT_JUDGEMENT: Judgement = {
     "calc": None,
     "reduction": None,
     "limit_note": None,
-    "payable_days": None,
     "subscribed_amount": None,
     "expected_amount": None,
     "reduced_amount": None,
