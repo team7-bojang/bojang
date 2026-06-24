@@ -4,14 +4,11 @@
 비교: 시나리오별 judge 재실행 → 경계(gap_days) 감지 → 비교표 조립
 """
 
-import os
-from concurrent.futures import ThreadPoolExecutor
-
 from app.core.constants import JudgeStatus
 from app.core.errors import ForbiddenError, NotFoundError
 from app.db import get_client
 from app.judge import judge
-from app.rag.explainer import explain
+from app.rag.explainer import explain  # noqa: F401
 from app.rag.retriever import Retriever
 
 # 데모 및 테스트용 임의 보험/특약 데이터 정의 (DB 데이터가 없을 때 폴백으로 사용)
@@ -335,9 +332,12 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         if not notice:
             notice = "가입한 보험의 세부 약관 및 특약 정보가 DB에 등록되어 있지 않아 분석이 제한됩니다."
 
-    # 4. 연관 특약 판정 및 AI 설명 생성 대상 수집
+    # 4. 연관 특약 판정 및 AI 설명 생성
     analyzed_rider_ids = set()
-    judge_results = []
+    results = []
+    snapshots = []
+    eligible_count = 0
+    missed_count = 0
 
     for chunk in chunks:
         rider = chunk.get("riders")
@@ -421,60 +421,12 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         if not rider_chunks:
             rider_chunks = [chunk]
 
-        # LLM 설명 필요 여부 판단
-        need_llm = (status != JudgeStatus.NOT_APPLICABLE) and (os.environ.get("MOCK_LLM") != "True")
-
-        judge_results.append({
-            "chunk": chunk,
-            "rider": rider,
-            "rider_id": rider_id,
-            "judgement": judgement,
-            "status": status,
-            "rider_chunks": rider_chunks,
-            "need_llm": need_llm
-        })
-
-    # 병렬로 LLM 호출 실행을 위한 헬퍼 함수
-    def run_explain(item):
-        rider = item["rider"]
-        status = item["status"]
-        judgement = item["judgement"]
-
-        if not item["need_llm"]:
-            return {
-                "explanation": judgement.get("reason") or f"지급 상태가 [{status}]로 판정되었습니다.",
-                "article": rider.get("article_no"),
-                "page": rider.get("page"),
-                "quote": rider.get("raw_text"),
-            }
-        try:
-            return explain(case_data, judgement, item["rider_chunks"])
-        except Exception as e:
-            print(f"[analysis_service] AI explanation failed: {e}")
-            return {
-                "explanation": (
-                    f"약관 {rider.get('article_no', '조항')}에 근거하여 지급 상태가 [{status}]로 판정되었습니다."
-                ),
-                "article": rider.get("article_no"),
-                "page": rider.get("page"),
-                "quote": rider.get("raw_text"),
-            }
-
-    # ThreadPoolExecutor를 사용한 10개 최대 스레드 병렬 LLM 처리
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        explain_results = list(executor.map(run_explain, judge_results))
-
-    results = []
-    snapshots = []
-    eligible_count = 0
-    missed_count = 0
-
-    # 결과 병합 및 응답 조립
-    for item, explanation_data in zip(judge_results, explain_results, strict=True):
-        status = item["status"]
-        rider = item["rider"]
-        rider_id = item["rider_id"]
-        judgement = item["judgement"]
+        # 2단계화 적용: 최초 탐색 단계에서는 LLM을 호출하지 않고 판정 및 기본 설명만 채움
+        explanation = judgement.get("reason") or f"지급 상태가 [{status}]로 판정되었습니다."
+        if status == JudgeStatus.ELIGIBLE:
+            explanation = f"고객님께서 가입하신 '{rider.get('name')}'의 보장 요건을 충족하여 보험금 지급 대상이 될 수 있습니다."
+        elif status == JudgeStatus.POTENTIAL:
+            explanation = f"고객님께서 가입하신 '{rider.get('name')}'의 조건을 보완할 시 추가적인 보험금 지급 대상이 될 수 있습니다."
 
         policy_id = rider.get("policy_id")
         policy_name = policy_names.get(policy_id, "기타보험")
@@ -495,11 +447,10 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             missed = True
             missed_count += 1
 
-        # Evidence 스냅샷 필드 구성
         evidence = {
-            "article": explanation_data.get("article") or rider.get("article_no"),
-            "page": explanation_data.get("page") or rider.get("page"),
-            "quote": explanation_data.get("quote") or rider.get("raw_text"),
+            "article": rider.get("article_no"),
+            "page": rider.get("page"),
+            "quote": rider.get("raw_text"),
         }
 
         result_item = {
@@ -512,7 +463,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "estimated_amount": judgement.get("expected_amount") or 0,
             "reduction": judgement.get("reduction"),
             "calc": judgement.get("calc"),
-            "explanation": explanation_data.get("explanation"),
+            "explanation": explanation,
             "evidence": evidence,
         }
         results.append(result_item)
@@ -527,7 +478,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "missed": missed,
             "gap_days": judgement.get("gap_days"),
             "evidence": evidence,
-            "explanation": explanation_data.get("explanation"),
+            "explanation": explanation,
         }
         snapshots.append(snapshot)
 
