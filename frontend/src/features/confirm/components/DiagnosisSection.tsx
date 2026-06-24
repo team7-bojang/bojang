@@ -75,9 +75,8 @@ export function DiagnosisSection({ form, patch }: DiagnosisSectionProps) {
             <NumberField
               value={form.admission_days_current}
               onChange={v => patch({ admission_days_current: v })}
-              placeholder={form.surgery ? '예) 5' : '수술 시 입력'}
+              placeholder="예) 5"
               suffix="일"
-              disabled={!form.surgery}
             />
           </Field>
 
@@ -85,9 +84,8 @@ export function DiagnosisSection({ form, patch }: DiagnosisSectionProps) {
             <NumberField
               value={form.admission_days_diagnosed}
               onChange={v => patch({ admission_days_diagnosed: v })}
-              placeholder={form.surgery ? '예) 7' : '수술 시 입력'}
+              placeholder="예) 7"
               suffix="일"
-              disabled={!form.surgery}
             />
           </Field>
         </div>

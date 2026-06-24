@@ -39,21 +39,36 @@ export function Field({
 export function Chip({
   active,
   onClick,
+  size = 'md',
+  variant = 'toggle',
+  className,
   children,
 }: {
-  active: boolean;
-  onClick: () => void;
+  active?: boolean;
+  onClick?: () => void;
+  size?: 'sm' | 'md';
+  variant?: 'toggle' | 'solid' | 'group';
+  className?: string;
   children: React.ReactNode;
 }) {
+  const interactive = Boolean(onClick);
+
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={!interactive}
       className={cn(
-        'rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
-        active
-          ? 'border-primary bg-primary-tint text-primary'
-          : 'border-line bg-surface text-muted hover:border-primary/40'
+        'inline-flex items-center justify-center gap-1.5 rounded-full border transition-colors disabled:cursor-default',
+        size === 'sm' ? 'px-2.5 py-1 text-xs font-medium' : 'px-3.5 py-2 text-sm font-medium',
+        variant === 'solid'
+          ? 'border-primary bg-primary text-white'
+          : active
+            ? 'border-primary bg-primary-tint text-ink-deep'
+            : 'border-line bg-white text-ink',
+        variant === 'group' && active && 'border-primary bg-primary text-white',
+        interactive && !active && 'hover:border-primary/40',
+        className
       )}
     >
       {children}
