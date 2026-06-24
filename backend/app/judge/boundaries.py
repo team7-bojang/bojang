@@ -76,11 +76,11 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
     reason = None
     limit_note = None
 
-    if base is not None:
+    if base is not None and elapsed is not None:
         for red in rider.get("reductions") or []:
             until = red.get("until_elapsed_days")
             rate = red.get("rate", 1.0)
-            if until and elapsed is not None and elapsed < until:
+            if until and elapsed < until:
                 expected = int(base * rate)
                 reduced = base - expected
                 reduction = {"condition": f"가입 후 {until}일 미만", "rate": rate}

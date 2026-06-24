@@ -24,16 +24,24 @@ def resolve_subscribed(case: Case, rider: Rider) -> int | None:
     rname = rider.get("name")
 
     if isinstance(ca, dict):
-        for key in (rid, rname):
-            if key is not None and key in ca:
+        keys = []
+        if rid is not None:
+            keys.append(rid)
+            keys.append(str(rid))
+        if rname is not None:
+            keys.append(rname)
+        for key in keys:
+            if key in ca:
                 v = ca[key]
                 return v.get("amount") if isinstance(v, dict) else v
     elif isinstance(ca, list):
         for item in ca:
             if not isinstance(item, dict):
                 continue
-            if item.get("rider_id") == rid and rid is not None:
-                return item.get("amount")
+            item_rid = item.get("rider_id")
+            if rid is not None and item_rid is not None:
+                if str(item_rid) == str(rid):
+                    return item.get("amount")
             if item.get("rider_name") == rname or item.get("coverage_key") == rname:
                 return item.get("amount")
 
@@ -50,16 +58,24 @@ def resolve_covered(case: Case, rider: Rider) -> int | None:
     rid = rider.get("id")
     rname = rider.get("name")
     if isinstance(cov, dict):
-        for key in (rid, rname):
-            if key is not None and key in cov:
+        keys = []
+        if rid is not None:
+            keys.append(rid)
+            keys.append(str(rid))
+        if rname is not None:
+            keys.append(rname)
+        for key in keys:
+            if key in cov:
                 v = cov[key]
                 return v.get("amount") if isinstance(v, dict) else v
     elif isinstance(cov, list):
         for item in cov:
             if not isinstance(item, dict):
                 continue
-            if item.get("rider_id") == rid and rid is not None:
-                return item.get("amount")
+            item_rid = item.get("rider_id")
+            if rid is not None and item_rid is not None:
+                if str(item_rid) == str(rid):
+                    return item.get("amount")
             if item.get("rider_name") == rname or item.get("coverage_key") == rname:
                 return item.get("amount")
     return case.get("payment_amount")
