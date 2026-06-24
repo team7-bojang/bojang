@@ -14,7 +14,6 @@ _JUDGEMENT_KEYS = {
     "calc",
     "reduction",
     "limit_note",
-    "payable_days",
     "subscribed_amount",
     "expected_amount",
     "reduced_amount",
@@ -80,3 +79,49 @@ def test_claim_rule_defers_calc_for_table_deductible():
     rider = _rider(claim_rule={"deductible": {"type": "by_table"}, "formula": "..."})
     result = judge(_case(), rider)
     assert result["calc"] is None
+
+
+def test_resolve_subscribed_type_mismatch_p2_1():
+    # P2-1: rider id가 정수 42이고 coverage_amounts 딕셔너리 키가 문자열 "42"인 경우
+    case_dict = _case(coverage_amounts={"42": {"amount": 50000}})
+    rider = _rider(id=42)
+    result = judge(case_dict, rider)
+    assert result["subscribed_amount"] == 50000
+
+    # 리스트 포맷의 매칭 확인
+    case_list = _case(coverage_amounts=[{"rider_id": "42", "amount": 50000}])
+    result = judge(case_list, rider)
+    assert result["subscribed_amount"] == 50000
+
+
+def test_judge_fixed_subscribed_is_none_with_reduction_p2_2():
+    # P2-2: subscribed가 None이고 감액(reductions) 조건에 해당하는 경우 500 TypeError 없이 정상 평가 확인
+    rider = _rider(
+        reductions=[{"until_elapsed_days": 365, "rate": 0.5, "note": "1년 미만 50% 감액"}]
+    )
+    # case에 coverage_amounts나 unit_amount를 매치시킬 수 있는게 아예 없어서 subscribed=None 인 상황
+    case_data = _case(policy_elapsed_days=100) # 1년(365일) 미만 감액 구간에 들어옴
+    result = judge(case_data, rider)
+    
+    assert result["status"] == "eligible"
+    assert result["subscribed_amount"] is None
+    assert result["expected_amount"] is None
+    assert result["reduced_amount"] is None
+
+
+def test_judge_fixed_reduction_schema_compatibility():
+    # 감액 적용 시 reduction 스키마가 이전 코드 규격(applied, until_elapsed_days)을 만족하는지 확인
+    rider = _rider(
+        unit_amount=100000,
+        reductions=[{"until_elapsed_days": 365, "rate": 0.5, "note": "1년 미만 50% 감액"}]
+    )
+    case_data = _case(policy_elapsed_days=100)
+    result = judge(case_data, rider)
+    
+    assert result["status"] == "eligible"
+    assert result["expected_amount"] == 150000
+    assert result["reduced_amount"] == 150000
+    assert result["reduction"] is not None
+    assert result["reduction"]["applied"] is True
+    assert result["reduction"]["until_elapsed_days"] == 365
+    assert result["reduction"]["rate"] == 0.5

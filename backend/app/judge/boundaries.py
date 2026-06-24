@@ -31,20 +31,10 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
     elapsed = case.get("policy_elapsed_days")
 
     subscribed = resolve_subscribed(case, rider)
-    if subscribed is None:
-        return new_judgement(
-            JudgeStatus.NOT_APPLICABLE,
-            reason="가입 정보 없음(미가입)",
-            subscribed_amount=None,
-            expected_amount=0,
-            payable_days=0,
-            additional_amount=0,
-        )
-
     daily = _is_daily(rider, trigger)
     deduct = rider.get("deduct_days") or 0  # 공제일수 (입원일당만, 첫 N일 미지급)
     payable_days = max(0, current_days - deduct)
-    base = subscribed * payable_days if daily else subscribed
+    base = None if subscribed is None else (subscribed * payable_days if daily else subscribed)
 
     # 1) 면책기간(waiting_period) 미경과
     waiting = rider.get("waiting_period_days")
@@ -54,7 +44,6 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
             gap_days=waiting - elapsed,
             subscribed_amount=subscribed,
             expected_amount=0,
-            payable_days=0,
             additional_amount=base,
             reason=f"가입 후 {waiting}일 경과 필요",
         )
@@ -65,14 +54,17 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
         thresholds = sorted(b.get("condition_days", 0) for b in boundaries)
         need = thresholds[0]
         if current_days < need:
-            potential = subscribed * max(0, need - deduct) if (daily and subscribed is not None) else base
+            potential = (
+                subscribed * max(0, need - deduct)
+                if (daily and subscribed is not None)
+                else base
+            )
             return new_judgement(
                 JudgeStatus.BOUNDARY_NOT_MET,
                 gap_days=need - current_days,
                 matched_boundary=f"{need}일 이상",
                 subscribed_amount=subscribed,
                 expected_amount=0,
-                payable_days=0,
                 additional_amount=potential,
                 reason=f"입원 {need}일 이상 필요",
             )
@@ -84,11 +76,11 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
     reason = None
     limit_note = None
 
-    if base is not None:
+    if base is not None and elapsed is not None:
         for red in rider.get("reductions") or []:
             until = red.get("until_elapsed_days")
             rate = red.get("rate", 1.0)
-            if until and elapsed is not None and elapsed < until:
+            if until and elapsed < until:
                 expected = int(base * rate)
                 reduced = base - expected
                 reduction = {
@@ -121,7 +113,6 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
         calc=calc,
         reduction=reduction,
         limit_note=limit_note,
-        payable_days=payable_days if daily else None,
         subscribed_amount=subscribed,
         expected_amount=expected,
         reduced_amount=reduced,

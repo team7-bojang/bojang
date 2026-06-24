@@ -348,6 +348,28 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             continue
         analyzed_rider_ids.add(rider_id)
 
+        # 질병 대분류(상해 vs 질병/암) 기반 1차 카테고리 필터링
+        kcd = case_data.get("disease_kcd") or ""
+        kcd_upper = kcd.upper().strip()
+        is_injury_case = kcd_upper.startswith("S") or kcd_upper.startswith("T")
+        
+        rider_name = rider.get("name") or ""
+        is_silson = "실손" in rider_name or "의료비" in rider_name
+        
+        if not is_silson:
+            if is_injury_case:
+                # 상해 케이스(S, T로 시작)인 경우: 질병/암 관련 특약은 배제
+                disease_keywords = ["암", "뇌", "심장", "종양", "신생물", "치매", "질병", "뇌혈관", "뇌졸중", "심근경색"]
+                if any(dk in rider_name for dk in disease_keywords):
+                    print(f"[AnalysisService] Filtering out disease/cancer rider '{rider_name}' for injury case '{kcd_upper}'")
+                    continue
+            else:
+                # 질병 케이스인 경우: 상해/재해/골절 관련 특약은 배제
+                injury_keywords = ["상해", "재해", "교통", "골절", "화상", "깁스"]
+                if any(ik in rider_name for ik in injury_keywords):
+                    print(f"[AnalysisService] Filtering out injury rider '{rider_name}' for disease case '{kcd_upper}'")
+                    continue
+
         # 질병군 및 특약 매칭 규칙 조회
         req_groups, excl_groups = get_disease_rules_for_rider(
             db, rider_id, rider.get("name") or "", rider.get("trigger_type")
