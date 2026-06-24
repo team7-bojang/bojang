@@ -470,7 +470,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
     missed_count = 0
 
     # 결과 병합 및 응답 조립
-    for item, explanation_data in zip(judge_results, explain_results):
+    for item, explanation_data in zip(judge_results, explain_results, strict=True):
         status = item["status"]
         rider = item["rider"]
         rider_id = item["rider_id"]
