@@ -107,10 +107,12 @@ export function ResultPage() {
     () => results.filter(result => !isEligible(result) && !isConditional(result)),
     [results]
   );
+  // 가입금액 입력은 '청구 가능' 보장만 받는다. '조건 확인 필요'는 예상 보험금 합계에
+  // 들어가지 않으므로 금액을 받아도 의미가 없어 제외한다.
   const coverageRows = useMemo<CoverageRow[]>(() => {
     const seen = new Set<string>();
     const rows: CoverageRow[] = [];
-    for (const result of [...payableResults, ...conditionalResults]) {
+    for (const result of payableResults) {
       if (!result.rider_id || seen.has(result.rider_id)) {
         continue;
       }
@@ -118,7 +120,7 @@ export function ResultPage() {
       rows.push({ riderId: result.rider_id, rider: result.rider, policy: result.policy });
     }
     return rows;
-  }, [payableResults, conditionalResults]);
+  }, [payableResults]);
 
   const handleApplyAmounts = async (amounts: CoverageAmountInput[]) => {
     if (!caseId) {
@@ -214,14 +216,16 @@ export function ResultPage() {
                   />
                 )}
 
-                <ResultSection
-                  title="조건 미달 보장"
-                  countClassName="text-red-600"
-                  results={nonPayableResults}
-                  emptyText="조건 미달 또는 해당 없음으로 분류된 보장이 없습니다."
-                  delay="160ms"
-                  className="mt-10"
-                />
+                {nonPayableResults.length > 0 && (
+                  <ResultSection
+                    title="조건 미달 보장"
+                    countClassName="text-red-600"
+                    results={nonPayableResults}
+                    emptyText="조건 미달 또는 해당 없음으로 분류된 보장이 없습니다."
+                    delay="160ms"
+                    className="mt-10"
+                  />
+                )}
               </>
             )}
 

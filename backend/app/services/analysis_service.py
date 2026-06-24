@@ -566,7 +566,10 @@ def search_analysis(user_id: str, case_id: str) -> dict:
                     continue
 
             # 과다매칭 보강: 비의료/타 장기 암/치료 근거 없음 특약 제외 (룰테이블 미비 폴백 보강)
-            cur_days = int(case_data.get("admission_days_current") or case_data.get("current_days") or 0)
+            # 통원 여부는 입원/통원 플래그로 판단한다 (통원인데 입원일수 데이터가 들어오는 경우 보정).
+            # 치료 근거 유무는 treatment_items 입력 그대로 본다 ('기타 치료'도 실제 치료로 취급,
+            #  '추가 치료 없음'은 사용자가 '없음'을 선택해 treatment_items 를 비우는 것으로 표현).
+            is_outpatient_case = bool(case_data.get("is_outpatient")) and not bool(case_data.get("is_inpatient"))
             skip_reason = _irrelevant_rider_reason(
                 rider_name,
                 rider.get("trigger_type"),
@@ -574,7 +577,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
                 is_injury_case,
                 has_treatment=bool(case_data.get("treatment_items")),
                 has_surgery=bool(case_data.get("surgery", False)),
-                is_outpatient_only=(cur_days == 0),
+                is_outpatient_only=is_outpatient_case,
             )
             if skip_reason:
                 print(f"[AnalysisService] Filtering out '{rider_name}' ({skip_reason}) for case '{kcd_upper}'")
@@ -591,7 +594,12 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "disease_name": case_data.get("disease_name", ""),
             "surgery": bool(case_data.get("surgery", False)),
             "diag_days": int(case_data.get("admission_days_diagnosed") or case_data.get("diag_days") or 0),
-            "current_days": int(case_data.get("admission_days_current") or case_data.get("current_days") or 0),
+            # 통원(외래)인데 입원일수가 남아 있으면 입원일당이 잘못 잡히므로 0으로 본다.
+            "current_days": (
+                0
+                if (bool(case_data.get("is_outpatient")) and not bool(case_data.get("is_inpatient")))
+                else int(case_data.get("admission_days_current") or case_data.get("current_days") or 0)
+            ),
             "policy_elapsed_days": case_data.get("policy_elapsed_days"),
             "treatment_items": case_data.get("treatment_items") or [],
             "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
