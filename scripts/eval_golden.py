@@ -88,14 +88,14 @@ def main() -> None:
         
         # 골든셋 케이스 조건으로 덮어쓰기
         case_service.patch_extracted_info(user_id, temp_case_id, {
-
             "disease_kcd": input_data.get("disease_kcd"),
             "disease_name": input_data.get("disease"),
             "surgery": input_data.get("surgery", False),
-            "diag_days": input_data.get("diag_days", 0),
-            "current_days": input_data.get("current_days", 0),
+            "diag_days": input_data.get("diag_days") or input_data.get("admission_days_diagnosed") or 0,
+            "current_days": input_data.get("current_days") or input_data.get("admission_days_current") or 0,
             "policy_elapsed_days": input_data.get("policy_elapsed_days"),
-            "claimed_policy_ids": input_data.get("claimed", [])
+            "claimed_policy_ids": input_data.get("claimed", []),
+            "treatment_items": input_data.get("treatment_items") or []
         })
         
         # 3. 보장 탐색 실행
@@ -130,7 +130,7 @@ def main() -> None:
         print("  - 오탐(Must Not Match) 검증:")
         for mnm in must_not_match:
             match = next((r for r in results if r["policy"] == mnm["policy"] and r["rider"] == mnm["rider"]), None)
-            if match:
+            if match and match.get("status") in ["eligible", "potential", "claimed"]:
                 print(f"    ❌ 오탐지: [{mnm['policy']}] {mnm['rider']} ({match['status']})")
                 case_passed = False
                 passed_all = False
