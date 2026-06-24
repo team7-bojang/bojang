@@ -52,11 +52,11 @@ export function AmountTiles({ amount }: { amount: number }) {
             return <RollingDigit key={`${groupIndex}-${digitIndex}`} digit={digit} order={order} />;
           })}
           {groupIndex < groups.length - 1 && (
-            <span className="pb-2 text-3xl font-black text-muted sm:pb-3 sm:text-5xl">,</span>
+            <span className="pb-2 text-3xl font-black text-muted sm:pb-3">,</span>
           )}
         </div>
       ))}
-      <span className="pb-3 text-2xl font-black text-ink sm:pb-4 sm:text-4xl">원</span>
+      <span className="pb-3 text-3xl font-black text-ink sm:pb-4">원</span>
     </div>
   );
 }

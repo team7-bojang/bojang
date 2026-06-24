@@ -66,22 +66,24 @@ export function ResultPage() {
       }
     };
 
-    loadResult()
-      .then(() => {
+    const run = async () => {
+      try {
+        await loadResult();
         if (alive) {
           setError(null);
         }
-      })
-      .catch(err => {
+      } catch (err) {
         if (alive) {
           setError(err instanceof Error ? err.message : '분석 결과를 불러오지 못했습니다.');
         }
-      })
-      .finally(() => {
+      } finally {
         if (alive) {
           setLoading(false);
         }
-      });
+      }
+    };
+
+    void run();
 
     return () => {
       alive = false;
@@ -113,7 +115,7 @@ export function ResultPage() {
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
+      <main className="mx-auto w-full max-w-5xl px-5 sm:px-8 py-8">
         {loading ? (
           <div className="rounded-card bg-surface p-8 text-center shadow-sm ring-1 ring-line">
             <p className="text-sm font-semibold text-muted">분석 결과를 불러오고 있습니다.</p>

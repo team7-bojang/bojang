@@ -1,6 +1,7 @@
 import type { ServiceType } from '@/types/case';
 
 import { AmountTiles } from './AmountTiles';
+import { FallingSadEmojis } from './FallingSadEmojis';
 import { FireworkBurst } from './FireworkBurst';
 
 interface ResultHeroProps {
@@ -13,7 +14,7 @@ export function ResultHero({ amount, hasPayableBenefits, serviceType }: ResultHe
   const isCompare = serviceType === 'CASE2';
 
   return (
-    <section className="animate-result-enter relative overflow-hidden py-8 text-center sm:py-12">
+    <section className="animate-result-enter relative overflow-hidden py-8 text-center">
       {hasPayableBenefits && (
         <>
           <FireworkBurst className="left-2 top-0 sm:left-8 sm:top-2" />
@@ -22,15 +23,14 @@ export function ResultHero({ amount, hasPayableBenefits, serviceType }: ResultHe
           <FireworkBurst className="right-24 top-28 hidden sm:block" delay={2.22} />
         </>
       )}
+      {!hasPayableBenefits && <FallingSadEmojis />}
 
       <div className="relative z-10">
         <div className="font-tossface mx-auto flex size-12 items-center justify-center rounded-full bg-primary-tint text-2xl shadow-sm sm:size-14 sm:text-3xl">
-          {hasPayableBenefits ? '🎉' : '🔎'}
+          {hasPayableBenefits ? '🎉' : '🥲'}
         </div>
-        <h1 className="mt-5 text-3xl font-black tracking-normal text-ink sm:text-5xl">
-          분석이 완료됐어요
-        </h1>
-        <p className="mt-3 text-lg font-medium text-muted sm:text-2xl">
+        <h1 className="mt-5 text-4xl font-black tracking-normal text-ink">분석이 완료됐어요</h1>
+        <p className="mt-3 text-lg font-medium text-muted">
           {isCompare
             ? '입원 기간에 따라 달라지는 추가 보장을 비교했어요.'
             : hasPayableBenefits
