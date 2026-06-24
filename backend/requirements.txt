@@ -221,7 +221,9 @@ pdfplumber==0.11.10
 pgvector==0.4.2
     # via -r requirements.in
 pillow==12.2.0
-    # via pdfplumber
+    # via
+    #   -r requirements.in
+    #   pdfplumber
 platformdirs==4.10.0
     # via black
 pluggy==1.6.0

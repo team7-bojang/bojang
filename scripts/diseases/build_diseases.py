@@ -29,12 +29,13 @@ build_diseases.py — 심평원 상병마스터 → /diseases/search 자동완�
     공공데이터포털 "건강보험심사평가원_상병마스터" (data.go.kr/data/15067467)
     로그인 없이 다운로드. 통계청 한국표준질병·사인분류(KCD) 기반.
 """
-import sys
+import argparse
 import csv
 import re
-import argparse
 from collections import OrderedDict
 from pathlib import Path
+
+from merged_synonyms import MANUAL_SYNONYMS
 
 # 원본 컬럼명 (상병마스터 20250930 기준). 버전 바뀌어 헤더가 다르면 여기를 수정.
 COL_CODE = "상병기호"
@@ -49,7 +50,6 @@ CODE_LEN = 3
 # 동의어 사전: KCD 제3권 색인(의학명) + 수동 일상어 2층 병합본.
 # 출처/증거: merged_synonyms.csv (layer·source_page·raw_line 컬럼).
 # 재생성: build_synonyms_from_index.py → merge_synonyms.py
-from merged_synonyms import MANUAL_SYNONYMS
 # 노이즈 수식어 — 부위명에 이게 있으면 자동 별칭 생성을 건너뜀(어색한 별칭 방지)
 _CANCER_NOISE = ("기타", "상세불명", "부분", "부위불명", "및", ",")
 
@@ -120,12 +120,12 @@ def build(header, rows):
         manual = MANUAL_SYNONYMS.get(code, [])  # 사용자 일상어 별칭(수동)
         auto = auto_cancer_alias(code, name)    # 암 별칭 자동 생성
         auto_list = [auto] if auto else []
-        # search_text = 공식명 + 심평원 별칭 + 자동 암별칭 + 수동 별칭 (중복 제거, 순서 유지)
+        # search_text = 공식명 + 심평원 별칭 + 자동 암별칭 + 수동 별칭 (쉼표 구분, 중복 제거)
         terms = []
         for t in [name] + syns + auto_list + manual:
             if t and t not in terms:
                 terms.append(t)
-        search_text = " ".join(terms)
+        search_text = ",".join(terms)
         out.append((code, name, search_text))   # name은 KCD 공식 표제어 유지
     return out
 
@@ -138,7 +138,9 @@ def write_csv(out, path):
 
 
 def write_sql(out, path):
-    q = lambda s: s.replace("'", "''")
+    def q(s):
+        return s.replace("'", "''")
+
     with open(path, "w", encoding="utf-8") as f:
         f.write("-- diseases 자동완성 테이블 (심평원 상병마스터, KCD 3자리 표제어)\n")
         f.write(f"-- 적재 {len(out)}건. 출처: data.go.kr/data/15067467\n")
@@ -151,7 +153,7 @@ def write_sql(out, path):
         f.write("-- create index on diseases using gin (search_text gin_trgm_ops);\n")
         f.write("--\n")
         f.write("-- [검색 쿼리 예시] /diseases/search?q=뇌경색\n")
-        f.write("-- 정렬: 진단코드 우선(R/Z 증상·기타코드는 뒤로) > 대표명 정확매칭 > search_text 별칭 단어 정확일치 > 대표명 앞부분 > 대표명 포함 > 짧은 이름.\n")
+        f.write("-- 정렬: 진단코드 우선(R/Z 증상·기타코드는 뒤로) > 대표명 정확매칭 > search_text 별칭 정확일치 > 대표명 앞부분 > 대표명 포함 > 짧은 이름.\n")
         f.write("-- (예: '당뇨' → E10/E11 당뇨병 계열이 R81 '당뇨'(증상코드)보다 위 / '뇌경색' → I63이 I65·I66보다 위)\n")
         f.write("-- select kcd, name from diseases\n")
         f.write("-- where search_text like '%' || :q || '%'\n")
@@ -159,7 +161,7 @@ def write_sql(out, path):
         f.write("--   (left(kcd,1) in ('R','Z')) asc,\n")
         f.write("--   (name = :q) desc,\n")
         f.write(
-            "--   (search_text = :q or search_text like :q || ' %' or search_text like '% ' || :q || ' %' or search_text like '% ' || :q) desc,\n")
+            "--   (search_text = :q or search_text like :q || ',%' or search_text like '%,' || :q || ',%' or search_text like '%,' || :q) desc,\n")
         f.write("--   (name like :q || '%') desc,\n")
         f.write("--   (name like '%' || :q || '%') desc,\n")
         f.write("--   length(name)\n")

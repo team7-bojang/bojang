@@ -855,42 +855,42 @@ class InMemoryDB:
 
         # 0. 질병 정보 사전 생성
         preset_diseases = [
-            {"kcd": "I63", "name": "뇌경색증", "search_text": "뇌경색증 뇌혈관 I63"},
-            {"kcd": "I60", "name": "지주막하출혈", "search_text": "지주막하출혈 뇌출혈 I60"},
-            {"kcd": "I61", "name": "뇌내출혈", "search_text": "뇌내출혈 뇌출혈 I61"},
+            {"kcd": "I63", "name": "뇌경색증", "search_text": "뇌경색증,뇌경색,뇌졸중"},
+            {"kcd": "I60", "name": "지주막하출혈", "search_text": "지주막하출혈,뇌출혈"},
+            {"kcd": "I61", "name": "뇌내출혈", "search_text": "뇌내출혈,뇌출혈"},
             {
                 "kcd": "C16",
                 "name": "위의 악성 신생물 (위암)",
-                "search_text": "위의 악성 신생물 (위암) C16 위암",
+                "search_text": "위의 악성 신생물 (위암),위암",
             },
-            {"kcd": "C34", "name": "폐암", "search_text": "폐암 C34"},
+            {"kcd": "C34", "name": "폐암", "search_text": "폐암"},
             {
                 "kcd": "M51",
                 "name": "기타 추간판 장애 (허리디스크)",
-                "search_text": "기타 추간판 장애 (허리디스크) 디스크 M51",
+                "search_text": "기타 추간판 장애 (허리디스크),허리디스크,디스크,추간판탈출",
             },
-            {"kcd": "J30", "name": "혈관운동성 및 알레르기성 비염", "search_text": "비염 J30"},
-            {"kcd": "E11", "name": "2형 당뇨병", "search_text": "당뇨병 E11"},
-            {"kcd": "I21", "name": "급성 심근경색증", "search_text": "급성 심근경색증 심장 I21"},
+            {"kcd": "J30", "name": "혈관운동성 및 알레르기성 비염", "search_text": "비염,알레르기성비염"},
+            {"kcd": "E11", "name": "2형 당뇨병", "search_text": "2형 당뇨병,당뇨병,2형당뇨"},
+            {"kcd": "I21", "name": "급성 심근경색증", "search_text": "급성 심근경색증,심근경색,심근경색증"},
             {
                 "kcd": "S62",
                 "name": "손목 및 손부위의 골절",
-                "search_text": "손목 및 손부위의 골절 골절 S62 손목",
+                "search_text": "손목 및 손부위의 골절,손목골절,골절",
             },
             {
                 "kcd": "S63",
                 "name": "손목 및 손부위의 관절 및 인대의 탈구, 염좌 및 긴장",
-                "search_text": ("손목 및 손부위의 관절 및 인대의 탈구, 염좌 및 긴장 염좌 S63 손목"),
+                "search_text": "손목 및 손부위의 관절 및 인대의 탈구, 염좌 및 긴장,손목염좌,염좌",
             },
             {
                 "kcd": "S60",
                 "name": "손목 및 손의 표재성 손상 (손목 타박상)",
-                "search_text": "손목 및 손의 표재성 손상 타박상 S60 손목",
+                "search_text": "손목 및 손의 표재성 손상 (손목 타박상),손목타박상,타박상",
             },
             {
                 "kcd": "S635",
                 "name": "손목 인대 손상",
-                "search_text": "손목 인대 손상 인대 S635 손목",
+                "search_text": "손목 인대 손상,손목인대손상,인대손상",
             },
         ]
         self.diseases.extend(preset_diseases)
