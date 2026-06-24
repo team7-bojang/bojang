@@ -83,7 +83,12 @@ def judge_fixed(case: Case, rider: Rider) -> Judgement:
             if until and elapsed < until:
                 expected = int(base * rate)
                 reduced = base - expected
-                reduction = {"condition": f"가입 후 {until}일 미만", "rate": rate}
+                reduction = {
+                    "applied": True,
+                    "condition": f"가입 후 {until}일 미만",
+                    "rate": rate,
+                    "until_elapsed_days": until,
+                }
                 reason = "가입기간 미충족"  # CASE 2-2 감액 사유
                 limit_note = red.get("note")
                 break
