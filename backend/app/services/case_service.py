@@ -446,16 +446,14 @@ def create_case(user_id: str, service_type: str, policy_ids: list[str], initial_
             surgery = False
         else:
             surgery = True
-    hosp_days = 0
+    hosp_days = None
     if "입원" in initial_situation:
         match = re.search(r"(\d+)\s*일\s*입원", initial_situation)
         if match:
             hosp_days = int(match.group(1))
-        else:
-            hosp_days = 3  # 기본값
 
-    diag_days = hosp_days if hosp_days > 0 else None
-    current_days = hosp_days if hosp_days > 0 else None
+    diag_days = hosp_days if (hosp_days is not None and hosp_days > 0) else None
+    current_days = hosp_days if (hosp_days is not None and hosp_days > 0) else None
 
     # CASE2인 경우 진단 및 경과 일수/주수 파싱
     if service_type == "CASE2":
@@ -509,6 +507,7 @@ def create_case(user_id: str, service_type: str, policy_ids: list[str], initial_
         "claimed_policy_ids": claimed_ids,
         "is_inpatient": is_inpatient,
         "is_outpatient": is_outpatient,
+        "treatment_items": None,
         "created_at": datetime.now(UTC).isoformat(),
     }
 
