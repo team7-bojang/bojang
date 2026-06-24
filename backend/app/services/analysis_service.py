@@ -4,6 +4,9 @@
 비교: 시나리오별 judge 재실행 → 경계(gap_days) 감지 → 비교표 조립
 """
 
+import os
+from concurrent.futures import ThreadPoolExecutor
+
 from app.core.constants import JudgeStatus
 from app.core.errors import ForbiddenError, NotFoundError
 from app.db import get_client
@@ -332,11 +335,9 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         if not notice:
             notice = "가입한 보험의 세부 약관 및 특약 정보가 DB에 등록되어 있지 않아 분석이 제한됩니다."
 
-    # 4. 연관 특약 판정 및 AI 설명 생성
+    # 4. 연관 특약 판정 및 AI 설명 생성 대상 수집
     analyzed_rider_ids = set()
-    results = []
-    eligible_count = 0
-    missed_count = 0
+    judge_results = []
 
     for chunk in chunks:
         rider = chunk.get("riders")
@@ -420,17 +421,37 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         if not rider_chunks:
             rider_chunks = [chunk]
 
-        import os
+        # LLM 설명 필요 여부 판단
+        need_llm = (status != JudgeStatus.NOT_APPLICABLE) and (os.environ.get("MOCK_LLM") != "True")
 
-        if status == JudgeStatus.NOT_APPLICABLE:
-            explanation_data = {
+        judge_results.append({
+            "chunk": chunk,
+            "rider": rider,
+            "rider_id": rider_id,
+            "judgement": judgement,
+            "status": status,
+            "rider_chunks": rider_chunks,
+            "need_llm": need_llm
+        })
+
+    # 병렬로 LLM 호출 실행을 위한 헬퍼 함수
+    def run_explain(item):
+        rider = item["rider"]
+        status = item["status"]
+        judgement = item["judgement"]
+
+        if not item["need_llm"]:
+            return {
                 "explanation": judgement.get("reason") or f"지급 상태가 [{status}]로 판정되었습니다.",
                 "article": rider.get("article_no"),
                 "page": rider.get("page"),
                 "quote": rider.get("raw_text"),
             }
-        elif os.environ.get("MOCK_LLM") == "True":
-            explanation_data = {
+        try:
+            return explain(case_data, judgement, item["rider_chunks"])
+        except Exception as e:
+            print(f"[analysis_service] AI explanation failed: {e}")
+            return {
                 "explanation": (
                     f"약관 {rider.get('article_no', '조항')}에 근거하여 지급 상태가 [{status}]로 판정되었습니다."
                 ),
@@ -438,19 +459,22 @@ def search_analysis(user_id: str, case_id: str) -> dict:
                 "page": rider.get("page"),
                 "quote": rider.get("raw_text"),
             }
-        else:
-            try:
-                explanation_data = explain(case_data, judgement, rider_chunks)
-            except Exception as e:
-                print(f"[analysis_service] AI explanation failed: {e}")
-                explanation_data = {
-                    "explanation": (
-                        f"약관 {rider.get('article_no', '조항')}에 근거하여 지급 상태가 [{status}]로 판정되었습니다."
-                    ),
-                    "article": rider.get("article_no"),
-                    "page": rider.get("page"),
-                    "quote": rider.get("raw_text"),
-                }
+
+    # ThreadPoolExecutor를 사용한 10개 최대 스레드 병렬 LLM 처리
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        explain_results = list(executor.map(run_explain, judge_results))
+
+    results = []
+    snapshots = []
+    eligible_count = 0
+    missed_count = 0
+
+    # 결과 병합 및 응답 조립
+    for item, explanation_data in zip(judge_results, explain_results):
+        status = item["status"]
+        rider = item["rider"]
+        rider_id = item["rider_id"]
+        judgement = item["judgement"]
 
         policy_id = rider.get("policy_id")
         policy_name = policy_names.get(policy_id, "기타보험")
@@ -493,7 +517,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         }
         results.append(result_item)
 
-        # 스냅샷 규칙에 따라 analysis_results DB에 저장
+        # 스냅샷 테이블용 데이터
         snapshot = {
             "case_id": case_id,
             "rider_id": rider_id,
@@ -505,10 +529,14 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "evidence": evidence,
             "explanation": explanation_data.get("explanation"),
         }
+        snapshots.append(snapshot)
+
+    # 일괄 저장을 통한 Supabase DB 네트워크 RTT 병목 해결 (Bulk Insert)
+    if snapshots:
         try:
-            db.table("analysis_results").insert(snapshot).execute()
+            db.table("analysis_results").insert(snapshots).execute()
         except Exception as db_err:
-            print(f"[analysis_service] Snapshot save failed: {db_err}")
+            print(f"[analysis_service] Bulk snapshot save failed: {db_err}")
 
     return {
         "summary": {"eligible_count": eligible_count, "missed_count": missed_count},
