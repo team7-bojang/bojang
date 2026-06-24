@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { INSURERS } from '../data/insurers';
-import type { Policy } from '../data/policies';
+import type { PolicyOption } from '../model';
 
 interface PolicyCardProps {
-  policy: Policy;
+  policy: PolicyOption;
   selected: boolean;
   onToggle: (id: string) => void;
   /** 등장 스태거 지연 계산용 (선택). */

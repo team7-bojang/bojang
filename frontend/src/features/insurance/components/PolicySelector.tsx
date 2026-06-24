@@ -13,12 +13,13 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { INSURER_LIST } from '../data/insurers';
 import { PolicyCard } from './PolicyCard';
-import type { Policy } from '../data/policies';
+import type { PolicyOption } from '../model';
 
 interface PolicySelectorProps {
-  policies: Policy[];
+  policies: PolicyOption[];
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
+  loading?: boolean;
   className?: string;
 }
 
@@ -29,6 +30,7 @@ export function PolicySelector({
   policies,
   selectedIds,
   onToggle,
+  loading = false,
   className,
 }: PolicySelectorProps) {
   const [insurerFilter, setInsurerFilter] = useState(ALL);
@@ -78,8 +80,10 @@ export function PolicySelector({
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1  scrollbar-hide py-1">
-        {filtered.length === 0 ? (
+      <div className="scrollbar-primary mt-5 grid gap-3 py-1 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-2">
+        {loading ? (
+          <PolicySelectorSkeleton />
+        ) : filtered.length === 0 ? (
           <p className="col-span-full py-10 text-center text-sm text-muted">
             조건에 맞는 보험이 없습니다.
           </p>
@@ -98,5 +102,31 @@ export function PolicySelector({
         )}
       </div>
     </section>
+  );
+}
+
+function PolicySelectorSkeleton() {
+  return (
+    <>
+      {[0, 1, 2, 3].map(item => (
+        <div
+          key={item}
+          className="rounded-card border border-line bg-surface p-4 shadow-sm"
+          aria-hidden="true"
+        >
+          <div className="flex items-start gap-3">
+            <div className="size-10 shrink-0 animate-pulse rounded-xl bg-line/70" />
+            <div className="min-w-0 flex-1 space-y-2 pt-1">
+              <div className="h-4 w-20 animate-pulse rounded-full bg-line/70" />
+              <div className="h-4 w-full max-w-44 animate-pulse rounded-full bg-line/70" />
+            </div>
+          </div>
+          <div className="mt-4 flex gap-1.5">
+            <div className="h-6 w-16 animate-pulse rounded-full bg-line/70" />
+            <div className="h-6 w-14 animate-pulse rounded-full bg-line/70" />
+          </div>
+        </div>
+      ))}
+    </>
   );
 }

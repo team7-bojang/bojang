@@ -6,80 +6,53 @@ function Skeleton({ className }: { className: string }) {
 
 /** 상황 입력 데이터를 불러오는 동안 실제 폼 구조를 미리 보여주는 스켈레톤. */
 export function ConfirmFormSkeleton() {
+  const sections = [
+    { titleWidth: 'w-20', summaryWidth: 'w-72', open: true },
+    { titleWidth: 'w-20', summaryWidth: 'w-44' },
+    { titleWidth: 'w-32', summaryWidth: 'w-52' },
+    { titleWidth: 'w-24', summaryWidth: 'w-32' },
+    { titleWidth: 'w-20', summaryWidth: 'w-40' },
+  ];
+
   return (
     <div
-      className="mt-6 rounded-card bg-surface p-5 shadow-sm ring-1 ring-line sm:p-7"
+      className="mt-6 space-y-3 pb-40 sm:pb-32"
       aria-busy="true"
       aria-label="입력 내용 불러오는 중"
     >
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-11 w-full rounded-xl" />
-          <Skeleton className="h-3 w-28" />
-        </div>
-        <div className="space-y-3">
-          <Skeleton className="h-4 w-24" />
-          <div className="flex gap-4 pt-1">
-            <Skeleton className="h-6 w-20 rounded-full" />
-            <Skeleton className="h-6 w-20 rounded-full" />
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-5 grid gap-5 rounded-card border-2 border-dashed border-line p-5 sm:grid-cols-3">
-        {[0, 1, 2].map(item => (
-          <div key={item} className="space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-11 w-full rounded-xl" />
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-6 space-y-3">
-        <Skeleton className="h-4 w-36" />
-        <div className="flex flex-wrap gap-2">
-          {[0, 1, 2, 3, 4, 5, 6].map(item => (
-            <Skeleton key={item} className="h-8 w-20 rounded-full" />
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-6 sm:grid-cols-3">
-        {[0, 1, 2].map(item => (
-          <div key={item} className="space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-11 w-full rounded-xl" />
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-6 border-t border-line pt-5">
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-20" />
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(14rem,18rem)] sm:items-center">
-            <Skeleton className="h-5 w-full max-w-sm" />
-            <Skeleton className="h-11 w-full rounded-xl" />
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-6 sm:grid-cols-2">
-        {[0, 1].map(item => (
-          <div key={item} className="space-y-2">
-            <Skeleton className="h-4 w-32" />
-            <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-xl border border-line bg-canvas px-3 py-2">
-              <Skeleton className="h-6 w-24 rounded-full" />
-              <Skeleton className="h-6 w-28 rounded-full" />
+      {sections.map((section, index) => (
+        <section
+          key={index}
+          className="overflow-hidden rounded-card bg-surface shadow-sm ring-1 ring-line"
+        >
+          <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className={cn('h-4', section.titleWidth)} />
+              <Skeleton className={cn('h-3 max-w-full', section.summaryWidth)} />
             </div>
+            <Skeleton className="size-5 shrink-0 rounded-full" />
           </div>
-        ))}
-      </div>
 
-      <div className="mt-6 flex flex-col items-stretch justify-between gap-3 rounded-card bg-canvas p-4 sm:flex-row sm:items-center">
-        <Skeleton className="h-5 w-full max-w-md" />
-        <Skeleton className="h-11 w-full rounded-xl sm:w-44" />
-      </div>
+          {section.open && (
+            <div className="border-t border-line px-5 py-5 sm:px-6">
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-11 w-full rounded-xl" />
+                  <Skeleton className="h-3 w-28" />
+                </div>
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-24" />
+                  <div className="flex gap-4 pt-1">
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      ))}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { InsurerLogo } from '@/features/insurance/components/InsurerLogo';
 import { cn } from '@/lib/utils';
 import { ChevronRight, Download, Lightbulb, RotateCcw, Sparkles } from 'lucide-react';
 
-import type { AdditionalCoverageCandidate, AdditionalCoverageResultData } from '../types';
+import type { AdditionalCoverageCandidate, AdditionalCoverageResultData } from '../model';
 import { formatWon } from '../utils/format';
 
 function AmountLabel({
