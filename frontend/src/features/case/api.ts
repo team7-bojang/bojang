@@ -15,6 +15,8 @@ import type {
   SavePaymentResponse,
 } from './model';
 
+export type CaseDashboardPatchRequest = Partial<CaseDashboard>;
+
 export const casesApi = {
   async createCase(body: CreateCaseRequest) {
     const { data } = await apiClient.post<ApiResponse<CreateCaseResponse>>(
@@ -58,7 +60,7 @@ export const casesApi = {
     return normalizeDashboardResponse(unwrapApiResponse(data));
   },
 
-  async patchCaseDashboard(caseId: string, body: Partial<CaseDashboard>) {
+  async patchCaseDashboard(caseId: string, body: CaseDashboardPatchRequest) {
     const { data } = await apiClient.patch<ApiResponse<CaseDashboardResponse>>(
       endpoints.cases.dashboard(caseId),
       body
@@ -105,5 +107,6 @@ function normalizeDashboardResponse(
       annual_visit_count: dashboard.annual_visit_count ?? null,
       policy_elapsed_days: dashboard.policy_elapsed_days ?? null,
     },
+    treatment_types: response.treatment_types ?? [],
   };
 }

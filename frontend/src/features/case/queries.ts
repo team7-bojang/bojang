@@ -1,6 +1,4 @@
-import type { CaseDashboard } from '@/types/case';
-
-import { casesApi } from './api';
+import { casesApi, type CaseDashboardPatchRequest } from './api';
 import type { CreateCaseRequest, SaveAnswersRequest, SavePaymentRequest } from './model';
 
 export async function startCaseAnalysis(params: CreateCaseRequest) {
@@ -23,6 +21,6 @@ export async function fetchCaseDashboard(caseId: string) {
   return casesApi.getCaseDashboard(caseId);
 }
 
-export async function saveCaseDashboard(caseId: string, dashboard: CaseDashboard) {
+export async function saveCaseDashboard(caseId: string, dashboard: CaseDashboardPatchRequest) {
   return casesApi.patchCaseDashboard(caseId, dashboard);
 }

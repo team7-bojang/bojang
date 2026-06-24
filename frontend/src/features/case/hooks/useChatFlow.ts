@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 
+import type { TreatmentType } from '@/types/case';
+
 import type { AnswerValue, CreateCaseResponse, NextQuestion, ServiceType } from '../model';
 import {
   answerCase,
@@ -16,6 +18,7 @@ export interface ChatMessage {
 interface ApplyTarget {
   next_question?: NextQuestion | null;
   message?: string | null;
+  treatment_types?: TreatmentType[] | null;
 }
 
 interface UseChatFlowParams {
@@ -125,7 +128,7 @@ export function useChatFlow({
     (res: ApplyTarget, resolvedCaseId: string, fallbackToInputMethod = false) => {
       const next = res.next_question ?? null;
       if (next) {
-        setQuestion(next);
+        setQuestion({ ...next, treatment_types: res.treatment_types ?? next.treatment_types });
         return;
       }
 

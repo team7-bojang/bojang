@@ -53,7 +53,35 @@ describe('QuestionPrompt', () => {
     );
   });
 
-  it('checkbox_button: 다중 선택 후 확인 시 배열 value와 합친 label로 콜백한다', async () => {
+  it('checkbox_button: 일반 다중 선택은 확인 시 배열 value와 합친 label로 콜백한다', async () => {
+    const onAnswer = vi.fn();
+    render(
+      <QuestionPrompt
+        question={{
+          question_id: 'claimed_policy_ids',
+          question_text: '이미 청구한 보험을 골라주세요.',
+          input_type: 'checkbox_button',
+          options: [
+            { value: 'policy-a', label: 'A 보험' },
+            { value: 'policy-b', label: 'B 보험' },
+          ],
+        }}
+        onAnswer={onAnswer}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'A 보험' }));
+    await userEvent.click(screen.getByRole('button', { name: 'B 보험' }));
+    await userEvent.click(screen.getByRole('button', { name: '확인' }));
+
+    expect(onAnswer).toHaveBeenCalledWith(
+      'claimed_policy_ids',
+      ['policy-a', 'policy-b'],
+      'A 보험, B 보험'
+    );
+  });
+
+  it('treatment_items: ui_group 선택 후 display_name 칩을 즉시 답변으로 보낸다', async () => {
     const onAnswer = vi.fn();
     render(
       <QuestionPrompt
@@ -62,23 +90,47 @@ describe('QuestionPrompt', () => {
           question_text: '받으신 치료를 골라주세요.',
           input_type: 'checkbox_button',
           options: [
-            { value: 'MRI_MRA', label: '영상검사' },
-            { value: 'INJECTION', label: '주사치료' },
+            { value: 'MRI_MRA', label: '영상검사 (MRI/CT)' },
+            { value: 'OTHER', label: '기타 치료' },
+          ],
+          treatment_types: [
+            {
+              code: 'MRI_MRA',
+              display_name: 'MRI/MRA',
+              ui_group: '영상검사',
+              active: true,
+            },
+            {
+              code: 'CT',
+              display_name: 'CT 검사',
+              ui_group: '영상검사',
+              active: true,
+            },
+            {
+              code: 'CAST',
+              display_name: '깁스',
+              ui_group: '기타',
+              active: true,
+            },
           ],
         }}
         onAnswer={onAnswer}
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: '영상검사' }));
-    await userEvent.click(screen.getByRole('button', { name: '주사치료' }));
+    await userEvent.click(screen.getByRole('button', { name: '영상검사 (MRI/CT)' }));
+
+    expect(screen.getByRole('button', { name: '영상검사 (MRI/CT)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '확인' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'MRI/MRA' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CT 검사' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'CT 검사' }));
+    await userEvent.click(screen.getByRole('button', { name: '기타 치료' }));
+    await userEvent.click(screen.getByRole('button', { name: '깁스' }));
     await userEvent.click(screen.getByRole('button', { name: '확인' }));
 
-    expect(onAnswer).toHaveBeenCalledWith(
-      'treatment_items',
-      ['MRI_MRA', 'INJECTION'],
-      '영상검사, 주사치료'
-    );
+    expect(onAnswer).toHaveBeenCalledWith('treatment_items', ['CT 검사', '깁스'], 'CT 검사, 깁스');
   });
 
   it('text_input: 입력값을 trim해서 question_id/value/label로 콜백한다', async () => {

@@ -1,4 +1,9 @@
-import type { CaseDashboard, CaseDashboardResponse, ServiceType } from '@/types/case';
+import type {
+  CaseDashboard,
+  CaseDashboardResponse,
+  ServiceType,
+  TreatmentType,
+} from '@/types/case';
 
 export type { CaseDashboard, CaseDashboardResponse, ServiceType };
 
@@ -27,6 +32,7 @@ export interface NextQuestion {
   input_type: QuestionInputType;
   placeholder?: string;
   options?: RawQuestionOption[];
+  treatment_types?: TreatmentType[];
 }
 
 // 프론트 내부 정규화 형태
@@ -67,6 +73,7 @@ export interface CreateCaseResponse {
   available_input_methods?: string[];
   message?: string | null;
   next_question?: NextQuestion | null;
+  treatment_types?: TreatmentType[] | null;
 }
 
 export interface SavePaymentRequest {
@@ -91,6 +98,7 @@ export interface SavePaymentResponse {
     message: string | null;
     threshold_basis: string | null;
   };
+  treatment_types?: TreatmentType[] | null;
 }
 
 export interface SaveMedicalDetailStatementResponse {
@@ -101,6 +109,7 @@ export interface SaveMedicalDetailStatementResponse {
   covered_amounts?: Record<string, number>;
   needs_confirmation?: boolean;
   next_question?: NextQuestion | null;
+  treatment_types?: TreatmentType[] | null;
 }
 
 export interface SaveAnswersRequest {
@@ -116,4 +125,5 @@ export interface SaveAnswersResponse {
   ready_for_dashboard?: boolean;
   case_id?: string;
   next_question?: NextQuestion | null;
+  treatment_types?: TreatmentType[] | null;
 }

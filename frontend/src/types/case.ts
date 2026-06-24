@@ -19,6 +19,15 @@ export interface CaseDashboard {
   policy_elapsed_days: number | null;
 }
 
+export interface TreatmentType {
+  code: string;
+  ui_group?: string | null;
+  display_name?: string | null;
+  name?: string | null;
+  aliases?: string[] | null;
+  active?: boolean | null;
+}
+
 export interface DashboardPolicy {
   id?: string;
   name: string;
@@ -44,6 +53,7 @@ export interface CaseDashboardResponse {
   case_id: string;
   service_type: ServiceType;
   dashboard: CaseDashboard;
+  treatment_types?: TreatmentType[];
   policies?: DashboardPolicy[];
   analysis_results?: AnalysisResult[];
 }

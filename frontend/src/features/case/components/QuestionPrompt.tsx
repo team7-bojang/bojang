@@ -2,6 +2,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { getActiveTreatmentTypes } from '@/features/confirm/treatmentTypes';
+import type { TreatmentType } from '@/types/case';
 
 import type { AnswerValue, NextQuestion, NormalizedOption } from '../model';
 import { normalizeOptions } from '../options';
@@ -38,6 +40,9 @@ export function QuestionPrompt({
     );
   }
   if (question.input_type === 'checkbox_button') {
+    if (question.question_id === 'treatment_items') {
+      return <TreatmentItemPrompt question={question} onAnswer={onAnswer} disabled={disabled} />;
+    }
     return <CheckboxPrompt question={question} onAnswer={onAnswer} disabled={disabled} />;
   }
   if (question.input_type === 'text_input') {
@@ -130,6 +135,103 @@ function CheckboxPrompt({ question, onAnswer, disabled }: InnerProps) {
             question.question_id,
             selected.map(item => item.value),
             selected.map(item => item.label).join(', ')
+          )
+        }
+      >
+        확인
+      </Button>
+    </div>
+  );
+}
+
+function normalizeTreatmentGroup(value: string) {
+  return value
+    .replace(/\s*\([^)]*\)\s*/g, '')
+    .replace(/\s*치료$/g, '')
+    .trim();
+}
+
+function getOptionTreatmentGroup(option: NormalizedOption, treatmentTypes: TreatmentType[]) {
+  const optionValue = String(option.value);
+  const matched = treatmentTypes.find(type => type.code === optionValue);
+  return matched?.ui_group || normalizeTreatmentGroup(option.label);
+}
+
+function getTreatmentsByGroup(group: string, treatmentTypes: TreatmentType[]) {
+  return treatmentTypes.filter(type => {
+    if (type.active === false) {
+      return false;
+    }
+    return normalizeTreatmentGroup(type.ui_group ?? '기타') === normalizeTreatmentGroup(group);
+  });
+}
+
+function TreatmentItemPrompt({ question, onAnswer, disabled }: InnerProps) {
+  const options = normalizeOptions(question.options);
+  const treatmentTypes = getActiveTreatmentTypes(question.treatment_types ?? []);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [selectedTreatments, setSelectedTreatments] = useState<
+    Array<{ code: string; displayName: string }>
+  >([]);
+  const activeGroup =
+    selectedGroup ?? (options[0] ? getOptionTreatmentGroup(options[0], treatmentTypes) : null);
+  const groupTreatments = activeGroup ? getTreatmentsByGroup(activeGroup, treatmentTypes) : [];
+
+  const toggleTreatment = (code: string, displayName: string) => {
+    setSelectedTreatments(prev =>
+      prev.some(item => item.code === code || item.displayName === displayName)
+        ? prev.filter(item => item.code !== code && item.displayName !== displayName)
+        : [...prev, { code, displayName }]
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-2">
+        {options.map(opt => {
+          const group = getOptionTreatmentGroup(opt, treatmentTypes);
+          return (
+            <Chip
+              key={String(opt.value)}
+              label={opt.label}
+              selected={activeGroup === group}
+              disabled={disabled}
+              onClick={() => setSelectedGroup(group)}
+            />
+          );
+        })}
+      </div>
+
+      {activeGroup && (
+        <div className="flex flex-wrap gap-2">
+          {groupTreatments.map(treatment => {
+            const displayName = treatment.display_name || treatment.name || treatment.code;
+            const selected = selectedTreatments.some(
+              item => item.code === treatment.code || item.displayName === displayName
+            );
+            return (
+              <Chip
+                key={treatment.code}
+                label={displayName}
+                selected={selected}
+                disabled={disabled}
+                onClick={() => toggleTreatment(treatment.code, displayName)}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      <Button
+        type="button"
+        size="sm"
+        className="self-start"
+        disabled={disabled || selectedTreatments.length === 0}
+        onClick={() =>
+          onAnswer(
+            question.question_id,
+            selectedTreatments.map(item => item.displayName),
+            selectedTreatments.map(item => item.displayName).join(', ')
           )
         }
       >
