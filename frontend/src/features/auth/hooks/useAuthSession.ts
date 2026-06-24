@@ -11,13 +11,16 @@ export function useAuthSession() {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    const loadSession = async () => {
+      const { data } = await supabase.auth.getSession();
       if (!active) {
         return;
       }
       setUser(data.session?.user ?? null);
       setLoading(false);
-    });
+    };
+
+    void loadSession();
 
     const {
       data: { subscription },

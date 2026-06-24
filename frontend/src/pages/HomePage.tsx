@@ -32,25 +32,27 @@ export function HomePage() {
   useEffect(() => {
     let alive = true;
 
-    fetchPolicyOptions()
-      .then(options => {
+    const loadPolicies = async () => {
+      try {
+        const options = await fetchPolicyOptions();
         if (alive) {
           setPolicies(options);
           setPolicyError(null);
         }
-      })
-      .catch(error => {
+      } catch (error) {
         if (alive) {
           setPolicyError(
             error instanceof Error ? error.message : '보험 목록을 불러오지 못했습니다.'
           );
         }
-      })
-      .finally(() => {
+      } finally {
         if (alive) {
           setLoadingPolicies(false);
         }
-      });
+      }
+    };
+
+    void loadPolicies();
 
     return () => {
       alive = false;
@@ -97,13 +99,12 @@ export function HomePage() {
             policies={policies}
             selectedIds={selectedIds}
             onToggle={toggle}
+            loading={loadingPolicies}
             className="lg:min-h-0 lg:flex-8"
           />
-          {(loadingPolicies || uploadingPolicy) && (
+          {uploadingPolicy && (
             <p className="rounded-card border border-line bg-surface px-4 py-3 text-sm text-muted">
-              {uploadingPolicy
-                ? '약관 PDF를 업로드하는 중입니다.'
-                : '보험 목록을 불러오는 중입니다.'}
+              약관 PDF를 업로드하는 중입니다.
             </p>
           )}
           {policyError && (
@@ -180,7 +181,7 @@ export function HomePage() {
                 policies.filter(policy => policyIds.includes(policy.id))
               );
             }}
-            onDone={caseId => navigate(`/cases/${caseId}/confirm`)}
+            onDone={caseId => navigate(`/cases/${caseId}/review`)}
           />
         </div>
       </main>

@@ -2,6 +2,11 @@ import { INSURER_LIST, type InsurerId } from './data/insurers';
 import { policiesApi } from './api';
 import type { MyPolicy, MyPolicyWithNestedPolicy, PolicyOption, PolicyPreset } from './model';
 
+const POLICY_OPTIONS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+let policyOptionsCache: { data: PolicyOption[]; expiresAt: number } | null = null;
+let policyOptionsRequest: Promise<PolicyOption[]> | null = null;
+
 const insurerAliases: Record<string, InsurerId> = {
   KB손해보험: 'kb',
   DB손해보험: 'db',
@@ -36,8 +41,31 @@ export function toPolicyOption(preset: PolicyPreset): PolicyOption {
 }
 
 export async function fetchPolicyOptions(): Promise<PolicyOption[]> {
-  const { presets } = await policiesApi.getPolicyPresets();
-  return presets.map(toPolicyOption);
+  const now = Date.now();
+
+  if (policyOptionsCache && policyOptionsCache.expiresAt > now) {
+    return policyOptionsCache.data;
+  }
+
+  if (policyOptionsRequest) {
+    return policyOptionsRequest;
+  }
+
+  policyOptionsRequest = (async () => {
+    try {
+      const { presets } = await policiesApi.getPolicyPresets();
+      const options = presets.map(toPolicyOption);
+      policyOptionsCache = {
+        data: options,
+        expiresAt: Date.now() + POLICY_OPTIONS_CACHE_TTL_MS,
+      };
+      return options;
+    } finally {
+      policyOptionsRequest = null;
+    }
+  })();
+
+  return policyOptionsRequest;
 }
 
 export async function fetchMyPolicyOptions(): Promise<PolicyOption[]> {

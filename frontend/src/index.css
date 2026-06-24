@@ -47,6 +47,26 @@
   }
 }
 
+@utility scrollbar-primary {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-soft) var(--color-primary-tint);
+  &::-webkit-scrollbar {
+    width: 0.625rem;
+  }
+  &::-webkit-scrollbar-track {
+    border-radius: 999px;
+    background-color: var(--color-primary-tint);
+  }
+  &::-webkit-scrollbar-thumb {
+    border: 2px solid var(--color-primary-tint);
+    border-radius: 999px;
+    background-color: var(--color-primary-soft);
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-primary);
+  }
+}
+
 @keyframes step-line {
   from {
     width: 0;
@@ -140,6 +160,28 @@
     opacity: 0;
     transform: translate(calc(-50% + var(--spark-x)), calc(-50% + var(--spark-y)))
       rotate(var(--spark-rotate)) scaleX(0.45);
+  }
+}
+
+@keyframes sad-emoji-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--sad-drift-start), -70px, 0) rotate(0deg) scale(0.82);
+  }
+  10% {
+    opacity: 0.9;
+  }
+  38% {
+    transform: translate3d(var(--sad-drift-mid), 34%, 0) rotate(var(--sad-rotate)) scale(1);
+  }
+  68% {
+    transform: translate3d(calc(var(--sad-drift-mid) * -0.55), 68%, 0)
+      rotate(calc(var(--sad-rotate) * -0.75)) scale(0.94);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--sad-drift-end), calc(100% + 86px), 0)
+      rotate(calc(var(--sad-rotate) * 1.4)) scale(0.78);
   }
 }
 
@@ -288,6 +330,24 @@
     --spark-color: #a78bfa;
   }
 
+  .sad-emoji-rain {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .sad-emoji-drop {
+    position: absolute;
+    top: 0;
+    opacity: 0;
+    filter: drop-shadow(0 8px 14px rgba(11, 18, 32, 0.14));
+    line-height: 1;
+    animation: sad-emoji-fall var(--sad-duration) ease-in-out var(--sad-delay) infinite;
+    will-change: transform, opacity;
+  }
+
   .amount-digit-tile {
     display: flex;
     width: 3rem;
@@ -332,7 +392,8 @@
   @media (prefers-reduced-motion: reduce) {
     .animate-result-enter,
     .animate-coverage-bar-rise,
-    .animate-marquee {
+    .animate-marquee,
+    .sad-emoji-drop {
       animation: none;
     }
   }

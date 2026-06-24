@@ -1,12 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bot, Lock, SendHorizontal } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { QuestionPrompt } from '@/features/case/components/QuestionPrompt';
-import type { AnswerValue, ServiceType } from '@/features/case/model';
 import { useChatFlow } from '@/features/case/hooks/useChatFlow';
+import type { AnswerValue, ServiceType } from '@/features/case/model';
 import { cn } from '@/lib/utils';
 
 const GREETING = '안녕하세요. 어떤 사고나 치료가 있었는지 먼저 알려주세요.';
@@ -24,7 +24,34 @@ interface ChatbotProps {
   onDone?: (caseId: string) => void;
 }
 
-/** 상황 입력 후 질병 후보 확인과 후속 질문을 이어가는 챗봇. */
+function BotAvatar() {
+  return (
+    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
+      <Bot className="size-5" />
+    </span>
+  );
+}
+
+function ChatbotThinking({ text }: { text: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <BotAvatar />
+      <div className="flex items-center gap-3 rounded-2xl rounded-tl-sm bg-canvas px-4 py-3 text-sm leading-6 text-muted">
+        <span>{text}</span>
+        <span className="flex items-center gap-1" aria-label="진행 중" role="status">
+          {[0, 1, 2].map(index => (
+            <span
+              key={index}
+              className="size-1.5 animate-bounce rounded-full bg-primary"
+              style={{ animationDelay: `${index * 120}ms` }}
+            />
+          ))}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function Chatbot({
   className,
   locked = false,
@@ -66,6 +93,31 @@ export function Chatbot({
   const composerPlaceholder = composerQuestion?.placeholder ?? '답변을 입력해주세요';
   const inputDisabled = locked || submitting || (started && !composerQuestion);
 
+  const handleTextInputRequest = useCallback(
+    (request: { questionId: string; placeholder?: string }) => {
+      const sourceQuestionId = pendingQuestion?.question_id;
+      if (!sourceQuestionId) {
+        return;
+      }
+
+      setComposerQuestionOverride(prev => {
+        if (
+          prev?.sourceQuestionId === sourceQuestionId &&
+          prev.questionId === request.questionId &&
+          prev.placeholder === request.placeholder
+        ) {
+          return prev;
+        }
+
+        return {
+          sourceQuestionId,
+          ...request,
+        };
+      });
+    },
+    [pendingQuestion?.question_id]
+  );
+
   const handleSend = () => {
     if (inputDisabled) {
       return;
@@ -88,7 +140,7 @@ export function Chatbot({
   return (
     <section
       className={cn(
-        'flex flex-col rounded-card bg-surface p-5 shadow-sm ring-1 ring-line sm:p-6',
+        'flex flex-col rounded-card bg-surface px-6 py-4 shadow-sm ring-1 ring-line',
         className
       )}
     >
@@ -111,7 +163,7 @@ export function Chatbot({
       ) : (
         <div
           ref={scrollRef}
-          className="scrollbar-hide mt-5 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto"
+          className="scrollbar-hide mt-3 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1 pb-5 pt-3"
         >
           <motion.div
             className="flex items-start gap-3"
@@ -119,9 +171,7 @@ export function Chatbot({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
-              <Bot className="size-5" />
-            </span>
+            <BotAvatar />
             <p className="rounded-2xl rounded-tl-sm bg-canvas px-4 py-3 text-sm leading-6 text-ink">
               {GREETING}
             </p>
@@ -136,44 +186,48 @@ export function Chatbot({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 32 }}
                 className={cn(
-                  'max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6',
+                  'max-w-[85%]',
                   message.role === 'user'
-                    ? 'self-end rounded-tr-sm bg-primary text-white'
-                    : 'self-start rounded-tl-sm bg-canvas text-ink'
+                    ? 'self-end rounded-2xl rounded-tr-sm bg-primary px-4 py-3 text-sm leading-6 text-white'
+                    : 'self-start'
                 )}
               >
-                {message.text}
+                {message.role === 'user' ? (
+                  message.text
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <BotAvatar />
+                    <p className="rounded-2xl rounded-tl-sm bg-canvas px-4 py-3 text-sm leading-6 text-ink">
+                      {message.text}
+                    </p>
+                  </div>
+                )}
               </motion.div>
             ))}
           </AnimatePresence>
 
-          {pendingQuestion && !done && (
-            <div className="mt-1">
+          {pendingQuestion && !done && !submitting && (
+            <div className="ml-12 mt-1">
               <QuestionPrompt
                 key={pendingQuestion.question_id}
                 question={pendingQuestion}
                 onAnswer={answer}
-                onTextInputRequest={request => {
-                  setComposerQuestionOverride({
-                    sourceQuestionId: pendingQuestion.question_id,
-                    ...request,
-                  });
-                }}
-                disabled={submitting}
+                onTextInputRequest={handleTextInputRequest}
+                disabled={false}
               />
             </div>
           )}
 
           {submitting && (
-            <p className="self-start rounded-2xl rounded-tl-sm bg-canvas px-4 py-3 text-sm leading-6 text-muted">
-              입력해주신 내용을 분석하고 있습니다.
-            </p>
+            <ChatbotThinking
+              text={started ? '입력을 확인하고 있습니다' : '답변을 분석하고 있습니다'}
+            />
           )}
           {error && <p className="text-sm text-red-700">{error}</p>}
         </div>
       )}
 
-      <div className="mt-6 shrink-0">
+      <div className="shrink-0">
         <form
           className="relative"
           onSubmit={event => {

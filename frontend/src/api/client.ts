@@ -4,7 +4,7 @@ import { Config } from '@/constants/config';
 
 const defaultConfig = {
   baseURL: Config.apiBaseUrl,
-  timeout: 30_000,
+  timeout: 240_000,
 } as const;
 
 export const authClient = axios.create({
