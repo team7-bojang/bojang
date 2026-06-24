@@ -446,16 +446,14 @@ def create_case(user_id: str, service_type: str, policy_ids: list[str], initial_
             surgery = False
         else:
             surgery = True
-    hosp_days = 0
+    hosp_days = None
     if "입원" in initial_situation:
         match = re.search(r"(\d+)\s*일\s*입원", initial_situation)
         if match:
             hosp_days = int(match.group(1))
-        else:
-            hosp_days = 3  # 기본값
 
-    diag_days = hosp_days if hosp_days > 0 else None
-    current_days = hosp_days if hosp_days > 0 else None
+    diag_days = hosp_days if (hosp_days is not None and hosp_days > 0) else None
+    current_days = hosp_days if (hosp_days is not None and hosp_days > 0) else None
 
     # CASE2인 경우 진단 및 경과 일수/주수 파싱
     if service_type == "CASE2":
@@ -509,6 +507,7 @@ def create_case(user_id: str, service_type: str, policy_ids: list[str], initial_
         "claimed_policy_ids": claimed_ids,
         "is_inpatient": is_inpatient,
         "is_outpatient": is_outpatient,
+        "treatment_items": None,
         "created_at": datetime.now(UTC).isoformat(),
     }
 
@@ -858,15 +857,29 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
                     pass
         elif q_id == "admission_days_current":
             if val is not None:
+                val_str = str(val).strip()
+                if "통원" in val_str or "외래" in val_str or val_str == "0" or "안 했" in val_str:
+                    is_inpt = False
+                    is_outpt = True
+                    updates["admission_days_current"] = 0
+                    updates["admission_days_diagnosed"] = 0
+                else:
+                    try:
+                        num_str = re.sub(r"[^0-9]", "", val_str)
+                        days_val = int(num_str) if num_str else None
+                        updates["admission_days_current"] = days_val
+                        if days_val and days_val > 0:
+                            is_inpt = True
+                            is_outpt = False
+                    except Exception:
+                        pass
+        elif q_id == "payment_amount":
+            if val is not None:
                 try:
                     num_str = re.sub(r"[^0-9]", "", str(val))
-                    days_val = int(num_str) if num_str else None
-                    updates["admission_days_current"] = days_val
-                    if days_val and days_val > 0:
-                        is_inpt = True
-                        is_outpt = False
+                    updates["payment_amount"] = int(num_str) if num_str else 0
                 except Exception:
-                    pass
+                    updates["payment_amount"] = 0
         elif q_id == "treatment_items":
             updates["treatment_items"] = val
         elif q_id == "annual_visit_count":
@@ -905,16 +918,6 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
 
     if is_inpt is not None:
         updates["is_inpatient"] = bool(is_inpt)
-        if is_inpt:
-            res_c = db.table("cases").select("*").eq("id", case_id).execute()
-            c_data = res_c.data[0] if res_c.data else {}
-            service_type = c_data.get("service_type") or "CASE1"
-            if service_type == "CASE2":
-                if not c_data.get("admission_days_diagnosed") and not updates.get("admission_days_diagnosed"):
-                    print("[case_service] 진단일수가 누락되어 임의 기본값(14일)을 할당했습니다.")
-                    updates["admission_days_diagnosed"] = 14
-            if not c_data.get("admission_days_current") and not updates.get("admission_days_current"):
-                updates["admission_days_current"] = 14
     if is_outpt is not None:
         updates["is_outpatient"] = bool(is_outpt)
 
@@ -1129,18 +1132,6 @@ def get_next_question(case: dict) -> dict | None:
             "options": case.get("disease_kcd_candidates") or [],
         }
 
-    # 2. 입원/통원 치료 형태 (is_inpatient / is_outpatient) 확인 필요
-    if not case.get("is_inpatient") and not case.get("is_outpatient"):
-        return {
-            "question_id": "treatment_type",
-            "question_text": "입원 치료와 통원 치료 중 어떤 형태로 치료받으셨나요?",
-            "input_type": "select_button",
-            "options": [
-                {"value": "inpatient", "label": "입원 치료"},
-                {"value": "outpatient", "label": "통원 치료 (외래)"},
-            ],
-        }
-
     # 2. 결제 자료 입력 유도 (CASE1인 경우에만 적용)
     # 아직 결제 문자나 파일 내용이 들어오지 않아 payment_amount가 비어 있을 때
     if service_type == "CASE1" and case.get("payment_amount") is None:
@@ -1170,7 +1161,7 @@ def get_next_question(case: dict) -> dict | None:
     # 4. 현재 입원일수 (current_days) 확인 필요
     if case.get("admission_days_current") is None:
         # 외래 통원이 아닌 경우에만 입원일수 확인
-        if not (case.get("is_outpatient") and not case.get("is_inpatient")):
+        if not case.get("is_outpatient"):
             return {
                 "question_id": "admission_days_current",
                 "question_text": "지금은 입원한 지 며칠째인가요?",
