@@ -436,6 +436,11 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         judgement = judge(judge_case, judge_rider)
         status = judgement["status"]
 
+        # 화면 노출 불필요한 '해당 없음' 필터링 (트리거 자체가 안 맞아서 additional_amount도 없는 것 등)
+        if status == JudgeStatus.NOT_APPLICABLE:
+            if not judgement.get("additional_amount") or judgement.get("additional_amount") == 0:
+                continue
+
         # RAG 설명문 생성
         rider_chunks = [c for c in chunks if c.get("rider_id") == rider_id]
         if not rider_chunks:
