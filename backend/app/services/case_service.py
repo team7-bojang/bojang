@@ -1190,7 +1190,7 @@ def get_next_question(case: dict) -> dict | None:
         }
 
     # 6. 치료 항목 (treatment_items) 확인 필요
-    if not case.get("treatment_items"):
+    if case.get("treatment_items") is None:
         return {
             "question_id": "treatment_items",
             "question_text": "이번 입원 중 함께 받은 치료가 있다면 골라주세요. (여러 개 선택 가능)",
