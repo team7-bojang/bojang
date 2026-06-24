@@ -1,10 +1,18 @@
 """리포트·체크리스트 생성 (F-04) — 서류 룰 매핑 + 스냅샷 저장."""
 
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
 from app.core.errors import NotFoundError
 from app.db import get_client
+from app.judge import judge
+from app.rag.explainer import explain
+from app.services.analysis_service import (
+    get_disease_groups_for_kcd,
+    get_disease_rules_for_rider,
+    get_rider_treatment_codes,
+)
 
 
 def create_report(user_id: str, case_id: str) -> dict:
@@ -21,6 +29,99 @@ def create_report(user_id: str, case_id: str) -> dict:
     res_analysis = db.table("analysis_results").select("*").eq("case_id", case_id).execute()
     analysis_data = res_analysis.data or []
 
+    # 2-1. 지급 후보 특약에 대한 AI 설명(LLM) 동적 지연 생성 (2단계화 적용)
+    candidate_results = [r for r in analysis_data if r.get("status") in ["eligible", "potential", "claimed"]]
+
+    def explain_candidate(result_row):
+        rider_id = result_row.get("rider_id")
+        if not rider_id:
+            return result_row
+
+        # 스레드 안전성을 위해 스레드 개별 Supabase 클라이언트 생성
+        thread_db = get_client()
+
+        res_rider = thread_db.table("riders").select("*").eq("id", rider_id).execute()
+        if not res_rider.data:
+            return result_row
+        rider = res_rider.data[0]
+
+        req_groups, excl_groups = get_disease_rules_for_rider(
+            thread_db, rider_id, rider.get("name") or "", rider.get("trigger_type")
+        )
+
+        judge_case = {
+            "disease_kcd": case.get("disease_kcd", ""),
+            "disease_name": case.get("disease_name", ""),
+            "surgery": bool(case.get("surgery", False)),
+            "diag_days": int(case.get("admission_days_diagnosed") or case.get("diag_days") or 0),
+            "current_days": int(case.get("admission_days_current") or case.get("current_days") or 0),
+            "policy_elapsed_days": case.get("policy_elapsed_days"),
+            "treatment_items": case.get("treatment_items") or [],
+            "disease_groups": get_disease_groups_for_kcd(thread_db, case.get("disease_kcd")),
+            "treatment_codes": case.get("treatment_items") or [],
+            "coverage_amounts": case.get("coverage_amounts"),
+            "covered_amounts": case.get("covered_amounts"),
+            "payment_amount": case.get("payment_amount"),
+        }
+
+        judge_rider = {
+            "id": rider_id,
+            "name": rider.get("name"),
+            "trigger_type": rider.get("trigger_type", ""),
+            "boundaries": rider.get("boundaries", []),
+            "exclusions": rider.get("exclusions", []),
+            "limits": rider.get("limits", []),
+            "waiting_period_days": rider.get("waiting_period_days"),
+            "reductions": rider.get("reductions", []),
+            "deduct_days": rider.get("deduct_days", 0),
+            "unit_amount": rider.get("unit_amount"),
+            "unit_type": rider.get("unit_type"),
+            "claim_rule": rider.get("claim_rule"),
+            "source_pages": rider.get("source_pages", []),
+            "require_groups": req_groups,
+            "exclude_groups": excl_groups,
+            "require_treatments": get_rider_treatment_codes(thread_db, rider_id, rider.get("name")),
+            "treatment_codes": get_rider_treatment_codes(thread_db, rider_id, rider.get("name")),
+        }
+
+        judgement = judge(judge_case, judge_rider)
+
+        rider_chunks = [
+            {
+                "rider_id": rider_id,
+                "content": rider.get("raw_text") or "",
+                "meta": {
+                    "page": rider.get("page"),
+                    "article_no": rider.get("article_no"),
+                    "waiting_period_days": rider.get("waiting_period_days"),
+                },
+            }
+        ]
+
+        try:
+            explanation_data = explain(case, judgement, rider_chunks)
+            evidence = {
+                "article": explanation_data.get("article") or rider.get("article_no"),
+                "page": explanation_data.get("page") or rider.get("page"),
+                "quote": explanation_data.get("quote") or rider.get("raw_text"),
+            }
+            result_row["explanation"] = explanation_data.get("explanation")
+            result_row["evidence"] = evidence
+
+            # analysis_results 테이블에도 AI 설명문 최신화 업데이트
+            thread_db.table("analysis_results").update(
+                {"explanation": explanation_data.get("explanation"), "evidence": evidence}
+            ).eq("id", result_row["id"]).execute()
+
+        except Exception as e:
+            print(f"[report_service] Delayed AI explanation failed for {rider_id}: {e}")
+
+        return result_row
+
+    if candidate_results:
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            list(executor.map(explain_candidate, candidate_results))
+
     # 3. 리포트 본문 조립
     eligible_covers = []
     missed_covers = []
@@ -33,7 +134,7 @@ def create_report(user_id: str, case_id: str) -> dict:
             "explanation": r.get("explanation"),
             "evidence": r.get("evidence"),
         }
-        if r.get("status") in ["eligible", "potential"]:
+        if r.get("status") in ["eligible", "potential", "claimed"]:
             eligible_covers.append(cover_info)
             if r.get("missed"):
                 missed_covers.append(cover_info)

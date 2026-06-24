@@ -96,13 +96,11 @@ def test_resolve_subscribed_type_mismatch_p2_1():
 
 def test_judge_fixed_subscribed_is_none_with_reduction_p2_2():
     # P2-2: subscribed가 None이고 감액(reductions) 조건에 해당하는 경우 500 TypeError 없이 정상 평가 확인
-    rider = _rider(
-        reductions=[{"until_elapsed_days": 365, "rate": 0.5, "note": "1년 미만 50% 감액"}]
-    )
+    rider = _rider(reductions=[{"until_elapsed_days": 365, "rate": 0.5, "note": "1년 미만 50% 감액"}])
     # case에 coverage_amounts나 unit_amount를 매치시킬 수 있는게 아예 없어서 subscribed=None 인 상황
-    case_data = _case(policy_elapsed_days=100) # 1년(365일) 미만 감액 구간에 들어옴
+    case_data = _case(policy_elapsed_days=100)  # 1년(365일) 미만 감액 구간에 들어옴
     result = judge(case_data, rider)
-    
+
     assert result["status"] == "eligible"
     assert result["subscribed_amount"] is None
     assert result["expected_amount"] is None
@@ -112,12 +110,11 @@ def test_judge_fixed_subscribed_is_none_with_reduction_p2_2():
 def test_judge_fixed_reduction_schema_compatibility():
     # 감액 적용 시 reduction 스키마가 이전 코드 규격(applied, until_elapsed_days)을 만족하는지 확인
     rider = _rider(
-        unit_amount=100000,
-        reductions=[{"until_elapsed_days": 365, "rate": 0.5, "note": "1년 미만 50% 감액"}]
+        unit_amount=100000, reductions=[{"until_elapsed_days": 365, "rate": 0.5, "note": "1년 미만 50% 감액"}]
     )
     case_data = _case(policy_elapsed_days=100)
     result = judge(case_data, rider)
-    
+
     assert result["status"] == "eligible"
     assert result["expected_amount"] == 150000
     assert result["reduced_amount"] == 150000

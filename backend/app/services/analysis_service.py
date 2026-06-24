@@ -4,11 +4,13 @@
 비교: 시나리오별 judge 재실행 → 경계(gap_days) 감지 → 비교표 조립
 """
 
+import threading
+
 from app.core.constants import JudgeStatus
 from app.core.errors import ForbiddenError, NotFoundError
 from app.db import get_client
 from app.judge import judge
-from app.rag.explainer import explain
+from app.rag.explainer import explain  # noqa: F401
 from app.rag.retriever import Retriever
 
 # 데모 및 테스트용 임의 보험/특약 데이터 정의 (DB 데이터가 없을 때 폴백으로 사용)
@@ -126,6 +128,7 @@ DUMMY_CHUNKS = [
 
 _disease_group_code_rules_cache = None
 _rider_disease_rules_cache = None
+_cache_lock = threading.Lock()
 
 
 def get_disease_groups_for_kcd(db, kcd: str | None) -> list[str]:
@@ -134,8 +137,10 @@ def get_disease_groups_for_kcd(db, kcd: str | None) -> list[str]:
         return []
     try:
         if _disease_group_code_rules_cache is None:
-            rules_res = db.table("disease_group_code_rules").select("*").execute()
-            _disease_group_code_rules_cache = rules_res.data or []
+            with _cache_lock:
+                if _disease_group_code_rules_cache is None:
+                    rules_res = db.table("disease_group_code_rules").select("*").execute()
+                    _disease_group_code_rules_cache = rules_res.data or []
 
         rules_data = _disease_group_code_rules_cache
         matched_group_ids = []
@@ -177,8 +182,10 @@ def get_disease_rules_for_rider(
     exclude_groups = []
     try:
         if _rider_disease_rules_cache is None:
-            res = db.table("rider_disease_rules").select("*").execute()
-            _rider_disease_rules_cache = res.data or []
+            with _cache_lock:
+                if _rider_disease_rules_cache is None:
+                    res = db.table("rider_disease_rules").select("*").execute()
+                    _rider_disease_rules_cache = res.data or []
 
         rules = _rider_disease_rules_cache
 
@@ -335,6 +342,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
     # 4. 연관 특약 판정 및 AI 설명 생성
     analyzed_rider_ids = set()
     results = []
+    snapshots = []
     eligible_count = 0
     missed_count = 0
 
@@ -352,16 +360,29 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         kcd = case_data.get("disease_kcd") or ""
         kcd_upper = kcd.upper().strip()
         is_injury_case = kcd_upper.startswith("S") or kcd_upper.startswith("T")
-        
+
         rider_name = rider.get("name") or ""
         is_silson = "실손" in rider_name or "의료비" in rider_name
-        
+
         if not is_silson:
             if is_injury_case:
                 # 상해 케이스(S, T로 시작)인 경우: 질병/암 관련 특약은 배제
-                disease_keywords = ["암", "뇌", "심장", "종양", "신생물", "치매", "질병", "뇌혈관", "뇌졸중", "심근경색"]
+                disease_keywords = [
+                    "암",
+                    "뇌",
+                    "심장",
+                    "종양",
+                    "신생물",
+                    "치매",
+                    "질병",
+                    "뇌혈관",
+                    "뇌졸중",
+                    "심근경색",
+                ]
                 if any(dk in rider_name for dk in disease_keywords):
-                    print(f"[AnalysisService] Filtering out disease/cancer rider '{rider_name}' for injury case '{kcd_upper}'")
+                    print(
+                        f"[AnalysisService] Filtering out disease/cancer rider '{rider_name}' for injury case '{kcd_upper}'"
+                    )
                     continue
             else:
                 # 질병 케이스인 경우: 상해/재해/골절 관련 특약은 배제
@@ -420,37 +441,14 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         if not rider_chunks:
             rider_chunks = [chunk]
 
-        import os
-
-        if status == JudgeStatus.NOT_APPLICABLE:
-            explanation_data = {
-                "explanation": judgement.get("reason") or f"지급 상태가 [{status}]로 판정되었습니다.",
-                "article": rider.get("article_no"),
-                "page": rider.get("page"),
-                "quote": rider.get("raw_text"),
-            }
-        elif os.environ.get("MOCK_LLM") == "True":
-            explanation_data = {
-                "explanation": (
-                    f"약관 {rider.get('article_no', '조항')}에 근거하여 지급 상태가 [{status}]로 판정되었습니다."
-                ),
-                "article": rider.get("article_no"),
-                "page": rider.get("page"),
-                "quote": rider.get("raw_text"),
-            }
-        else:
-            try:
-                explanation_data = explain(case_data, judgement, rider_chunks)
-            except Exception as e:
-                print(f"[analysis_service] AI explanation failed: {e}")
-                explanation_data = {
-                    "explanation": (
-                        f"약관 {rider.get('article_no', '조항')}에 근거하여 지급 상태가 [{status}]로 판정되었습니다."
-                    ),
-                    "article": rider.get("article_no"),
-                    "page": rider.get("page"),
-                    "quote": rider.get("raw_text"),
-                }
+        # 2단계화 적용: 최초 탐색 단계에서는 LLM을 호출하지 않고 판정 및 기본 설명만 채움
+        explanation = judgement.get("reason") or f"지급 상태가 [{status}]로 판정되었습니다."
+        if status == JudgeStatus.ELIGIBLE:
+            explanation = (
+                f"고객님께서 가입하신 '{rider.get('name')}'의 보장 요건을 충족하여 보험금 지급 대상이 될 수 있습니다."
+            )
+        elif status == JudgeStatus.POTENTIAL:
+            explanation = f"고객님께서 가입하신 '{rider.get('name')}'의 조건을 보완할 시 추가적인 보험금 지급 대상이 될 수 있습니다."
 
         policy_id = rider.get("policy_id")
         policy_name = policy_names.get(policy_id, "기타보험")
@@ -471,11 +469,10 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             missed = True
             missed_count += 1
 
-        # Evidence 스냅샷 필드 구성
         evidence = {
-            "article": explanation_data.get("article") or rider.get("article_no"),
-            "page": explanation_data.get("page") or rider.get("page"),
-            "quote": explanation_data.get("quote") or rider.get("raw_text"),
+            "article": rider.get("article_no"),
+            "page": rider.get("page"),
+            "quote": rider.get("raw_text"),
         }
 
         result_item = {
@@ -488,12 +485,12 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "estimated_amount": judgement.get("expected_amount") or 0,
             "reduction": judgement.get("reduction"),
             "calc": judgement.get("calc"),
-            "explanation": explanation_data.get("explanation"),
+            "explanation": explanation,
             "evidence": evidence,
         }
         results.append(result_item)
 
-        # 스냅샷 규칙에 따라 analysis_results DB에 저장
+        # 스냅샷 테이블용 데이터
         snapshot = {
             "case_id": case_id,
             "rider_id": rider_id,
@@ -503,12 +500,24 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "missed": missed,
             "gap_days": judgement.get("gap_days"),
             "evidence": evidence,
-            "explanation": explanation_data.get("explanation"),
+            "explanation": explanation,
         }
+        snapshots.append(snapshot)
+
+    # 일괄 저장을 통한 Supabase DB 네트워크 RTT 병목 해결 (Bulk Insert)
+    if snapshots:
         try:
-            db.table("analysis_results").insert(snapshot).execute()
+            db.table("analysis_results").insert(snapshots).execute()
         except Exception as db_err:
-            print(f"[analysis_service] Snapshot save failed: {db_err}")
+            print(f"[analysis_service] Bulk snapshot save failed: {db_err}. Falling back to row-by-row inserts.")
+            # Bulk Insert 실패 시, 건별 개별 insert 실행하여 부분 저장 보장
+            for snap in snapshots:
+                try:
+                    db.table("analysis_results").insert(snap).execute()
+                except Exception as row_err:
+                    print(
+                        f"[analysis_service] Individual snapshot save failed for rider {snap.get('rider_name')}: {row_err}"
+                    )
 
     return {
         "summary": {"eligible_count": eligible_count, "missed_count": missed_count},
