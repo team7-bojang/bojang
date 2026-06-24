@@ -88,17 +88,18 @@ def test_get_dashboard_403_for_other_users_case(client, monkeypatch):
 
 
 def test_patch_dashboard_updates_only_sent_fields(client):
-    case_id = _create_case(annual_visit_count=5)
+    case_id = _create_case(annual_visit_count=5, policy_elapsed_days=730)
 
     res = client.patch(
         f"/api/v1/cases/{case_id}/dashboard",
-        json={"disease_name": "요추 염좌", "annual_visit_count": 2},
+        json={"disease_name": "요추 염좌", "annual_visit_count": 2, "policy_elapsed_days": 180},
     )
 
     assert res.status_code == 200
     dashboard = res.get_json()["data"]["dashboard"]
     assert dashboard["disease_name"] == "요추 염좌"
     assert dashboard["annual_visit_count"] == 2
+    assert dashboard["policy_elapsed_days"] == 180
     assert dashboard["disease_kcd"] == "M511"  # 보내지 않은 필드는 유지
 
 

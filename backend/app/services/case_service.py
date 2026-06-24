@@ -974,6 +974,7 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
             "visit_date": visit_date,
             "surgery": c.get("surgery"),
             "annual_visit_count": c.get("annual_visit_count") or 1,
+            "policy_elapsed_days": c.get("policy_elapsed_days"),
         },
     }
 
@@ -1021,6 +1022,10 @@ def patch_dashboard(user_id: str, case_id: str, data: dict) -> dict:
 
     updates = {}
 
+    if "policy_elapsed_days" in data:
+        updates["policy_elapsed_days"] = (
+            int(data["policy_elapsed_days"]) if data["policy_elapsed_days"] is not None else None
+        )
     if "disease_name" in data:
         updates["disease_name"] = data["disease_name"]
     if "disease_kcd" in data:
