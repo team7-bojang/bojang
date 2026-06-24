@@ -918,16 +918,6 @@ def save_answers(user_id: str, case_id: str, answers: list[dict]) -> dict:
 
     if is_inpt is not None:
         updates["is_inpatient"] = bool(is_inpt)
-        if is_inpt:
-            res_c = db.table("cases").select("*").eq("id", case_id).execute()
-            c_data = res_c.data[0] if res_c.data else {}
-            service_type = c_data.get("service_type") or "CASE1"
-            if service_type == "CASE2":
-                if not c_data.get("admission_days_diagnosed") and not updates.get("admission_days_diagnosed"):
-                    print("[case_service] 진단일수가 누락되어 임의 기본값(14일)을 할당했습니다.")
-                    updates["admission_days_diagnosed"] = 14
-            if not c_data.get("admission_days_current") and not updates.get("admission_days_current"):
-                updates["admission_days_current"] = 14
     if is_outpt is not None:
         updates["is_outpatient"] = bool(is_outpt)
 
