@@ -4,8 +4,16 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppHeader } from '@/components/common/AppHeader';
 import { Stepper } from '@/components/common/Stepper';
 import { Button } from '@/components/ui/button';
-import { fetchCaseDashboard } from '@/features/case/queries';
+import {
+  type CoverageAmountInput,
+  fetchCaseDashboard,
+  saveCoverageAmounts,
+} from '@/features/case/queries';
 import { CompareSection } from '@/features/result/components/CompareSection';
+import {
+  CoverageAmountForm,
+  type CoverageRow,
+} from '@/features/result/components/CoverageAmountForm';
 import { ResultHero } from '@/features/result/components/ResultHero';
 import { ResultNotice } from '@/features/result/components/ResultNotice';
 import { ResultSection } from '@/features/result/components/ResultSection';
@@ -14,6 +22,7 @@ import { compareCaseAnalysis, searchCaseAnalysis } from '@/features/result/queri
 import {
   getAdditionalAmount,
   getExpectedAmount,
+  isConditional,
   isEligible,
   type ResultLocationState,
   unwrapAnalysisFromState,
@@ -36,6 +45,7 @@ export function ResultPage() {
   );
   const [loading, setLoading] = useState(!analysis && !initialComparison);
   const [error, setError] = useState<string | null>(null);
+  const [recomputing, setRecomputing] = useState(false);
 
   useEffect(() => {
     if (analysis || comparison || !caseId) {
@@ -92,7 +102,41 @@ export function ResultPage() {
 
   const results = useMemo(() => analysis?.results ?? [], [analysis]);
   const payableResults = useMemo(() => results.filter(isEligible), [results]);
-  const nonPayableResults = useMemo(() => results.filter(result => !isEligible(result)), [results]);
+  const conditionalResults = useMemo(() => results.filter(isConditional), [results]);
+  const nonPayableResults = useMemo(
+    () => results.filter(result => !isEligible(result) && !isConditional(result)),
+    [results]
+  );
+  const coverageRows = useMemo<CoverageRow[]>(() => {
+    const seen = new Set<string>();
+    const rows: CoverageRow[] = [];
+    for (const result of [...payableResults, ...conditionalResults]) {
+      if (!result.rider_id || seen.has(result.rider_id)) {
+        continue;
+      }
+      seen.add(result.rider_id);
+      rows.push({ riderId: result.rider_id, rider: result.rider, policy: result.policy });
+    }
+    return rows;
+  }, [payableResults, conditionalResults]);
+
+  const handleApplyAmounts = async (amounts: CoverageAmountInput[]) => {
+    if (!caseId) {
+      return;
+    }
+    setRecomputing(true);
+    try {
+      await saveCoverageAmounts(caseId, amounts);
+      const refreshed = await searchCaseAnalysis(caseId);
+      setAnalysis(refreshed);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '예상 보험금 계산에 실패했습니다.');
+    } finally {
+      setRecomputing(false);
+    }
+  };
+
   const comparisonItems = comparison?.comparison ?? [];
   const expectedAmount = getExpectedAmount(payableResults);
   const additionalAmount = getAdditionalAmount(comparisonItems);
@@ -144,6 +188,12 @@ export function ResultPage() {
               <CompareSection comparison={comparisonItems} />
             ) : (
               <>
+                <CoverageAmountForm
+                  coverages={coverageRows}
+                  onApply={handleApplyAmounts}
+                  submitting={recomputing}
+                />
+
                 <ResultSection
                   title="청구 가능한 보장"
                   countClassName="text-primary"
@@ -152,6 +202,17 @@ export function ResultPage() {
                   delay="90ms"
                   className="mt-4"
                 />
+
+                {conditionalResults.length > 0 && (
+                  <ResultSection
+                    title="조건 확인 필요"
+                    countClassName="text-amber-600"
+                    results={conditionalResults}
+                    emptyText="조건 확인이 필요한 보장이 없습니다."
+                    delay="125ms"
+                    className="mt-10"
+                  />
+                )}
 
                 <ResultSection
                   title="조건 미달 보장"

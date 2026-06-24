@@ -15,6 +15,7 @@ export const endpoints = {
       `${API_PREFIX}/cases/${caseId}/medical-detail-statement`,
     answers: (caseId: string) => `${API_PREFIX}/cases/${caseId}/answers`,
     dashboard: (caseId: string) => `${API_PREFIX}/cases/${caseId}/dashboard`,
+    extractedInfo: (caseId: string) => `${API_PREFIX}/cases/${caseId}/extracted-info`,
   },
   analysis: {
     search: `${API_PREFIX}/analysis/search`,

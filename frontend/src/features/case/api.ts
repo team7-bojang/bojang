@@ -67,6 +67,14 @@ export const casesApi = {
     );
     return normalizeDashboardResponse(unwrapApiResponse(data));
   },
+
+  async patchExtractedInfo(caseId: string, body: Record<string, unknown>) {
+    const { data } = await apiClient.patch<ApiResponse<unknown>>(
+      endpoints.cases.extractedInfo(caseId),
+      body
+    );
+    return unwrapApiResponse(data);
+  },
 };
 
 type DashboardCasePayload = Partial<CaseDashboard> & {

@@ -787,6 +787,9 @@ def patch_extracted_info(user_id: str, case_id: str, info: dict) -> dict:
         updates["treatment_items"] = info["treatment_items"] or []
     if "payment_amount" in info:
         updates["payment_amount"] = info["payment_amount"]
+    if "coverage_amounts" in info:
+        # 보장별 가입금액 [{rider_id, amount, amount_source}]. judge 정액 금액 산출에 사용.
+        updates["coverage_amounts"] = info["coverage_amounts"] or []
 
     if input_method == "PAYMENT" and "confirmed_payment" in info:
         pay_info = info["confirmed_payment"] or {}
