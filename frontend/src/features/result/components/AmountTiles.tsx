@@ -35,7 +35,22 @@ function RollingDigit({ digit, order }: { digit: string; order: number }) {
   );
 }
 
-export function AmountTiles({ amount }: { amount: number }) {
+export function AmountTiles({ amount }: { amount: number | null }) {
+  if (amount === null) {
+    // 금액 미입력: 숫자 타일 박스 안에 '-' 를 넣고 '원' 단위도 함께 표시한다.
+    return (
+      <div
+        className="flex flex-wrap items-end justify-center gap-2 sm:gap-3"
+        aria-label="산정 금액 없음"
+      >
+        <span className="amount-digit-tile">
+          <span className="amount-digit-current">-</span>
+        </span>
+        <span className="pb-3 text-3xl font-black text-ink sm:pb-4">원</span>
+      </div>
+    );
+  }
+
   const value = amount.toString();
   const groups = value.replace(/\B(?=(\d{3})+(?!\d))/g, ',').split(',');
 

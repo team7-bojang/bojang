@@ -31,8 +31,19 @@ class SearchResponse(BaseModel):
     notice: str | None = None
 
 
+class CoverageAmountInput(BaseModel):
+    """보장별 가입금액 (judge 정액 금액 산출용). DB 저장 없이 판정 시점에만 사용."""
+
+    rider_id: str
+    amount: int
+    amount_source: str | None = None
+
+
 class SearchRequest(BaseModel):
     case_id: str
+    # 가입금액 입력 후 재판정 시, DB 저장 없이 이 값으로 예상 보험금을 재계산한다.
+    # (None 이면 기존 case 의 coverage_amounts 를 사용)
+    coverage_amounts: list[CoverageAmountInput] | None = None
 
 
 # ── POST /analysis/compare (API 15) v2.1 ──

@@ -1,7 +1,15 @@
 import type { InsurerId } from '@/features/insurance/data/insurers';
 
+export interface CoverageAmountInput {
+  rider_id: string;
+  amount: number;
+  amount_source?: string;
+}
+
 export interface AnalysisSearchRequest {
   case_id: string;
+  // judge 재계산 전용: 가입금액을 DB 저장 없이 본문으로 전달해 예상 보험금을 재산출한다.
+  coverage_amounts?: CoverageAmountInput[];
 }
 
 export interface AnalysisCompareRequest {

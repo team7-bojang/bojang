@@ -1,4 +1,4 @@
-import type { InsurerId } from '@/features/insurance/data/insurers';
+import { INSURERS, type InsurerId } from '@/features/insurance/data/insurers';
 import type { ServiceType } from '@/types/case';
 
 import type {
@@ -6,7 +6,9 @@ import type {
   AnalysisCompareResponse,
   AnalysisSearchResponse,
   AnalysisSearchResult,
+  PayableBenefit,
 } from '../model';
+import { formatWon } from './format';
 
 export type ResultLocationState = {
   analysis?: AnalysisSearchResponse | { data?: AnalysisSearchResponse };
@@ -68,6 +70,53 @@ export function inferInsurerId(policy: string): InsurerId {
     return 'kyobo';
   }
   return 'db';
+}
+
+// 탐색 응답(AnalysisSearchResult)을 상세 분석 모달이 쓰는 Benefit 형태로 변환한다.
+// API가 제공하지 않는 값(원문 하이라이트·결제내역 기반 설명 등)은 빈 문자열로 두고,
+// 모달이 빈 값을 감지해 해당 영역을 숨긴다.
+export function toPayableBenefit(result: AnalysisSearchResult): PayableBenefit {
+  const insurerId = inferInsurerId(result.policy);
+  const article = result.evidence?.article ?? '';
+  const page = result.evidence?.page;
+
+  // 정액 일시금이 가입금액 그대로(100%) 지급되는 경우(calc 이 금액과 동일)에는
+  // 계산식을 금액 대신 '보험가입금액의 100%'로 표현한다.
+  const isFullFixedPayout =
+    result.estimated_amount > 0 && result.calc === `${formatWon(result.estimated_amount)}원`;
+  const formula = isFullFixedPayout ? '보험가입금액의 100%' : (result.calc ?? '');
+
+  // 판정 라벨은 상태에 맞춘다. conditional(조건 확인 필요) → '확인 필요'.
+  const decision = isConditional(result)
+    ? '확인 필요'
+    : isEligible(result)
+      ? '청구 가능'
+      : '조건 미달';
+
+  return {
+    id: result.rider_id ?? `${result.policy}-${result.rider}`,
+    title: result.rider,
+    insurerId,
+    insurerName: INSURERS[insurerId].name,
+    policyName: result.policy,
+    amount: result.estimated_amount ?? 0,
+    analysis: {
+      decision,
+      decisionDescription: result.explanation,
+      clauseTitle: article || result.rider,
+      clausePage: page !== null && page !== undefined ? `${page}p` : '',
+      clauseQuote: result.evidence?.quote ?? '',
+      clauseHighlight: '',
+      paymentBasis: '',
+      period:
+        result.payable_days !== null && result.payable_days !== undefined
+          ? `${result.payable_days}일`
+          : '',
+      formula,
+      expectedAmount: result.estimated_amount ?? 0,
+      paymentCalculationDescription: '',
+    },
+  };
 }
 
 export function getExpectedAmount(results: AnalysisSearchResult[]) {
