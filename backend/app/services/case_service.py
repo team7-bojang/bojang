@@ -1367,11 +1367,11 @@ def get_next_question(case: dict) -> dict | None:
             "question_text": "마지막으로 가입 기간만 확인할게요.\n가입한 지 얼마 안 된 경우에는 보장 조건이 달라질 수 있어요.\n선택한 보험의 가입기간에 해당하는 구간을 골라주세요.",
             "input_type": "radio_button",
             "options": [
-                {"value": "90일 미만", "label": "90일 미만"},
-                {"value": "90일 이상~1년 미만", "label": "90일 이상~1년 미만"},
-                {"value": "1년 이상~2년 미만", "label": "1년 이상~2년 미만"},
-                {"value": "2년 이상", "label": "2년 이상"},
-                {"value": "잘 모르겠어요", "label": "잘 모르겠어요"},
+                {"value": 80, "label": "90일 미만"},
+                {"value": 180, "label": "90일 이상~1년 미만"},
+                {"value": 540, "label": "1년 이상~2년 미만"},
+                {"value": 730, "label": "2년 이상"},
+                {"value": None, "label": "잘 모르겠어요"},
             ],
         }
 

@@ -424,6 +424,37 @@ def _conditional_eligibility_note(rider_name: str) -> str | None:
     return None
 
 
+def _parse_elapsed_days(raw_elapsed: any) -> int | None:
+    """policy_elapsed_days가 문자열로 저장되어 있는 경우 정수로 변환하여 반환합니다.
+    기존 정수값이거나 None인 경우 그대로 반환합니다."""
+    if raw_elapsed is None:
+        return None
+    if isinstance(raw_elapsed, int):
+        return raw_elapsed
+    if isinstance(raw_elapsed, str):
+        import re
+        val_clean = raw_elapsed.replace("[", "").replace("]", "").strip()
+        _ELAPSED_MAP = {
+            "90일 미만": 80,
+            "90일 이상~1년 미만": 180,
+            "1년 이상~2년 미만": 540,
+            "2년 이상": 730,
+            "잘 모르겠어요": None,
+            "잘 모르겠": None,
+        }
+        if val_clean in _ELAPSED_MAP:
+            return _ELAPSED_MAP[val_clean]
+        for k, v in _ELAPSED_MAP.items():
+            if k in val_clean:
+                return v
+        try:
+            num_str = re.sub(r"[^0-9]", "", val_clean)
+            return int(num_str) if num_str else None
+        except Exception:
+            return None
+    return None
+
+
 def search_analysis(user_id: str, case_id: str) -> dict:
     """RAG 탐색과 룰 판정을 연동해 청구 가능한 보장을 탐색하고 스냅샷을 저장합니다."""
     db = get_client()
@@ -600,7 +631,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
                 if (bool(case_data.get("is_outpatient")) and not bool(case_data.get("is_inpatient")))
                 else int(case_data.get("admission_days_current") or case_data.get("current_days") or 0)
             ),
-            "policy_elapsed_days": case_data.get("policy_elapsed_days"),
+            "policy_elapsed_days": _parse_elapsed_days(case_data.get("policy_elapsed_days")),
             "treatment_items": case_data.get("treatment_items") or [],
             "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
             "treatment_codes": case_data.get("treatment_items") or [],
@@ -836,7 +867,7 @@ def compare_scenarios(
                     "surgery": bool(case_data.get("surgery", False)),
                     "diag_days": actual_days,
                     "current_days": actual_days,
-                    "policy_elapsed_days": case_data.get("policy_elapsed_days"),
+                    "policy_elapsed_days": _parse_elapsed_days(case_data.get("policy_elapsed_days")),
                     "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
                     "treatment_codes": case_data.get("treatment_items") or [],
                     "coverage_amounts": case_data.get("coverage_amounts"),
@@ -948,7 +979,7 @@ def compare_scenarios(
                 "surgery": bool(case_data.get("surgery", False)),
                 "diag_days": actual_days,
                 "current_days": actual_days,
-                "policy_elapsed_days": case_data.get("policy_elapsed_days"),
+                "policy_elapsed_days": _parse_elapsed_days(case_data.get("policy_elapsed_days")),
                 "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
                 "treatment_codes": case_data.get("treatment_items") or [],
                 "coverage_amounts": case_data.get("coverage_amounts"),
@@ -1182,7 +1213,7 @@ def judge_analysis(user_id: str, case_id: str) -> dict:
                 if (bool(case_data.get("is_outpatient")) and not bool(case_data.get("is_inpatient")))
                 else int(case_data.get("admission_days_current") or case_data.get("current_days") or 0)
             ),
-            "policy_elapsed_days": case_data.get("policy_elapsed_days"),
+            "policy_elapsed_days": _parse_elapsed_days(case_data.get("policy_elapsed_days")),
             "treatment_items": case_data.get("treatment_items") or [],
             "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
             "treatment_codes": case_data.get("treatment_items") or [],
