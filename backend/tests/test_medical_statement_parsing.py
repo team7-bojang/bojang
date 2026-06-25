@@ -91,6 +91,25 @@ def test_parse_medical_statement_text_uses_final_settlement_row_not_subtotal():
     }
 
 
+def test_parse_medical_statement_text_uses_single_total_row_when_no_final_total():
+    text = """\
+환자등록번호 환자성명 진료기간 병실 환자구분 비고
+1928 진미경 2026-06-23 ~ 2026-06-23 외래 국민건강보험
+진찰료 2026.06.23 AA254010 재진진찰료 16,180 1 1 16,180 4,854 11,326 0 0
+계 16,180 4,854 11,326 0 0
+"""
+
+    parsed = parse_medical_statement_text(text)
+
+    assert parsed["summary"] == {
+        "total_amount": 16180,
+        "patient_paid_amount": 4854,
+        "nhis_paid_amount": 11326,
+        "full_self_pay_amount": 0,
+        "non_covered_amount": 0,
+    }
+
+
 def test_parse_medical_statement_text_returns_empty_summary_when_no_match():
     parsed = parse_medical_statement_text("관련 없는 텍스트입니다.")
 
@@ -174,9 +193,9 @@ def test_parse_medical_statement_image_normalizes_vision_response(monkeypatch):
                 }
             ],
             "summary": {
-                "total_amount": 113900,
-                "patient_paid_amount": 7100,
-                "nhis_paid_amount": 16800,
+                "total_amount": 90000,
+                "patient_paid_amount": 0,
+                "nhis_paid_amount": 0,
                 "full_self_pay_amount": 0,
                 "non_covered_amount": 90000,
             },
@@ -221,11 +240,11 @@ def test_parse_medical_statement_image_corrects_known_item_names_by_code(monkeyp
                 },
             ],
             "summary": {
-                "total_amount": 113900,
-                "patient_paid_amount": 7100,
-                "nhis_paid_amount": 16800,
+                "total_amount": 90000,
+                "patient_paid_amount": 90000,
+                "nhis_paid_amount": 0,
                 "full_self_pay_amount": 0,
-                "non_covered_amount": 90000,
+                "non_covered_amount": 0,
             },
         }
     )
@@ -315,11 +334,11 @@ def test_parse_medical_statement_image_keeps_real_zero_amount(monkeypatch):
                 }
             ],
             "summary": {
-                "total_amount": 113900,
-                "patient_paid_amount": 7100,
-                "nhis_paid_amount": 16800,
+                "total_amount": 90000,
+                "patient_paid_amount": 90000,
+                "nhis_paid_amount": 0,
                 "full_self_pay_amount": 0,
-                "non_covered_amount": 90000,
+                "non_covered_amount": 0,
             },
         }
     )
@@ -329,6 +348,79 @@ def test_parse_medical_statement_image_keeps_real_zero_amount(monkeypatch):
 
     assert parsed["summary"]["full_self_pay_amount"] == 0
     assert parsed["items"][0]["non_covered"] == 0
+
+
+def test_parse_medical_statement_image_keeps_summary_even_if_inconsistent_with_items(monkeypatch):
+    # Vision이 항목 금액 열을 잘못 읽어 items 합계와 summary가 안 맞아도, 값이 전부 채워져
+    # 있으면 그대로 저장한다 — 틀린 값은 사용자가 직접 화면에서 고치는 쪽으로 처리한다.
+    monkeypatch.setattr(settings, "openai_api_key", "sk-test-dummy")
+    vision_json = json.dumps(
+        {
+            "patient_name": "진미경",
+            "hospital_name": None,
+            "disease_name": "허리디스크",
+            "disease_kcd": "M51",
+            "period_start": "2026-06-23",
+            "period_end": "2026-06-23",
+            "ward": "외래",
+            "items": [
+                {
+                    "category": "진찰료",
+                    "code": "AA254010",
+                    "name": "재진진찰료",
+                    "count": 1,
+                    "days": 1,
+                    "total": 16180,
+                    "non_covered": 0,
+                },
+                {
+                    "category": "재활물리치료료",
+                    "code": "MM010",
+                    "name": "표층열치료",
+                    "count": 1,
+                    "days": 1,
+                    "total": 1010,
+                    "non_covered": 0,
+                },
+                {
+                    "category": "재활물리치료료",
+                    "code": "MM085",
+                    "name": "재활저출력레이저치료[1일당]",
+                    "count": 1,
+                    "days": 1,
+                    "total": 2013,
+                    "non_covered": 0,
+                },
+                {
+                    "category": "처치및수술료",
+                    "code": "MANUAL-A",
+                    "name": "도수치료-A",
+                    "count": 1,
+                    "days": 1,
+                    "total": 90000,
+                    "non_covered": 90000,
+                },
+            ],
+            "summary": {
+                "total_amount": 113203,
+                "patient_paid_amount": 0,
+                "nhis_paid_amount": 0,
+                "full_self_pay_amount": 0,
+                "non_covered_amount": 90000,
+            },
+        }
+    )
+    monkeypatch.setattr("openai.OpenAI", lambda api_key=None: _FakeOpenAI(vision_json))
+
+    parsed = parse_medical_statement_image(_tiny_png_bytes())
+
+    assert parsed["summary"] == {
+        "total_amount": 113203,
+        "patient_paid_amount": 0,
+        "nhis_paid_amount": 0,
+        "full_self_pay_amount": 0,
+        "non_covered_amount": 90000,
+    }
 
 
 def test_parse_medical_statement_image_drops_item_with_missing_amount(monkeypatch):
@@ -449,6 +541,7 @@ def test_save_medical_detail_statement_updates_case_from_parsed_pdf(monkeypatch)
 
     info = result["extracted_medical_info"]
     assert info["payment_amount"] == 7100 + 90000
+    assert info["full_self_pay_amount"] == 0
     assert info["is_outpatient"] is True
     assert info["is_inpatient"] is False
     assert info["visit_dates"] == ["2026-06-23"]
@@ -459,6 +552,25 @@ def test_save_medical_detail_statement_updates_case_from_parsed_pdf(monkeypatch)
     case = get_client().table("cases").select("*").eq("id", case_id).execute().data[0]
     assert case["payment_amount"] == 97100
     assert case["visit_dates"] == ["2026-06-23"]
+
+
+def test_save_medical_detail_statement_response_does_not_fallback_to_case_disease(monkeypatch):
+    case_id = _create_case(disease_name="허리디스크", disease_kcd="M511")
+    monkeypatch.setattr(
+        case_service,
+        "parse_medical_statement",
+        lambda pdf_bytes: _fake_parsed_statement(disease_name=None, disease_kcd=None),
+    )
+
+    result = case_service.save_medical_detail_statement(OWNER_ID, case_id, b"%PDF-1.4 dummy")
+
+    info = result["extracted_medical_info"]
+    assert info["disease_name"] is None
+    assert info["disease_kcd"] is None
+
+    case = get_client().table("cases").select("*").eq("id", case_id).execute().data[0]
+    assert case["disease_name"] == "허리디스크"
+    assert case["disease_kcd"] == "M511"
 
 
 def test_save_medical_detail_statement_rejects_second_upload(monkeypatch):
@@ -523,6 +635,7 @@ def test_save_medical_detail_statement_includes_full_self_pay_in_payment_amount(
     result = case_service.save_medical_detail_statement(OWNER_ID, case_id, b"%PDF-1.4 dummy")
 
     assert result["extracted_medical_info"]["payment_amount"] == 7100 + 20000 + 90000
+    assert result["extracted_medical_info"]["full_self_pay_amount"] == 20000
 
 
 def test_save_medical_detail_statement_rejects_non_pdf_bytes():
@@ -575,6 +688,34 @@ def test_save_medical_detail_statement_rejects_unrecognized_image(monkeypatch):
         raise AssertionError("인식 실패 시 거부되어야 합니다.")
     except ValueError as e:
         assert "사진" in str(e) or "PDF" in str(e)
+
+
+def test_save_medical_detail_statement_accepts_items_with_unverified_summary(monkeypatch):
+    # items는 읽었지만 summary 산식 검증에 실패해 비어 있는 경우 — 업로드 자체는 거부하지 않고
+    # payment_amount 등 합계 관련 필드만 None으로 비워서, 사용자가 문자/카드내역 입력으로
+    # 직접 채우도록 유도해야 한다(전체 재업로드를 강제하지 않음).
+    case_id = _create_case()
+    monkeypatch.setattr(
+        case_service,
+        "parse_medical_statement",
+        lambda pdf_bytes: _fake_parsed_statement(summary={}),
+    )
+
+    result = case_service.save_medical_detail_statement(OWNER_ID, case_id, b"%PDF-1.4 dummy")
+
+    info = result["extracted_medical_info"]
+    assert len(info["item_details"]) == 3
+    assert info["payment_amount"] is None
+    assert info["total_amount"] is None
+    assert info["patient_paid_amount"] is None
+    assert info["nhis_paid_amount"] is None
+    assert info["full_self_pay_amount"] is None
+    assert info["non_covered_amount"] is None
+    assert result["next_question"]["question_id"] == "input_method"
+
+    case = get_client().table("cases").select("*").eq("id", case_id).execute().data[0]
+    assert case["payment_amount"] is None
+    assert case["medical_statement_uploaded_at"] is not None
 
 
 def test_save_medical_detail_statement_ignores_unparseable_vision_date(monkeypatch):

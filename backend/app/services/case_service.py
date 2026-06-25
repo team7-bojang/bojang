@@ -775,18 +775,31 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_bytes: bytes)
     else:
         raise ValueError("PDF 또는 사진(JPEG/PNG) 파일만 업로드할 수 있습니다.")
 
-    if not parsed["items"] or not parsed["summary"]:
+    if not parsed["items"]:
         raise ValueError(
             "진료비 세부산정내역서 형식을 인식할 수 없습니다. 더 선명한 사진이나 원본 PDF로 다시 시도해주세요."
         )
 
+    # summary(합계 행)는 항목과 별개로 전혀 못 읽힐 수 있다(vision이 흐려서 추측 안 하고
+    # null 반환) — 이 경우만 항목은 인정하고 결제금액만 비워서, 사용자가 문자/카드내역
+    # 입력으로 직접 채우도록 유도한다(get_next_question 의 payment_amount is None 분기).
+    # summary 값이 있으면 항목 합계와 안 맞아도 그대로 신뢰한다 — 틀린 값은 사용자가
+    # 화면에서 직접 수정하는 쪽으로 처리한다.
     summary = parsed["summary"]
-    patient_paid_amount = summary["patient_paid_amount"]
-    nhis_paid_amount = summary["nhis_paid_amount"]
-    full_self_pay_amount = summary["full_self_pay_amount"]
-    non_covered_amount = summary["non_covered_amount"]
-    total_amount = summary["total_amount"]
-    payment_amount = patient_paid_amount + full_self_pay_amount + non_covered_amount
+    if summary:
+        patient_paid_amount = summary["patient_paid_amount"]
+        nhis_paid_amount = summary["nhis_paid_amount"]
+        full_self_pay_amount = summary["full_self_pay_amount"]
+        non_covered_amount = summary["non_covered_amount"]
+        total_amount = summary["total_amount"]
+        payment_amount = patient_paid_amount + full_self_pay_amount + non_covered_amount
+    else:
+        patient_paid_amount = None
+        nhis_paid_amount = None
+        full_self_pay_amount = None
+        non_covered_amount = None
+        total_amount = None
+        payment_amount = None
 
     treatment_items: list[str] = list(case.get("treatment_items") or [])
     item_details = []
@@ -839,6 +852,12 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_bytes: bytes)
         "admission_days_current": admission_days_current,
         "admission_days_diagnosed": admission_days_diagnosed,
         "medical_statement_uploaded_at": datetime.now(UTC).isoformat(),
+        "medical_statement_items": item_details,
+        "total_amount": total_amount,
+        "patient_paid_amount": patient_paid_amount,
+        "nhis_paid_amount": nhis_paid_amount,
+        "full_self_pay_amount": full_self_pay_amount,
+        "non_covered_amount": non_covered_amount,
     }
     if parsed.get("disease_kcd"):
         updates["disease_kcd"] = parsed["disease_kcd"]
@@ -855,8 +874,8 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_bytes: bytes)
         "case_id": case_id,
         "input_method": "MEDICAL_DETAIL_STATEMENT",
         "extracted_medical_info": {
-            "disease_name": parsed.get("disease_name") or case.get("disease_name"),
-            "disease_kcd": parsed.get("disease_kcd") or case.get("disease_kcd"),
+            "disease_name": parsed.get("disease_name"),
+            "disease_kcd": parsed.get("disease_kcd"),
             "hospital_name": parsed.get("hospital_name"),
             "visit_dates": [period_start] if period_start else [],
             "is_inpatient": is_inpatient,
@@ -867,6 +886,7 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_bytes: bytes)
             "total_amount": total_amount,
             "patient_paid_amount": patient_paid_amount,
             "nhis_paid_amount": nhis_paid_amount,
+            "full_self_pay_amount": full_self_pay_amount,
             "non_covered_amount": non_covered_amount,
             "item_details": item_details,
         },

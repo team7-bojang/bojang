@@ -441,6 +441,12 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             if not judgement.get("additional_amount") or judgement.get("additional_amount") == 0:
                 continue
 
+        is_unverified_rider = not bool(rider.get("verified"))
+
+        # 검수 전 특약은 관련 조항으로만 노출하고 정밀 청구 가능 판정은 보류한다.
+        if is_unverified_rider:
+            status = JudgeStatus.POTENTIAL
+
         # RAG 설명문 생성
         rider_chunks = [c for c in chunks if c.get("rider_id") == rider_id]
         if not rider_chunks:
@@ -452,6 +458,8 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             explanation = (
                 f"고객님께서 가입하신 '{rider.get('name')}'의 보장 요건을 충족하여 보험금 지급 대상이 될 수 있습니다."
             )
+        elif is_unverified_rider:
+            explanation = "약관에서 관련 조항은 확인됐지만, 청구 가능 여부는 직접 확인이 필요해요."
         elif status == JudgeStatus.POTENTIAL:
             explanation = f"고객님께서 가입하신 '{rider.get('name')}'의 조건을 보완할 시 추가적인 보험금 지급 대상이 될 수 있습니다."
 

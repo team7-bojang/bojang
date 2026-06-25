@@ -34,6 +34,11 @@ _PARSE_MODEL = "gpt-4.1-mini"
 # PDF 업로드 제한
 _MAX_PDF_BYTES = 50 * 1024 * 1024  # 50 MB
 
+# 온디맨드 파싱 입력 페이지 제한. 기본은 비용을 줄이고, 결과가 없을 때만 확장한다.
+_DEFAULT_PARSE_MAX_PAGES = 10
+_RETRY_PARSE_MAX_PAGES = 15
+_FALLBACK_PARSE_MAX_PAGES = 10
+
 # treatment_types.code → 약관 키워드 매핑 (005_treatment_tables.sql aliases 기준)
 TREATMENT_KEYWORDS: dict[str, list[str]] = {
     "MRI_MRA": ["MRI", "MRA", "자기공명영상", "MRI촬영", "자기공명영상진단"],
@@ -241,7 +246,7 @@ def _build_keywords(
 def find_relevant_pages(
     policy_id: str,
     keywords: list[str],
-    max_pages: int = 15,
+    max_pages: int = _DEFAULT_PARSE_MAX_PAGES,
 ) -> list[dict]:
     """policy_pages 에서 키워드가 포함된 페이지(±1 컨텍스트 포함)를 반환한다.
 
@@ -272,9 +277,24 @@ def find_relevant_pages(
     return [page_map[n] for n in selected]
 
 
-def _parse_pages_with_llm(pages: list[dict]) -> list[dict]:
+def _load_front_pages(policy_id: str, limit: int) -> list[dict]:
+    """키워드 미매칭 시 최소한의 앞쪽 페이지를 폴백 입력으로 사용한다."""
+    db = get_client()
+    res = (
+        db.table("policy_pages")
+        .select("page_num, text")
+        .eq("policy_id", policy_id)
+        .order("page_num")
+        .limit(limit)
+        .execute()
+    )
+    return res.data or []
+
+
+def _parse_pages_with_llm(pages: list[dict], context: str = "") -> list[dict]:
     """선별된 페이지를 LLM(GPT-4.1-mini)으로 구조화 파싱한다.
 
+    context: 로그 상관관계 추적용 식별자 (예: "policy_id=...query_hash=..."). 비용 분석 외 용도 없음.
     파싱 실패 시 ValueError 발생 (빈 리스트 묵인 없음).
     반환: riders 리스트 (Rider 스키마 구조)
     """
@@ -296,6 +316,15 @@ def _parse_pages_with_llm(pages: list[dict]) -> list[dict]:
             {"role": "user", "content": user_prefix + document},
         ],
     )
+    usage = getattr(msg, "usage", None)
+    if usage:
+        print(
+            "[user_policy_service] policy_parse_llm_usage "
+            f"{context} pages={len(pages)} document_chars={len(document)} "
+            f"prompt_tokens={usage.prompt_tokens} "
+            f"completion_tokens={usage.completion_tokens} "
+            f"total_tokens={usage.total_tokens}"
+        )
     raw = msg.choices[0].message.content or ""
 
     # JSON 파싱 (백틱 펜스 방어)
@@ -411,23 +440,24 @@ def get_or_parse_riders(
     if cache_res.data:
         # 캐시 hit: 이 query_hash로 저장된 riders만 반환 (다른 시나리오 riders 제외)
         existing = db.table("riders").select("*").eq("policy_id", policy_id).eq("parse_query_hash", q_hash).execute()
+        print(
+            "[user_policy_service] policy_parse_cache hit "
+            f"policy_id={policy_id} query_hash={q_hash} riders={len(existing.data or [])}"
+        )
         return existing.data or []
+
+    print(
+        "[user_policy_service] policy_parse_cache miss "
+        f"policy_id={policy_id} query_hash={q_hash} default_pages={_DEFAULT_PARSE_MAX_PAGES}"
+    )
 
     # ── 관련 페이지 키워드 필터 ──
     keywords = _build_keywords(disease_kcd, disease_name, normalized_items)
-    relevant_pages = find_relevant_pages(policy_id, keywords)
+    relevant_pages = find_relevant_pages(policy_id, keywords, max_pages=_DEFAULT_PARSE_MAX_PAGES)
 
     if not relevant_pages:
-        # 키워드 미매칭 시 앞 20페이지 폴백
-        res = (
-            db.table("policy_pages")
-            .select("page_num, text")
-            .eq("policy_id", policy_id)
-            .order("page_num")
-            .limit(20)
-            .execute()
-        )
-        relevant_pages = res.data or []
+        # 키워드 미매칭 시 앞 10페이지 폴백
+        relevant_pages = _load_front_pages(policy_id, _FALLBACK_PARSE_MAX_PAGES)
 
     if not relevant_pages:
         raise NotFoundError(f"policy_id={policy_id} 에 저장된 페이지 데이터가 없습니다. 먼저 PDF를 업로드해주세요.")
@@ -442,6 +472,7 @@ def get_or_parse_riders(
                 "query_hash": q_hash,
             }
         ).execute()
+        print(f"[user_policy_service] policy_parse_cache lock_acquired policy_id={policy_id} query_hash={q_hash}")
     except Exception as e:
         # unique 충돌 → 다른 요청이 먼저 캐시를 선점한 경우
         # "duplicate" 또는 "unique" 키워드로 중복 충돌 여부 판단
@@ -451,18 +482,39 @@ def get_or_parse_riders(
             existing = (
                 db.table("riders").select("*").eq("policy_id", policy_id).eq("parse_query_hash", q_hash).execute()
             )
+            print(
+                "[user_policy_service] policy_parse_cache duplicate_lock "
+                f"policy_id={policy_id} query_hash={q_hash} riders={len(existing.data or [])}"
+            )
             return existing.data or []
         raise  # unique 충돌 외 DB 오류는 그대로 전파
 
     # ── LLM 파싱 + 저장 (실패 시 캐시 롤백) ──
     # 캐시를 선점한 뒤 파싱/저장이 실패하면 캐시 행을 삭제해
     # 다음 요청이 재파싱을 시도할 수 있도록 한다.
+    log_context = f"policy_id={policy_id} query_hash={q_hash}"
     try:
-        riders_raw = _parse_pages_with_llm(relevant_pages)
+        riders_raw = _parse_pages_with_llm(relevant_pages, context=log_context)
+        if not riders_raw and len(relevant_pages) >= _DEFAULT_PARSE_MAX_PAGES:
+            expanded_pages = find_relevant_pages(policy_id, keywords, max_pages=_RETRY_PARSE_MAX_PAGES)
+            if not expanded_pages:
+                expanded_pages = _load_front_pages(policy_id, _RETRY_PARSE_MAX_PAGES)
+            if len(expanded_pages) > len(relevant_pages):
+                print(
+                    "[user_policy_service] policy_parse_retry_expanded "
+                    f"policy_id={policy_id} query_hash={q_hash} "
+                    f"pages={len(relevant_pages)}->{len(expanded_pages)}"
+                )
+                riders_raw = _parse_pages_with_llm(expanded_pages, context=log_context)
         if riders_raw:
             _save_riders(policy_id, q_hash, riders_raw)
+        print(
+            "[user_policy_service] policy_parse_completed "
+            f"policy_id={policy_id} query_hash={q_hash} riders={len(riders_raw)}"
+        )
     except Exception:
         db.table("policy_parse_cache").delete().eq("policy_id", policy_id).eq("query_hash", q_hash).execute()
+        print(f"[user_policy_service] policy_parse_failed cache_rollback policy_id={policy_id} query_hash={q_hash}")
         raise
 
     # ── 저장 후 재조회 (이 hash의 riders만) ──

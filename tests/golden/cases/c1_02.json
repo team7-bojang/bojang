@@ -14,6 +14,7 @@
     "is_inpatient": true,
     "is_outpatient": false,
     "surgery": false,
+    "admission_days_current": 5,
     "admission_days_diagnosed": 5,
     "treatment_items": [
       "MRI_MRA",

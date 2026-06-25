@@ -97,6 +97,16 @@ def _normalize_item_name(code, name) -> str:
     return str(name or "").strip()
 
 
+def _summary_from_match(m: re.Match[str]) -> dict[str, int]:
+    return {
+        "total_amount": _to_int(m["total"]),
+        "patient_paid_amount": _to_int(m["copay"]),
+        "nhis_paid_amount": _to_int(m["insurer"]),
+        "full_self_pay_amount": _to_int(m["full_self_pay"]),
+        "non_covered_amount": _to_int(m["non_covered"]),
+    }
+
+
 def parse_medical_statement_text(text: str) -> dict:
     """진료비 세부산정내역서 본문 텍스트를 파싱하여 항목·합계·환자 정보를 추출한다.
 
@@ -114,6 +124,7 @@ def parse_medical_statement_text(text: str) -> dict:
     """
     items: list[dict] = []
     summary: dict[str, int] = {}
+    fallback_summary: dict[str, int] = {}
     patient_name = None
     period_start = None
     period_end = None
@@ -143,14 +154,11 @@ def parse_medical_statement_text(text: str) -> dict:
 
         m = _SUMMARY_ROW_RE.match(line)
         if m:
+            current_summary = _summary_from_match(m)
+            if not fallback_summary:
+                fallback_summary = current_summary
             if re.sub(r"\s+", "", m["label"]) == "합계":
-                summary = {
-                    "total_amount": _to_int(m["total"]),
-                    "patient_paid_amount": _to_int(m["copay"]),
-                    "nhis_paid_amount": _to_int(m["insurer"]),
-                    "full_self_pay_amount": _to_int(m["full_self_pay"]),
-                    "non_covered_amount": _to_int(m["non_covered"]),
-                }
+                summary = current_summary
             continue
 
         m = _PATIENT_ROW_RE.match(line)
@@ -172,7 +180,7 @@ def parse_medical_statement_text(text: str) -> dict:
         "period_end": period_end,
         "ward": ward,
         "items": items,
-        "summary": summary,
+        "summary": summary or fallback_summary,
     }
 
 
@@ -294,6 +302,12 @@ def _normalize_vision_result(data: dict) -> dict:
         if summary_fields and None not in summary_fields.values():
             summary = summary_fields
 
+    print(
+        "[MedicalStatement] vision_normalize "
+        f"raw_items={len(data.get('items') or [])} parsed_items={len(items)} "
+        f"summary_raw={summary_raw} summary_accepted={bool(summary)}"
+    )
+
     return {
         "patient_name": data.get("patient_name"),
         "hospital_name": data.get("hospital_name"),
@@ -332,7 +346,10 @@ def parse_medical_statement_image(image_bytes: bytes) -> dict:
                     "role": "user",
                     "content": [
                         {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{encoded}"}},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{mime_type};base64,{encoded}", "detail": "high"},
+                        },
                     ],
                 }
             ],

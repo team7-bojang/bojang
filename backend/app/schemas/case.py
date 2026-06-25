@@ -100,6 +100,7 @@ class ExtractedMedicalInfo(BaseModel):
     total_amount: int | None = None
     patient_paid_amount: int | None = None
     nhis_paid_amount: int | None = None
+    full_self_pay_amount: int | None = None
     non_covered_amount: int | None = None
     item_details: list[MedicalItemDetail] = []
 
