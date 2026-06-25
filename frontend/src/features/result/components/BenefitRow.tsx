@@ -9,7 +9,7 @@ export function BenefitRow({ benefit, onClick }: { benefit: Benefit; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-b border-line/80 py-5 text-left last:border-b-0 sm:gap-5"
+      className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-b border-line/80 px-4 py-5 text-left transition-colors last:border-b-0 hover:bg-canvas/70 sm:gap-5 sm:px-6"
     >
       <InsurerLogo insurerId={benefit.insurerId} size="lg" className="rounded-full" />
       <span className="min-w-0">
