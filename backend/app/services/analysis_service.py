@@ -592,7 +592,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         judge_case = {
             "disease_kcd": case_data.get("disease_kcd", ""),
             "disease_name": case_data.get("disease_name", ""),
-            "surgery": False if case_data.get("is_outpatient") else bool(case_data.get("surgery", False)),
+            "surgery": bool(case_data.get("surgery", False)),
             "diag_days": int(case_data.get("admission_days_diagnosed") or case_data.get("diag_days") or 0),
             # 통원(외래)인데 입원일수가 남아 있으면 입원일당이 잘못 잡히므로 0으로 본다.
             "current_days": (
@@ -833,7 +833,7 @@ def compare_scenarios(
                 temp_case = {
                     "disease_kcd": case_data.get("disease_kcd", ""),
                     "disease_name": case_data.get("disease_name", ""),
-                    "surgery": False if case_data.get("is_outpatient") else bool(case_data.get("surgery", False)),
+                    "surgery": bool(case_data.get("surgery", False)),
                     "diag_days": actual_days,
                     "current_days": actual_days,
                     "policy_elapsed_days": case_data.get("policy_elapsed_days"),
@@ -945,7 +945,7 @@ def compare_scenarios(
             temp_case = {
                 "disease_kcd": case_data.get("disease_kcd", ""),
                 "disease_name": case_data.get("disease_name", ""),
-                "surgery": False if case_data.get("is_outpatient") else bool(case_data.get("surgery", False)),
+                "surgery": bool(case_data.get("surgery", False)),
                 "diag_days": actual_days,
                 "current_days": actual_days,
                 "policy_elapsed_days": case_data.get("policy_elapsed_days"),
