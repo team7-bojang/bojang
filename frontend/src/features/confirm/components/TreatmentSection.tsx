@@ -69,7 +69,7 @@ export function TreatmentSection({
   const currentGroup =
     activeGroup && groupedOptions[activeGroup]
       ? activeGroup
-      : (firstSelectedGroup ?? groups[0] ?? null);
+      : (firstSelectedGroup ?? (hasNone ? null : (groups[0] ?? null)));
   const activeGroupOptions = currentGroup ? (groupedOptions[currentGroup] ?? []) : [];
 
   return (
@@ -83,19 +83,25 @@ export function TreatmentSection({
         }
       >
         <div className="rounded-2xl border border-line bg-surface p-3">
-          <div className="flex flex-wrap gap-2 border-b border-line pb-3">
-            <Chip active={hasNone} onClick={onSelectNone}>
+          <div className="flex flex-wrap gap-2">
+            <Chip
+              active={hasNone && !currentGroup}
+              onClick={() => {
+                setActiveGroup(null);
+                onSelectNone();
+              }}
+              className="border-dashed text-muted"
+            >
               {hasNone && <Check className="size-3.5" />}
-              <span>없음 (추가 진료 안 함)</span>
+              <span>해당없음</span>
             </Chip>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
             {groups.map(group => (
               <Chip
                 key={group}
                 onClick={() => setActiveGroup(group)}
                 active={currentGroup === group}
                 variant="group"
+                className="px-4 py-2 text-sm font-semibold"
               >
                 {group}
               </Chip>
@@ -103,7 +109,13 @@ export function TreatmentSection({
           </div>
 
           {currentGroup && (
-            <div className="mt-4 border-t border-line pt-4">
+            <div className="mt-4 rounded-xl border border-line bg-canvas/60 p-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="text-xs font-bold text-muted">세부 치료 항목</span>
+                <span className="rounded-full bg-surface px-2 py-1 text-xs font-semibold text-primary ring-1 ring-line">
+                  {currentGroup}
+                </span>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {activeGroupOptions.map(type => {
                   const selected =
@@ -114,6 +126,7 @@ export function TreatmentSection({
                       key={type.code}
                       onClick={() => onToggleTreatment(type.displayName, type.code)}
                       active={selected}
+                      className="rounded-xl bg-white px-3.5 py-2 font-medium"
                     >
                       {selected && <Check className="size-3.5" />}
                       <span>{type.displayName}</span>

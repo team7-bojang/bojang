@@ -133,6 +133,28 @@ describe('QuestionPrompt', () => {
     expect(onAnswer).toHaveBeenCalledWith('treatment_items', ['CT 검사', '깁스'], 'CT 검사, 깁스');
   });
 
+  it('treatment_items: 해당없음 선택 시 빈 배열을 즉시 답변으로 보낸다', async () => {
+    const onAnswer = vi.fn();
+    render(
+      <QuestionPrompt
+        question={{
+          question_id: 'treatment_items',
+          question_text: '이번 입원 중 함께 받은 치료가 있다면 골라주세요.',
+          input_type: 'checkbox_button',
+          options: [
+            { value: 'MRI_MRA', label: '영상검사 (MRI/CT)' },
+            { value: 'NONE', label: '해당없음' },
+          ],
+        }}
+        onAnswer={onAnswer}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: '해당없음' }));
+
+    expect(onAnswer).toHaveBeenCalledWith('treatment_items', [], '해당없음');
+  });
+
   it('text_input: 입력값을 trim해서 question_id/value/label로 콜백한다', async () => {
     const onAnswer = vi.fn();
     render(
