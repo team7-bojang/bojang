@@ -442,7 +442,11 @@ def create_case(user_id: str, service_type: str, policy_ids: list[str], initial_
     # 5. 기본 치료 형태 매핑
     surgery = None
     if "수술" in initial_situation or "시술" in initial_situation:
-        if any(neg in initial_situation for neg in ["수술 안", "수술은 안", "수술하지 않", "시술 안", "시술은 안"]):
+        if any(neg in initial_situation for neg in [
+            "수술 안", "수술은 안", "수술은 아직", "수술 아직", "아직 수술",
+            "수술하지", "수술 받지", "수술을 받지", "수술 없", "수술 안 해", "수술 못",
+            "시술 안", "시술은 안", "시술하지", "시술 받지", "시술 없",
+        ]):
             surgery = False
         else:
             surgery = True
@@ -477,7 +481,6 @@ def create_case(user_id: str, service_type: str, policy_ids: list[str], initial_
 
     if is_outpatient and not is_inpatient:
         current_days = 0
-        surgery = False
 
     # AFTER_CLAIM일 때 이미 청구한 보험 id 목록 파싱
     claimed_ids = []
