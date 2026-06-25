@@ -39,7 +39,7 @@ export function ResultHero({
               <ResultConfetti side="right" />
             </>
           )}
-          분석 완료이 완료되었습니다!
+          분석이 완료되었습니다!
         </h1>
         <p className="mt-2 text-base font-bold text-muted sm:text-lg">{summaryText}</p>
 

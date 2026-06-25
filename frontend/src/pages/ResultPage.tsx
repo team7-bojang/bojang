@@ -285,7 +285,7 @@ export function ResultPage() {
                 )}
 
                 <div className="mt-6 border-t border-line pt-6">
-                  <ClaimDocumentsSection policyNames={payablePolicyNames} variant="summary" />
+                  <ClaimDocumentsSection policyNames={payablePolicyNames} />
                 </div>
               </>
             )}

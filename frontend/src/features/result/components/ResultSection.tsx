@@ -8,18 +8,9 @@ import type { AnalysisSearchResult } from '../model';
 import { formatWon } from '../utils/format';
 import { inferInsurerId, isConditional, isEligible } from '../utils/resultAnalysis';
 
-interface PreviewCalculation {
-  amount: number;
-  formula: string;
-  basis: string;
-}
-
-function statusText(result: AnalysisSearchResult, previewCalculation?: PreviewCalculation | null) {
+function statusText(result: AnalysisSearchResult) {
   if (isEligible(result)) {
     // 가입금액이 입력된 경우 예상 보험금, 미입력(0)이면 지급 가능 여부만 안내
-    if (previewCalculation) {
-      return `${formatWon(previewCalculation.amount)}원`;
-    }
     return result.estimated_amount > 0 ? `${formatWon(result.estimated_amount)}원` : '지급 가능';
   }
   if (isConditional(result)) {
@@ -44,13 +35,7 @@ function statusTone(result: AnalysisSearchResult) {
   return 'text-red-600';
 }
 
-function ResultRowBody({
-  result,
-  previewCalculation,
-}: {
-  result: AnalysisSearchResult;
-  previewCalculation?: PreviewCalculation | null;
-}) {
+function ResultRowBody({ result }: { result: AnalysisSearchResult }) {
   const insurerId = inferInsurerId(result.policy);
 
   return (
@@ -62,7 +47,7 @@ function ResultRowBody({
       </span>
       <span className="text-right">
         <span className={cn('block text-lg font-extrabold', statusTone(result))}>
-          {statusText(result, previewCalculation)}
+          {statusText(result)}
         </span>
         {/* 청구 가능하지만 예상 보험금이 아직 산출되지 않은 경우(가입금액 미입력)에만 안내 */}
         {isEligible(result) && result.estimated_amount <= 0 && (
@@ -81,16 +66,14 @@ const ROW_GRID =
 function ResultRow({
   result,
   onSelect,
-  previewCalculation,
 }: {
   result: AnalysisSearchResult;
   onSelect?: (result: AnalysisSearchResult) => void;
-  previewCalculation?: PreviewCalculation | null;
 }) {
   if (!onSelect) {
     return (
       <article className={ROW_GRID}>
-        <ResultRowBody result={result} previewCalculation={previewCalculation} />
+        <ResultRowBody result={result} />
       </article>
     );
   }
@@ -105,7 +88,7 @@ function ResultRow({
       )}
       aria-label={`${result.rider} 상세 분석 보기`}
     >
-      <ResultRowBody result={result} previewCalculation={previewCalculation} />
+      <ResultRowBody result={result} />
       <ChevronRight className="size-5 shrink-0 text-muted" />
     </button>
   );
@@ -121,7 +104,6 @@ interface ResultSectionProps {
   collapsible?: boolean;
   defaultOpen?: boolean;
   onSelect?: (result: AnalysisSearchResult) => void;
-  getPreviewCalculation?: (result: AnalysisSearchResult) => PreviewCalculation | null;
 }
 
 export function ResultSection({
@@ -134,7 +116,6 @@ export function ResultSection({
   collapsible = false,
   defaultOpen = true,
   onSelect,
-  getPreviewCalculation,
 }: ResultSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
   const visible = !collapsible || open;
@@ -145,11 +126,7 @@ export function ResultSection({
       results.map((result, index) => (
         <div key={`${result.policy}-${result.rider}-${index}`}>
           {index > 0 && <div className="mx-4 border-t border-line/80 sm:mx-6" />}
-          <ResultRow
-            result={result}
-            onSelect={onSelect}
-            previewCalculation={getPreviewCalculation?.(result)}
-          />
+          <ResultRow result={result} onSelect={onSelect} />
         </div>
       ))
     ) : (
