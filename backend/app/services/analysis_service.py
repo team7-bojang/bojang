@@ -261,10 +261,32 @@ def get_rider_treatment_codes(db, rider_id: str, rider_name: str) -> list[str]:
 
 # 1) 비의료·사고·사기·법률·축하금 등: 질병/암 케이스와 무관
 _NON_MEDICAL_TOKENS = (
-    "무사고", "축하금", "자동차사고", "운전자", "비운전자", "교통사고", "사고부상",
-    "민사소송", "법률비용", "벌금", "변호사", "방어비용",
-    "금융사기", "피싱", "파밍", "스미싱", "메모리해킹", "보이스피싱",
-    "골프", "홀인원", "유아교육", "등록금", "결혼", "이혼", "출산축하", "도난",
+    "무사고",
+    "축하금",
+    "자동차사고",
+    "운전자",
+    "비운전자",
+    "교통사고",
+    "사고부상",
+    "민사소송",
+    "법률비용",
+    "벌금",
+    "변호사",
+    "방어비용",
+    "금융사기",
+    "피싱",
+    "파밍",
+    "스미싱",
+    "메모리해킹",
+    "보이스피싱",
+    "골프",
+    "홀인원",
+    "유아교육",
+    "등록금",
+    "결혼",
+    "이혼",
+    "출산축하",
+    "도난",
 )
 
 # 2) (특약명 토큰, 허용 KCD prefix): 케이스 KCD가 prefix와 다르면 제외.
@@ -433,6 +455,7 @@ def _parse_elapsed_days(raw_elapsed: any) -> int | None:
         return raw_elapsed
     if isinstance(raw_elapsed, str):
         import re
+
         val_clean = raw_elapsed.replace("[", "").replace("]", "").strip()
         _ELAPSED_MAP = {
             "90일 미만": 80,
@@ -1104,9 +1127,12 @@ def compare_scenarios(
     }
 
 
-def judge_analysis(user_id: str, case_id: str) -> dict:
+def judge_analysis(user_id: str, case_id: str, coverage_amounts: list[dict] | None = None) -> dict:
     """RAG 탐색과 AI 설명문 생성, DB 스냅샷 저장을 모두 생략하고,
-    오직 룰 엔진 판정만 빠르게 수행하는 경량 API 서비스 메서드입니다."""
+    오직 룰 엔진 판정만 빠르게 수행하는 경량 API 서비스 메서드입니다.
+
+    coverage_amounts(보장별 가입금액)가 전달되면 DB 저장 없이 그 값으로 예상 보험금을 재계산한다.
+    (None 이면 기존 case 에 저장된 coverage_amounts 를 사용)"""
     db = get_client()
 
     # 1. 상황 정보 조회
@@ -1175,8 +1201,16 @@ def judge_analysis(user_id: str, case_id: str) -> dict:
         if not is_silson:
             if is_injury_case:
                 disease_keywords = [
-                    "암", "뇌", "심장", "종양", "신생물", "치매", "질병", 
-                    "뇌혈관", "뇌졸중", "심근경색"
+                    "암",
+                    "뇌",
+                    "심장",
+                    "종양",
+                    "신생물",
+                    "치매",
+                    "질병",
+                    "뇌혈관",
+                    "뇌졸중",
+                    "심근경색",
                 ]
                 if any(dk in rider_name for dk in disease_keywords):
                     continue
@@ -1217,7 +1251,8 @@ def judge_analysis(user_id: str, case_id: str) -> dict:
             "treatment_items": case_data.get("treatment_items") or [],
             "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
             "treatment_codes": case_data.get("treatment_items") or [],
-            "coverage_amounts": case_data.get("coverage_amounts"),
+            # 요청 본문으로 전달된 가입금액이 있으면 그 값으로 재계산(DB 저장 없음), 없으면 기존 case 값
+            "coverage_amounts": coverage_amounts if coverage_amounts is not None else case_data.get("coverage_amounts"),
             "covered_amounts": case_data.get("covered_amounts"),
             "payment_amount": case_data.get("payment_amount"),
         }
@@ -1317,4 +1352,3 @@ def judge_analysis(user_id: str, case_id: str) -> dict:
         "results": results,
         "notice": notice,
     }
-

@@ -29,8 +29,12 @@ def search_analysis(body: SearchRequest):
 @bp.post("/analysis/judge")
 @require_auth
 def judge_analysis(body: SearchRequest):
-    """상황 기준 보장 판정 (RAG/LLM/스냅샷을 생략한 룰 엔진 고속 판정) (SCR-04)."""
-    data = analysis_service.judge_analysis(g.user_id, body.case_id)
+    """상황 기준 보장 판정 (RAG/LLM/스냅샷을 생략한 룰 엔진 고속 판정) (SCR-04).
+
+    body.coverage_amounts 가 전달되면 DB 저장 없이 그 가입금액으로 예상 보험금을 재계산한다.
+    """
+    coverage_amounts = [c.model_dump() for c in body.coverage_amounts] if body.coverage_amounts is not None else None
+    data = analysis_service.judge_analysis(g.user_id, body.case_id, coverage_amounts)
     return response.ok(data)
 
 
