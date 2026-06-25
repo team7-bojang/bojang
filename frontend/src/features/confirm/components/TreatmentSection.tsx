@@ -16,6 +16,7 @@ interface TreatmentSectionProps {
   form: CaseDashboard;
   treatmentTypes: TreatmentType[];
   onToggleTreatment: (displayName: string, code: string) => void;
+  onSelectNone: () => void;
 }
 
 function normalizeTreatmentType(type: TreatmentType): NormalizedTreatmentType {
@@ -38,8 +39,10 @@ export function TreatmentSection({
   form,
   treatmentTypes,
   onToggleTreatment,
+  onSelectNone,
 }: TreatmentSectionProps) {
   const selectedItems = form.treatment_items;
+  const hasNone = selectedItems.length === 0;
   const sourceTreatmentTypes = getActiveTreatmentTypes(treatmentTypes);
   const options = useMemo(() => {
     const activeTypes = sourceTreatmentTypes
@@ -80,7 +83,13 @@ export function TreatmentSection({
         }
       >
         <div className="rounded-2xl border border-line bg-surface p-3">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 border-b border-line pb-3">
+            <Chip active={hasNone} onClick={onSelectNone}>
+              {hasNone && <Check className="size-3.5" />}
+              <span>없음 (추가 진료 안 함)</span>
+            </Chip>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
             {groups.map(group => (
               <Chip
                 key={group}

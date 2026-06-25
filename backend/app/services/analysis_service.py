@@ -251,6 +251,179 @@ def get_rider_treatment_codes(db, rider_id: str, rider_name: str) -> list[str]:
     return codes
 
 
+# ── 과다매칭 방지 휴리스틱 (judge 키워드 폴백 보강) ──────────────────────────
+# 배경: riders 다수가 rider_disease_rules(룰테이블) 미등록 상태라 judge가 키워드
+# 폴백으로 판정한다. 폴백은 (1) 질병 키워드가 없는 특약을 무조건 통과시키고
+# (2) 암 종류를 구분하지 못해, 갑상선암 통원 케이스에 무사고축하금·자동차사고·
+# 폐암진단비·항암치료비까지 eligible로 새는 과다매칭을 일으킨다.
+# 아래 필터는 룰테이블이 완비되기 전까지 서비스 단에서 명백한 오탐만 차단한다.
+# (룰테이블이 채워지면 judge 본체가 정밀 판정하므로 이 휴리스틱은 점진 제거 대상)
+
+# 1) 비의료·사고·사기·법률·축하금 등: 질병/암 케이스와 무관
+_NON_MEDICAL_TOKENS = (
+    "무사고", "축하금", "자동차사고", "운전자", "비운전자", "교통사고", "사고부상",
+    "민사소송", "법률비용", "벌금", "변호사", "방어비용",
+    "금융사기", "피싱", "파밍", "스미싱", "메모리해킹", "보이스피싱",
+    "골프", "홀인원", "유아교육", "등록금", "결혼", "이혼", "출산축하", "도난",
+)
+
+# 2) (특약명 토큰, 허용 KCD prefix): 케이스 KCD가 prefix와 다르면 제외.
+#    룰테이블에 질병군이 없어 폴백으로 새는 '타 장기 암 진단비'·'타 질환 특약' 차단.
+#    토큰은 반드시 '특정 장기/질환'을 가리키는 것만 둔다(일반암/유사암/제자리암 등
+#    포괄 표현은 judge 룰테이블이 처리하므로 여기서 다루지 않는다).
+_SPECIFIC_DISEASE_KCD = (
+    (("폐암",), ("C34",)),
+    (("후두암",), ("C32",)),
+    (("기관지암",), ("C33", "C34")),
+    (("위암",), ("C16",)),
+    (("식도암",), ("C15",)),
+    (("대장암", "결장암"), ("C18", "C19", "C20")),
+    (("직장암",), ("C19", "C20")),
+    (("소장암",), ("C17",)),
+    (("간암", "간세포암"), ("C22",)),
+    (("췌장암",), ("C25",)),
+    (("담낭암",), ("C23",)),
+    (("담도암", "담관암"), ("C22", "C24")),
+    (("유방암",), ("C50",)),
+    (("난소암",), ("C56",)),
+    (("자궁암", "자궁경부암", "자궁내막암"), ("C53", "C54", "C55")),
+    (("전립선암",), ("C61",)),
+    (("고환암",), ("C62",)),
+    (("음경암",), ("C60",)),
+    (("방광암",), ("C67",)),
+    (("신장암", "신우암"), ("C64", "C65")),
+    (("림프종",), ("C81", "C82", "C83", "C84", "C85", "C86", "C88", "C96")),
+    (("백혈병",), ("C91", "C92", "C93", "C94", "C95")),
+    (("골수종", "골수암"), ("C90",)),
+    (("흑색종",), ("C43",)),
+    (("뇌종양", "뇌암"), ("C71", "D33", "D43")),
+    # 비암 특정질환
+    (("갑상선기능",), ("E03", "E05", "E06", "E07")),
+    (("당뇨", "인슐린"), ("E10", "E11", "E12", "E13", "E14")),
+    (("대상포진",), ("B02",)),
+    (("통풍",), ("M10",)),
+    (("백내장",), ("H25", "H26")),
+    (("추간판", "디스크"), ("M50", "M51")),
+    (("협심증",), ("I20",)),
+    (("심근경색",), ("I21", "I22")),
+    (("뇌졸중", "뇌출혈", "뇌경색", "뇌혈관"), ("I60", "I61", "I62", "I63", "I64", "I65", "I66", "I67", "I68", "I69")),
+    (("순환계질환",), ("I",)),
+    (("양성종양", "양성신생물", "용종", "폴립"), ("D1", "D2", "D3")),
+    (("특정바이러스", "바이러스질환"), ("B",)),
+)
+
+# 조직검사(생검) 보장의 장기 토큰 → 허용 KCD prefix.
+# '유방바늘생검진단비' 처럼 특정 장기를 명시한 생검은 그 장기 케이스에서만 지급된다.
+# (예: 갑상선암(C73) 케이스에 유방/자궁/전립선 생검비가 잡히는 오탐 차단)
+_BIOPSY_ORGAN_KCD = (
+    ("갑상선", ("C73", "E03", "E04", "E05", "E06", "E07", "D093")),
+    ("유방", ("C50", "D05", "N60", "N63", "D24")),
+    ("자궁", ("C53", "C54", "C55", "D25", "D26")),
+    ("전립선", ("C61", "N40")),
+    ("난소", ("C56", "D27")),
+    ("고환", ("C62",)),
+    ("방광", ("C67",)),
+    ("대장", ("C18", "C19", "C20", "D12")),
+    ("폐", ("C34",)),
+    ("간", ("C22",)),
+    ("신장", ("C64",)),
+    ("췌장", ("C25",)),
+)
+
+
+def _kcd_starts_with(kcd: str | None, prefixes: tuple[str, ...]) -> bool:
+    k = (kcd or "").upper()
+    return any(k.startswith(p) for p in prefixes)
+
+
+def _irrelevant_rider_reason(
+    rider_name: str,
+    trigger_type: str | None,
+    disease_kcd: str,
+    is_injury_case: bool,
+    has_treatment: bool,
+    has_surgery: bool,
+    is_outpatient_only: bool,
+) -> str | None:
+    """질병/암 케이스에서 명백히 무관한 특약이면 제외 사유를, 아니면 None을 반환.
+
+    judge 키워드 폴백의 과다매칭(룰테이블 미비 구간)을 서비스 단에서 보강한다.
+    호출부에서 실손(의료비) 특약은 이미 제외하고 들어온다.
+    """
+    name = rider_name or ""
+
+    # 1) 비의료·사고·사기·법률 (상해 케이스에서는 정상 매칭이므로 질병 케이스에만 적용)
+    if not is_injury_case and any(t in name for t in _NON_MEDICAL_TOKENS):
+        return "비의료/사고/사기/법률 특약"
+
+    # 2) 특정 장기 암·특정 질환인데 케이스 질병코드와 불일치
+    matched = mismatched = False
+    for tokens, prefixes in _SPECIFIC_DISEASE_KCD:
+        if any(t in name for t in tokens):
+            if _kcd_starts_with(disease_kcd, prefixes):
+                matched = True
+            else:
+                mismatched = True
+    if mismatched and not matched:
+        return "질병코드 불일치(타 장기 암/타 질환)"
+
+    # 3) 치료 트리거인데 실제 치료·수술 근거가 없음 (항암방사선/약물/표적치료비 등).
+    #    진단/통원만 한 케이스(treatment_items 없음·수술 아님)에서는 지급 대상이 아니다.
+    #    입원/수술 또는 치료항목 입력이 있으면 게이트하지 않는다(상황 변화 시 자동 노출).
+    if trigger_type == "치료" and is_outpatient_only and not has_treatment and not has_surgery:
+        return "치료 행위 근거 없음(진단/통원만)"
+
+    # ── pass 2: 케이스 입력에 근거가 없는 조건부 보장 게이팅 ──
+    # 4) 재진단(재발)암 보장: 이전 암 진단 후 재발이 전제. 최초 진단 케이스에는 해당 없음.
+    #    (재발 입력 필드가 생기면 그 값으로 판정하도록 후속 보강)
+    if "재진단" in name or "재발" in name:
+        return "재진단(재발) 보장 — 최초 진단 케이스"
+
+    # 5) 암 '직접치료' 통원/치료 보장: 수술·항암 등 직접치료가 전제.
+    #    조직검사 등 진단 목적 통원(치료 근거 없음)에는 해당 없음. 입원 트리거는 judge가 별도 처리.
+    if (
+        "직접치료" in name
+        and trigger_type in ("통원", "치료")
+        and not has_treatment
+        and not has_surgery
+        and is_outpatient_only
+    ):
+        return "암 직접치료 근거 없음(진단/통원만)"
+
+    # 6) 조직검사(생검) 보장: 케이스 장기와 다른 장기를 명시한 생검은 해당 없음.
+    if "생검" in name or "조직병리" in name:
+        organ_matched = organ_mismatched = False
+        for organ, prefixes in _BIOPSY_ORGAN_KCD:
+            if organ in name:
+                if _kcd_starts_with(disease_kcd, prefixes):
+                    organ_matched = True
+                else:
+                    organ_mismatched = True
+        if organ_mismatched and not organ_matched:
+            return "타 장기 조직검사 보장"
+
+    return None
+
+
+def _conditional_eligibility_note(rider_name: str) -> str | None:
+    """judge가 eligible로 봤지만 약관 세부조건이 현재 입력으로 확인 불가한 경우의 안내.
+
+    초기제외(병기)·중증(중증도)·생검(조직검사 방식)·특정암(별표) 등은 케이스 입력에
+    해당 정보가 없어 '청구 가능'으로 단정할 수 없다 → '조건 확인 필요'로 분리한다.
+    (해당 정보를 입력받는 필드가 생기면 그 값으로 정밀 판정하도록 후속 보강)
+    """
+    name = rider_name or ""
+    if "초기제외" in name:
+        return "초기 진단(초기암)이면 제외됩니다 — 병기 확인이 필요합니다"
+    if "중증" in name:
+        return "약관상 '중증' 기준 해당 여부 확인이 필요합니다"
+    if "생검" in name or "조직병리" in name:
+        return "바늘생검 여부 확인이 필요합니다 (절개·절제생검은 제외)"
+    if "특정암" in name:
+        return "약관의 '특정암' 목록 해당 여부 확인이 필요합니다"
+    return None
+
+
 def search_analysis(user_id: str, case_id: str) -> dict:
     """RAG 탐색과 룰 판정을 연동해 청구 가능한 보장을 탐색하고 스냅샷을 저장합니다."""
     db = get_client()
@@ -345,6 +518,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
     snapshots = []
     eligible_count = 0
     missed_count = 0
+    conditional_count = 0
 
     for chunk in chunks:
         rider = chunk.get("riders")
@@ -391,6 +565,24 @@ def search_analysis(user_id: str, case_id: str) -> dict:
                     print(f"[AnalysisService] Filtering out injury rider '{rider_name}' for disease case '{kcd_upper}'")
                     continue
 
+            # 과다매칭 보강: 비의료/타 장기 암/치료 근거 없음 특약 제외 (룰테이블 미비 폴백 보강)
+            # 통원 여부는 입원/통원 플래그로 판단한다 (통원인데 입원일수 데이터가 들어오는 경우 보정).
+            # 치료 근거 유무는 treatment_items 입력 그대로 본다 ('기타 치료'도 실제 치료로 취급,
+            #  '추가 치료 없음'은 사용자가 '없음'을 선택해 treatment_items 를 비우는 것으로 표현).
+            is_outpatient_case = bool(case_data.get("is_outpatient")) and not bool(case_data.get("is_inpatient"))
+            skip_reason = _irrelevant_rider_reason(
+                rider_name,
+                rider.get("trigger_type"),
+                kcd,
+                is_injury_case,
+                has_treatment=bool(case_data.get("treatment_items")),
+                has_surgery=bool(case_data.get("surgery", False)),
+                is_outpatient_only=is_outpatient_case,
+            )
+            if skip_reason:
+                print(f"[AnalysisService] Filtering out '{rider_name}' ({skip_reason}) for case '{kcd_upper}'")
+                continue
+
         # 질병군 및 특약 매칭 규칙 조회
         req_groups, excl_groups = get_disease_rules_for_rider(
             db, rider_id, rider.get("name") or "", rider.get("trigger_type")
@@ -402,7 +594,12 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "disease_name": case_data.get("disease_name", ""),
             "surgery": bool(case_data.get("surgery", False)),
             "diag_days": int(case_data.get("admission_days_diagnosed") or case_data.get("diag_days") or 0),
-            "current_days": int(case_data.get("admission_days_current") or case_data.get("current_days") or 0),
+            # 통원(외래)인데 입원일수가 남아 있으면 입원일당이 잘못 잡히므로 0으로 본다.
+            "current_days": (
+                0
+                if (bool(case_data.get("is_outpatient")) and not bool(case_data.get("is_inpatient")))
+                else int(case_data.get("admission_days_current") or case_data.get("current_days") or 0)
+            ),
             "policy_elapsed_days": case_data.get("policy_elapsed_days"),
             "treatment_items": case_data.get("treatment_items") or [],
             "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
@@ -441,11 +638,13 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             if not judgement.get("additional_amount") or judgement.get("additional_amount") == 0:
                 continue
 
-        is_unverified_rider = not bool(rider.get("verified"))
-
-        # 검수 전 특약은 관련 조항으로만 노출하고 정밀 청구 가능 판정은 보류한다.
-        if is_unverified_rider:
-            status = JudgeStatus.POTENTIAL
+        # 조건부 적격 분리: judge는 eligible로 봐도 약관 세부조건(초기/중증/생검 방식/특정암 별표)이
+        # 현재 입력으로 확인 불가하면 '청구 가능'으로 단정하지 않고 'conditional'(조건 확인 필요)로 분리한다.
+        condition_note = None
+        if status == JudgeStatus.ELIGIBLE:
+            condition_note = _conditional_eligibility_note(rider.get("name") or "")
+            if condition_note:
+                status = "conditional"
 
         # RAG 설명문 생성
         rider_chunks = [c for c in chunks if c.get("rider_id") == rider_id]
@@ -458,8 +657,8 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             explanation = (
                 f"고객님께서 가입하신 '{rider.get('name')}'의 보장 요건을 충족하여 보험금 지급 대상이 될 수 있습니다."
             )
-        elif is_unverified_rider:
-            explanation = "약관에서 관련 조항은 확인됐지만, 청구 가능 여부는 직접 확인이 필요해요."
+        elif status == "conditional":
+            explanation = f"'{rider.get('name')}'은(는) {condition_note}."
         elif status == JudgeStatus.POTENTIAL:
             explanation = f"고객님께서 가입하신 '{rider.get('name')}'의 조건을 보완할 시 추가적인 보험금 지급 대상이 될 수 있습니다."
 
@@ -475,6 +674,8 @@ def search_analysis(user_id: str, case_id: str) -> dict:
 
         if status in [JudgeStatus.ELIGIBLE, JudgeStatus.POTENTIAL, "claimed"]:
             eligible_count += 1
+        elif status == "conditional":
+            conditional_count += 1
 
         # 놓친 보험금(missed) 판정
         missed = False
@@ -491,6 +692,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         result_item = {
             "policy": policy_name,
             "rider": rider["name"],
+            "rider_id": rider_id,
             "status": status,
             "missed": missed,
             "gap_days": judgement.get("gap_days"),
@@ -499,6 +701,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "reduction": judgement.get("reduction"),
             "calc": judgement.get("calc"),
             "explanation": explanation,
+            "condition": condition_note,
             "evidence": evidence,
         }
         results.append(result_item)
@@ -533,7 +736,11 @@ def search_analysis(user_id: str, case_id: str) -> dict:
                     )
 
     return {
-        "summary": {"eligible_count": eligible_count, "missed_count": missed_count},
+        "summary": {
+            "eligible_count": eligible_count,
+            "missed_count": missed_count,
+            "conditional_count": conditional_count,
+        },
         "results": results,
         "notice": notice,
     }

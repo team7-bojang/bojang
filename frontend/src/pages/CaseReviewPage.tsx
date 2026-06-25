@@ -321,6 +321,7 @@ export function CaseReviewPage() {
                   form={form}
                   treatmentTypes={treatmentTypes}
                   onToggleTreatment={toggleTreatment}
+                  onSelectNone={() => patch({ treatment_items: [] })}
                 />
               </div>
             </AccordionSection>

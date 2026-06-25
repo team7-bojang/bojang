@@ -13,11 +13,13 @@ export interface AnalysisCompareRequest {
 export interface AnalysisSearchSummary {
   eligible_count: number;
   missed_count: number;
+  conditional_count?: number;
 }
 
 export interface AnalysisSearchResult {
   policy: string;
   rider: string;
+  rider_id?: string;
   status: string;
   missed?: boolean;
   gap_days: number | null;
@@ -25,6 +27,7 @@ export interface AnalysisSearchResult {
   estimated_amount: number;
   calc: string | null;
   explanation: string;
+  condition?: string | null;
   reduction?: unknown;
   evidence?: {
     article?: string;

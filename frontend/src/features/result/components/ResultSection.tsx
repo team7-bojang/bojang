@@ -3,11 +3,15 @@ import { cn } from '@/lib/utils';
 
 import type { AnalysisSearchResult } from '../model';
 import { formatWon } from '../utils/format';
-import { inferInsurerId, isEligible } from '../utils/resultAnalysis';
+import { inferInsurerId, isConditional, isEligible } from '../utils/resultAnalysis';
 
 function statusText(result: AnalysisSearchResult) {
   if (isEligible(result)) {
-    return `${formatWon(result.estimated_amount)}원`;
+    // 가입금액이 입력된 경우 예상 보험금, 미입력(0)이면 지급 가능 여부만 안내
+    return result.estimated_amount > 0 ? `${formatWon(result.estimated_amount)}원` : '지급 가능';
+  }
+  if (isConditional(result)) {
+    return '조건 확인';
   }
   if (result.status === 'not_applicable') {
     return '해당 없음';
@@ -19,7 +23,13 @@ function statusText(result: AnalysisSearchResult) {
 }
 
 function statusTone(result: AnalysisSearchResult) {
-  return isEligible(result) ? 'text-ink' : 'text-red-600';
+  if (isEligible(result)) {
+    return 'text-ink';
+  }
+  if (isConditional(result)) {
+    return 'text-amber-600';
+  }
+  return 'text-red-600';
 }
 
 function ResultRow({ result }: { result: AnalysisSearchResult }) {
