@@ -26,6 +26,14 @@ def search_analysis(body: SearchRequest):
     return response.ok(data)
 
 
+@bp.post("/analysis/judge")
+@require_auth
+def judge_analysis(body: SearchRequest):
+    """상황 기준 보장 판정 (RAG/LLM/스냅샷을 생략한 룰 엔진 고속 판정) (SCR-04)."""
+    data = analysis_service.judge_analysis(g.user_id, body.case_id)
+    return response.ok(data)
+
+
 @bp.post("/analysis/compare")
 @require_auth
 def compare_scenarios(body: CompareRequest):

@@ -1071,3 +1071,219 @@ def compare_scenarios(
         ),
         "notice": notice,
     }
+
+
+def judge_analysis(user_id: str, case_id: str) -> dict:
+    """RAG 탐색과 AI 설명문 생성, DB 스냅샷 저장을 모두 생략하고,
+    오직 룰 엔진 판정만 빠르게 수행하는 경량 API 서비스 메서드입니다."""
+    db = get_client()
+
+    # 1. 상황 정보 조회
+    res_case = db.table("cases").select("*").eq("id", case_id).execute()
+    if not res_case.data:
+        raise NotFoundError("해당 상황 정보(Case)를 찾을 수 없습니다.")
+    case_data = res_case.data[0]
+    if case_data.get("user_id") != user_id:
+        raise ForbiddenError("다른 사용자의 case에 접근할 수 없습니다.")
+
+    # 2. 내 가입 보험 목록 조회 (cases.policy_ids 기반 조회)
+    case_policy_ids = case_data.get("policy_ids") or []
+    my_policies = []
+    if case_policy_ids:
+        res_my = db.table("policies").select("*").in_("id", case_policy_ids).execute()
+        my_policies = res_my.data or []
+
+    notice = None
+    if not my_policies:
+        try:
+            res_preset = db.table("policies").select("*").eq("is_preset", True).limit(2).execute()
+            my_policies = res_preset.data or []
+            if my_policies:
+                notice = "실제 등록한 보험이 없어, 시스템에 등록된 대표 프리셋 보험 정보를 기반으로 청구 분석을 수행했습니다."
+        except Exception as e:
+            print(f"[analysis_service] Failed to fetch preset policies: {e}")
+
+        if not my_policies:
+            my_policies = []
+            notice = "분석 가능한 가입 보험 정보가 존재하지 않습니다."
+
+    policy_ids = [p["id"] for p in my_policies]
+    policy_names = {p["id"]: p["name"] for p in my_policies}
+
+    # 3. RAG를 생략하고 policy_ids에 속한 모든 rider를 DB에서 직접 로드
+    riders = []
+    for pid in policy_ids:
+        try:
+            res_r = db.table("riders").select("*").eq("policy_id", pid).execute()
+            if res_r.data:
+                riders.extend(res_r.data)
+        except Exception as e:
+            print(f"[analysis_service] Failed to load riders for {pid}: {e}")
+
+    # 4. 연관 특약 판정 (AI 설명 생성을 건너뛰고 룰 판정만 수행)
+    analyzed_rider_ids = set()
+    results = []
+    eligible_count = 0
+    missed_count = 0
+    conditional_count = 0
+
+    for rider in riders:
+        rider_id = rider["id"]
+        if rider_id in analyzed_rider_ids:
+            continue
+        analyzed_rider_ids.add(rider_id)
+
+        # 질병 대분류(상해 vs 질병/암) 기반 1차 카테고리 필터링
+        kcd = case_data.get("disease_kcd") or ""
+        kcd_upper = kcd.upper().strip()
+        is_injury_case = kcd_upper.startswith("S") or kcd_upper.startswith("T")
+
+        rider_name = rider.get("name") or ""
+        is_silson = "실손" in rider_name or "의료비" in rider_name
+
+        if not is_silson:
+            if is_injury_case:
+                disease_keywords = [
+                    "암", "뇌", "심장", "종양", "신생물", "치매", "질병", 
+                    "뇌혈관", "뇌졸중", "심근경색"
+                ]
+                if any(dk in rider_name for dk in disease_keywords):
+                    continue
+            else:
+                injury_keywords = ["상해", "재해", "교통", "골절", "화상", "깁스"]
+                if any(ik in rider_name for ik in injury_keywords):
+                    continue
+
+            is_outpatient_case = bool(case_data.get("is_outpatient")) and not bool(case_data.get("is_inpatient"))
+            skip_reason = _irrelevant_rider_reason(
+                rider_name,
+                rider.get("trigger_type"),
+                kcd,
+                is_injury_case,
+                has_treatment=bool(case_data.get("treatment_items")),
+                has_surgery=bool(case_data.get("surgery", False)),
+                is_outpatient_only=is_outpatient_case,
+            )
+            if skip_reason:
+                continue
+
+        # 질병군 및 특약 매칭 규칙 조회
+        req_groups, excl_groups = get_disease_rules_for_rider(
+            db, rider_id, rider.get("name") or "", rider.get("trigger_type")
+        )
+
+        judge_case = {
+            "disease_kcd": case_data.get("disease_kcd", ""),
+            "disease_name": case_data.get("disease_name", ""),
+            "surgery": bool(case_data.get("surgery", False)),
+            "diag_days": int(case_data.get("admission_days_diagnosed") or case_data.get("diag_days") or 0),
+            "current_days": (
+                0
+                if (bool(case_data.get("is_outpatient")) and not bool(case_data.get("is_inpatient")))
+                else int(case_data.get("admission_days_current") or case_data.get("current_days") or 0)
+            ),
+            "policy_elapsed_days": case_data.get("policy_elapsed_days"),
+            "treatment_items": case_data.get("treatment_items") or [],
+            "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
+            "treatment_codes": case_data.get("treatment_items") or [],
+            "coverage_amounts": case_data.get("coverage_amounts"),
+            "covered_amounts": case_data.get("covered_amounts"),
+            "payment_amount": case_data.get("payment_amount"),
+        }
+
+        judge_rider = {
+            "id": rider_id,
+            "name": rider.get("name"),
+            "trigger_type": rider.get("trigger_type", ""),
+            "boundaries": rider.get("boundaries", []),
+            "exclusions": rider.get("exclusions", []),
+            "limits": rider.get("limits", []),
+            "waiting_period_days": rider.get("waiting_period_days"),
+            "reductions": rider.get("reductions", []),
+            "deduct_days": rider.get("deduct_days", 0),
+            "unit_amount": rider.get("unit_amount"),
+            "unit_type": rider.get("unit_type"),
+            "claim_rule": rider.get("claim_rule"),
+            "source_pages": rider.get("source_pages", []),
+            "require_groups": req_groups,
+            "exclude_groups": excl_groups,
+            "require_treatments": get_rider_treatment_codes(db, rider_id, rider.get("name")),
+            "treatment_codes": get_rider_treatment_codes(db, rider_id, rider.get("name")),
+        }
+
+        judgement = judge(judge_case, judge_rider)
+        status = judgement["status"]
+
+        if status == JudgeStatus.NOT_APPLICABLE:
+            if not judgement.get("additional_amount") or judgement.get("additional_amount") == 0:
+                continue
+
+        condition_note = None
+        if status == JudgeStatus.ELIGIBLE:
+            condition_note = _conditional_eligibility_note(rider.get("name") or "")
+            if condition_note:
+                status = "conditional"
+
+        explanation = judgement.get("reason") or f"지급 상태가 [{status}]로 판정되었습니다."
+        if status == JudgeStatus.ELIGIBLE:
+            explanation = (
+                f"고객님께서 가입하신 '{rider.get('name')}'의 보장 요건을 충족하여 보험금 지급 대상이 될 수 있습니다."
+            )
+        elif status == "conditional":
+            explanation = f"'{rider.get('name')}'은(는) {condition_note}."
+        elif status == JudgeStatus.POTENTIAL:
+            explanation = f"고객님께서 가입하신 '{rider.get('name')}'의 조건을 보완할 시 추가적인 보험금 지급 대상이 될 수 있습니다."
+
+        policy_id = rider.get("policy_id")
+        policy_name = policy_names.get(policy_id, "기타보험")
+
+        claimed_ids = case_data.get("claimed_policy_ids") or []
+        is_claimed_policy = (policy_id in claimed_ids) or (policy_name in claimed_ids)
+
+        if status == JudgeStatus.ELIGIBLE and is_claimed_policy:
+            status = "claimed"
+
+        if status in [JudgeStatus.ELIGIBLE, JudgeStatus.POTENTIAL, "claimed"]:
+            eligible_count += 1
+        elif status == "conditional":
+            conditional_count += 1
+
+        missed = False
+        if status == JudgeStatus.ELIGIBLE and not is_claimed_policy:
+            missed = True
+            missed_count += 1
+
+        evidence = {
+            "article": rider.get("article_no"),
+            "page": rider.get("page"),
+            "quote": rider.get("raw_text"),
+        }
+
+        result_item = {
+            "policy": policy_name,
+            "rider": rider["name"],
+            "rider_id": rider_id,
+            "status": status,
+            "missed": missed,
+            "gap_days": judgement.get("gap_days"),
+            "payable_days": judgement.get("payable_days"),
+            "estimated_amount": judgement.get("expected_amount") or 0,
+            "reduction": judgement.get("reduction"),
+            "calc": judgement.get("calc"),
+            "explanation": explanation,
+            "condition": condition_note,
+            "evidence": evidence,
+        }
+        results.append(result_item)
+
+    # 5. DB 스냅샷 저장을 생략하고 즉시 결과를 리턴 (Supabase 쓰기 RTT 제거)
+    return {
+        "summary": {
+            "eligible_count": eligible_count,
+            "missed_count": missed_count,
+            "conditional_count": conditional_count,
+        },
+        "results": results,
+        "notice": notice,
+    }
+
