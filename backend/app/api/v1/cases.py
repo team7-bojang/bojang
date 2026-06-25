@@ -7,7 +7,7 @@ from flask_openapi3.models.tag import Tag
 from app.auth import require_auth
 from app.core import response
 from app.core.errors import ForbiddenError, NotFoundError
-from app.schemas.case import CaseCreateRequest, PaymentTextRequest
+from app.schemas.case import AnswersRequest, CaseCreateRequest, CasePath, MedicalStatementUploadForm, PaymentTextRequest
 from app.services import case_service
 
 bp = APIBlueprint("cases", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="cases")], abp_security=[{"jwt": []}])
@@ -37,14 +37,16 @@ def create_case(body: CaseCreateRequest):
 
 @bp.post("/cases/<string:case_id>/payment")
 @require_auth
-def save_payment(body: PaymentTextRequest):
+def save_payment(path: CasePath, body: PaymentTextRequest):
     """결제 문자/카드내역 입력 및 추출 (v2.1)."""
     try:
-        case_id = request.view_args.get("case_id")
+        case_id = path.case_id
         data = case_service.save_payment(g.user_id, case_id, body.payment_text)
         return response.ok(data)
     except ValueError as val_err:
         return response.fail("validation_error", str(val_err), 400)
+    except ForbiddenError as fb_err:
+        return response.fail("forbidden", str(fb_err), 403)
     except NotFoundError as nf_err:
         return response.fail("not_found", str(nf_err), 404)
     except Exception as e:
@@ -53,18 +55,24 @@ def save_payment(body: PaymentTextRequest):
 
 @bp.post("/cases/<string:case_id>/medical-detail-statement")
 @require_auth
-def save_medical_detail_statement():
-    """진료비 세부산정내역서 PDF 업로드 및 추출 (v2.1)."""
+def save_medical_detail_statement(path: CasePath, form: MedicalStatementUploadForm):
+    """진료비 세부산정내역서 업로드 및 추출 — PDF 또는 사진(JPEG/PNG) (v2.1)."""
     try:
-        case_id = request.view_args.get("case_id")
+        case_id = path.case_id
         if "file" not in request.files:
             return response.fail("validation_error", "파일이 첨부되지 않았습니다.", 400)
 
         file = request.files["file"]
-        data = case_service.save_medical_detail_statement(g.user_id, case_id, file.filename)
+        file_bytes = file.read()
+        if not file_bytes:
+            return response.fail("validation_error", "빈 파일은 업로드할 수 없습니다.", 400)
+
+        data = case_service.save_medical_detail_statement(g.user_id, case_id, file_bytes)
         return response.ok(data)
     except ValueError as val_err:
         return response.fail("validation_error", str(val_err), 400)
+    except ForbiddenError as fb_err:
+        return response.fail("forbidden", str(fb_err), 403)
     except NotFoundError as nf_err:
         return response.fail("not_found", str(nf_err), 404)
     except Exception as e:
@@ -73,15 +81,17 @@ def save_medical_detail_statement():
 
 @bp.patch("/cases/<string:case_id>/extracted-info")
 @require_auth
-def patch_extracted_info():
+def patch_extracted_info(path: CasePath):
     """추출된 결제/진료 정보 직접 확인 및 수정 (v2.1)."""
     try:
-        case_id = request.view_args.get("case_id")
+        case_id = path.case_id
         body = request.json or {}
         data = case_service.patch_extracted_info(g.user_id, case_id, body)
         return response.ok(data)
     except ValueError as val_err:
         return response.fail("validation_error", str(val_err), 400)
+    except ForbiddenError as fb_err:
+        return response.fail("forbidden", str(fb_err), 403)
     except NotFoundError as nf_err:
         return response.fail("not_found", str(nf_err), 404)
     except Exception as e:
@@ -90,16 +100,17 @@ def patch_extracted_info():
 
 @bp.post("/cases/<string:case_id>/answers")
 @require_auth
-def save_answers():
+def save_answers(path: CasePath, body: AnswersRequest):
     """부족 정보에 대한 추가 답변 저장 (v2.1)."""
     try:
-        case_id = request.view_args.get("case_id")
-        body = request.json or {}
-        answers = body.get("answers", [])
+        case_id = path.case_id
+        answers = [answer.model_dump() for answer in body.answers]
         data = case_service.save_answers(g.user_id, case_id, answers)
         return response.ok(data)
     except ValueError as val_err:
         return response.fail("validation_error", str(val_err), 400)
+    except ForbiddenError as fb_err:
+        return response.fail("forbidden", str(fb_err), 403)
     except NotFoundError as nf_err:
         return response.fail("not_found", str(nf_err), 404)
     except Exception as e:
@@ -108,10 +119,10 @@ def save_answers():
 
 @bp.get("/cases/<string:case_id>/dashboard")
 @require_auth
-def get_dashboard():
+def get_dashboard(path: CasePath):
     """대시보드 화면 9개 항목 조회 (v2.1 신규)."""
     try:
-        case_id = request.view_args.get("case_id")
+        case_id = path.case_id
         data = case_service.get_dashboard(g.user_id, case_id)
         return response.ok(data)
     except ValueError as val_err:
@@ -126,10 +137,10 @@ def get_dashboard():
 
 @bp.patch("/cases/<string:case_id>/dashboard")
 @require_auth
-def patch_dashboard():
+def patch_dashboard(path: CasePath):
     """대시보드 화면 9개 항목 직접 수정 및 저장 (v2.1 신규)."""
     try:
-        case_id = request.view_args.get("case_id")
+        case_id = path.case_id
         body = request.json or {}
         data = case_service.patch_dashboard(g.user_id, case_id, body)
         return response.ok(data)

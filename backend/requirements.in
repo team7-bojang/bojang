@@ -40,6 +40,9 @@ pdfplumber
 pypdf
 lxml
 
+# ── 이미지 전처리 (세부산정내역서 사진 업로드 → Vision LLM 호출 전 리사이즈) ──
+Pillow
+
 # ── 데이터 처리 ──
 pandas
 numpy

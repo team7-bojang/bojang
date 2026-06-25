@@ -71,6 +71,69 @@ def test_create_case_persists_only_bojang_cases_columns(monkeypatch):
     assert case["policy_elapsed_days"] is None
 
 
+def test_save_answers_endpoint_accepts_disease_selection_json(client, monkeypatch):
+    policy_id = _create_policy()
+    monkeypatch.setattr(
+        case_service,
+        "_classify_intent_llm",
+        lambda situation: ("BEFORE_CLAIM", "PAYMENT", "테스트"),
+    )
+    case_id = case_service.create_case(
+        OWNER_ID,
+        "CASE1",
+        [policy_id],
+        "허리 아파서 병원 다녀왔어요",
+    )["case_id"]
+
+    res = client.post(
+        f"/api/v1/cases/{case_id}/answers",
+        json={
+            "answers": [
+                {"question_id": "disease_kcd", "value": "M51"},
+                {"question_id": "disease_name", "value": "허리디스크"},
+            ]
+        },
+    )
+
+    assert res.status_code == 200
+    case = get_client().table("cases").select("*").eq("id", case_id).execute().data[0]
+    assert case["disease_kcd"] == "M51"
+    assert case["disease_name"] == "허리디스크"
+
+
+def test_save_answers_endpoint_returns_403_for_other_users_case(client, monkeypatch):
+    policy_id = _create_policy()
+    monkeypatch.setattr(
+        case_service,
+        "_classify_intent_llm",
+        lambda situation: ("BEFORE_CLAIM", "PAYMENT", "테스트"),
+    )
+    case_id = case_service.create_case(
+        OWNER_ID,
+        "CASE1",
+        [policy_id],
+        "허리 아파서 병원 다녀왔어요",
+    )["case_id"]
+    monkeypatch.setattr("app.auth.middleware._verify_supabase_jwt", lambda token: "other-user-id")
+
+    res = client.post(
+        f"/api/v1/cases/{case_id}/answers",
+        headers={"Authorization": "Bearer real-token"},
+        json={"answers": [{"question_id": "disease_kcd", "value": "M51"}]},
+    )
+
+    assert res.status_code == 403
+    assert res.get_json()["error"]["code"] == "forbidden"
+
+
+def test_openapi_documents_answers_request_body(client):
+    res = client.get("/openapi/openapi.json")
+
+    assert res.status_code == 200
+    operation = res.get_json()["paths"]["/api/v1/cases/{case_id}/answers"]["post"]
+    assert "requestBody" in operation
+
+
 def test_search_analysis_uses_selected_policies_and_new_admission_columns(monkeypatch):
     selected_policy_id = _create_policy(name="선택 보험")
     _create_policy(name="선택하지 않은 보험")

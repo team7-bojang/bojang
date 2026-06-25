@@ -14,6 +14,7 @@
     "is_inpatient": true,
     "is_outpatient": false,
     "surgery": true,
+    "admission_days_current": 7,
     "admission_days_diagnosed": 7,
     "treatment_items": [
       "XRAY",

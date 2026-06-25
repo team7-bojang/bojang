@@ -101,14 +101,41 @@ def main() -> None:
         # 3. 보장 탐색 실행
         analysis_res = analysis_service.search_analysis(user_id, temp_case_id)
         results = analysis_res.get("results", [])
-        
+
+        # CASE2처럼 scenario_days별로 다른 정답이 기대되는 케이스는
+        # 단일 search_analysis 결과로 비교할 수 없으므로 compare_scenarios로 일수별 결과를 따로 확보한다.
+        scenario_lookup = {}
+        scenario_days_values = {e["scenario_days"] for e in expected if e.get("scenario_days") is not None}
+        if scenario_days_values:
+            current_days = input_data.get("admission_days_current")
+            target_days = input_data.get("admission_days_diagnosed")
+            if current_days is not None and target_days is not None and current_days != target_days:
+                compare_res = analysis_service.compare_scenarios(
+                    user_id, temp_case_id, current_days=current_days, target_days=target_days
+                )
+                for comp in compare_res.get("comparison", []):
+                    for sc in comp.get("scenarios", []):
+                        key = (comp["policy_name"], comp["rider_name"], sc.get("days"))
+                        scenario_lookup[key] = sc
+
         # 4. 정탐(Expected) 검증
         case_passed = True
         print("  - 정탐(Expected) 검증:")
         for exp in expected:
-            # 예상되는 상품과 특약이 매칭되었는지 확인
-            match = next((r for r in results if r["policy"] == exp["policy"] and r["rider"] == exp["rider"]), None)
+            # scenario_days가 있는 기대값은 compare_scenarios 결과에서, 없으면 search_analysis 결과에서 찾는다
+            scenario_days = exp.get("scenario_days")
+            if scenario_days is not None and scenario_lookup:
+                match = scenario_lookup.get((exp["policy"], exp["rider"], scenario_days))
+            else:
+                match = next((r for r in results if r["policy"] == exp["policy"] and r["rider"] == exp["rider"]), None)
+
             if not match:
+                # analysis_service는 not_applicable이고 추가 지급액이 없는 결과는
+                # 화면에 보여줄 필요가 없어 결과 목록에서 의도적으로 제외한다(analysis_service.py 참고).
+                # 골든셋도 이 경우 "검색 안 됨"을 not_applicable 확정으로 보고 통과 처리한다.
+                if exp.get("status") == "not_applicable" and not exp.get("estimated_amount"):
+                    print(f"    ✓ 통과(설계상 비노출): [{exp['policy']}] {exp['rider']} (not_applicable)")
+                    continue
                 print(f"    ❌ 미검색: [{exp['policy']}] {exp['rider']}")
                 case_passed = False
                 passed_all = False
@@ -118,7 +145,7 @@ def main() -> None:
                 gap_match = True
                 if "gap_days" in exp:
                     gap_match = match.get("gap_days") == exp["gap_days"]
-                    
+
                 if status_match and gap_match:
                     print(f"    ✓ 통과: [{exp['policy']}] {exp['rider']} ({match['status']})")
                 else:
