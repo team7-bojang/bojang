@@ -17,9 +17,12 @@ def resolve_subscribed(case: Case, rider: Rider) -> int | None:
     """case.coverage_amounts 에서 이 특약의 '가입금액'을 찾는다.
 
     약관(riders)에는 가입금액이 없으므로 개인별 입력(coverage_amounts)에서 받는다.
+    단일 숫자로 전달된 경우 모든 특약에 동일하게 적용한다 (Case 2 비교 시나리오용).
     못 찾으면 rider.unit_amount 로 폴백한다.
     """
     ca = case.get("coverage_amounts")
+    if isinstance(ca, (int, float)):
+        return int(ca)
     rid = rider.get("id")
     rname = rider.get("name")
 

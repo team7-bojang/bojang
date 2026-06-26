@@ -51,7 +51,15 @@ def compare_scenarios(body: CompareRequest):
     """조건별 비교 분석 (v2.1)."""
     try:
         scenarios_list = [sc.model_dump() for sc in body.scenarios]
-        data = analysis_service.compare_scenarios(g.user_id, body.case_id, scenarios_list)
+        data = analysis_service.compare_scenarios(
+            g.user_id,
+            body.case_id,
+            scenarios_list,
+            coverage_amounts=body.coverage_amounts,
+            covered_amounts=body.covered_amounts,
+            patient_paid_amount=body.patient_paid_amount,
+            non_covered_amount=body.non_covered_amount,
+        )
         return response.ok(data)
     except Exception as e:
         return response.fail("server_error", str(e), 500)

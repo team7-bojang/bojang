@@ -554,11 +554,27 @@ def create_case(user_id: str, service_type: str, policy_ids: list[str], initial_
     # 5. 기본 치료 형태 매핑
     surgery = None
     if "수술" in initial_situation or "시술" in initial_situation:
-        if any(neg in initial_situation for neg in [
-            "수술 안", "수술은 안", "수술은 아직", "수술 아직", "아직 수술",
-            "수술하지", "수술 받지", "수술을 받지", "수술 없", "수술 안 해", "수술 못",
-            "시술 안", "시술은 안", "시술하지", "시술 받지", "시술 없",
-        ]):
+        if any(
+            neg in initial_situation
+            for neg in [
+                "수술 안",
+                "수술은 안",
+                "수술은 아직",
+                "수술 아직",
+                "아직 수술",
+                "수술하지",
+                "수술 받지",
+                "수술을 받지",
+                "수술 없",
+                "수술 안 해",
+                "수술 못",
+                "시술 안",
+                "시술은 안",
+                "시술하지",
+                "시술 받지",
+                "시술 없",
+            ]
+        ):
             surgery = False
         else:
             surgery = True
@@ -857,10 +873,7 @@ def save_medical_detail_statement(user_id: str, case_id: str, file_bytes: bytes)
         "admission_days_diagnosed": admission_days_diagnosed,
         "medical_statement_uploaded_at": datetime.now(UTC).isoformat(),
         "medical_statement_items": item_details,
-        "total_amount": total_amount,
         "patient_paid_amount": patient_paid_amount,
-        "nhis_paid_amount": nhis_paid_amount,
-        "full_self_pay_amount": full_self_pay_amount,
         "non_covered_amount": non_covered_amount,
     }
     if parsed.get("disease_kcd"):
