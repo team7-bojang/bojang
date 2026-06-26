@@ -10,15 +10,22 @@ from flask_openapi3.models.tag import Tag
 
 from app.auth import require_auth
 from app.core import response
-from app.schemas.analysis import CompareRequest, SearchRequest
+from app.schemas.analysis import CompareRequest, CompareResponse, SearchRequest, SearchResponse
+from app.schemas.common import ERRORS_AUTH, Envelope
 from app.services import analysis_service
 
+# 인증/서버오류는 블루프린트 공통. 라우트는 성공 응답만 명시.
 bp = APIBlueprint(
-    "analysis", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="analysis")], abp_security=[{"jwt": []}]
+    "analysis",
+    __name__,
+    url_prefix="/api/v1",
+    abp_tags=[Tag(name="analysis")],
+    abp_security=[{"jwt": []}],
+    abp_responses=ERRORS_AUTH,
 )
 
 
-@bp.post("/analysis/search")
+@bp.post("/analysis/search", responses={200: Envelope[SearchResponse]})
 @require_auth
 def search_analysis(body: SearchRequest):
     """상황 기준 보장 교차 검색 (RAG + 룰 엔진 연동) (SCR-04)."""
@@ -26,7 +33,7 @@ def search_analysis(body: SearchRequest):
     return response.ok(data)
 
 
-@bp.post("/analysis/judge")
+@bp.post("/analysis/judge", responses={200: Envelope[SearchResponse]})
 @require_auth
 def judge_analysis(body: SearchRequest):
     """상황 기준 보장 판정 (RAG/LLM/스냅샷을 생략한 룰 엔진 고속 판정) (SCR-04).
@@ -38,7 +45,7 @@ def judge_analysis(body: SearchRequest):
     return response.ok(data)
 
 
-@bp.post("/analysis/compare")
+@bp.post("/analysis/compare", responses={200: Envelope[CompareResponse]})
 @require_auth
 def compare_scenarios(body: CompareRequest):
     """조건별 비교 분석 (v2.1)."""
