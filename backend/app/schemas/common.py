@@ -44,3 +44,17 @@ class ErrorResponse(BaseModel):
             }
         }
     }
+
+
+# 블루프린트 abp_responses 에 펼쳐 쓰는 공통 에러 응답 묶음 (라우트마다 반복 선언하지 않기 위함).
+# flask-openapi3 의 app 레벨 responses 는 블루프린트 라우트로 전파되지 않으므로 블루프린트 레벨에서 선언한다.
+# 422(요청 검증 실패) 는 flask-openapi3 가 자동으로 추가한다.
+ERRORS_500 = {500: ErrorResponse}  # 서버 오류 — 사실상 모든 라우트
+ERRORS_AUTH = {401: ErrorResponse, 500: ErrorResponse}  # 인증 필요 라우트
+ERRORS_OWNERSHIP = {  # 본인 데이터 접근(검증·인증·소유권·미존재) 라우트
+    400: ErrorResponse,
+    401: ErrorResponse,
+    403: ErrorResponse,
+    404: ErrorResponse,
+    500: ErrorResponse,
+}

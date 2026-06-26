@@ -8,17 +8,20 @@ from pydantic import BaseModel, Field
 from app.auth import require_auth
 from app.core import response
 from app.core.errors import ForbiddenError, NotFoundError
-from app.schemas.common import Envelope, ErrorResponse
+from app.schemas.common import ERRORS_OWNERSHIP, Envelope, ErrorResponse
 from app.schemas.policy import PolicyPreset, PolicyWithRiders
 from app.schemas.rider import Rider
 from app.services import policy_service, user_policy_service
 
+# 본인 데이터 접근 도메인 — 검증/인증/소유권/미존재/서버오류는 블루프린트 공통.
+# 라우트는 성공 응답(과 고유 에러)만 명시한다.
 bp = APIBlueprint(
     "policies",
     __name__,
     url_prefix="/api/v1",
     abp_tags=[Tag(name="policies")],
     abp_security=[{"jwt": []}],
+    abp_responses=ERRORS_OWNERSHIP,
 )
 
 
@@ -145,10 +148,7 @@ class ParseRequest(BaseModel):
     surgery: bool | None = Field(default=None, description="수술 여부")
 
 
-@bp.get(
-    "/policies/presets",
-    responses={200: Envelope[PresetsResponse], 401: ErrorResponse, 500: ErrorResponse},
-)
+@bp.get("/policies/presets", responses={200: Envelope[PresetsResponse]})
 @require_auth
 def get_presets():
     """선탑재 상품 목록 조회."""
@@ -159,16 +159,7 @@ def get_presets():
         return response.fail("server_error", str(e), 500)
 
 
-@bp.post(
-    "/policies/select",
-    responses={
-        201: Envelope[SelectPresetsResponse],
-        400: ErrorResponse,
-        401: ErrorResponse,
-        404: ErrorResponse,
-        500: ErrorResponse,
-    },
-)
+@bp.post("/policies/select", responses={201: Envelope[SelectPresetsResponse]})
 @require_auth
 def select_presets(body: SelectPresetRequest):
     """선탑재 상품 등록."""
@@ -185,15 +176,7 @@ def select_presets(body: SelectPresetRequest):
         return response.fail("server_error", str(e), 500)
 
 
-@bp.post(
-    "/policies/upload",
-    responses={
-        201: Envelope[UploadPolicyResponse],
-        400: ErrorResponse,
-        401: ErrorResponse,
-        500: ErrorResponse,
-    },
-)
+@bp.post("/policies/upload", responses={201: Envelope[UploadPolicyResponse]})
 @require_auth
 def upload_policy(form: UploadForm):
     """사용자 약관 PDF 업로드 — 텍스트 추출 후 policy_pages 저장."""
@@ -226,14 +209,8 @@ def upload_policy(form: UploadForm):
 
 @bp.post(
     "/policies/<string:id>/parse",
-    responses={
-        200: Envelope[ParseRidersResponse],
-        401: ErrorResponse,
-        403: ErrorResponse,
-        404: ErrorResponse,
-        422: ErrorResponse,
-        500: ErrorResponse,
-    },
+    # 422(파싱 실패) 는 이 라우트 고유. 나머지(400/401/403/404)는 블루프린트 공통.
+    responses={200: Envelope[ParseRidersResponse], 422: ErrorResponse},
 )
 @require_auth
 def parse_policy_on_demand(path: PolicyPath, body: ParseRequest):
@@ -261,10 +238,7 @@ def parse_policy_on_demand(path: PolicyPath, body: ParseRequest):
         return response.fail("server_error", str(e), 500)
 
 
-@bp.get(
-    "/policies/my",
-    responses={200: Envelope[list[PolicyWithRiders]], 401: ErrorResponse, 500: ErrorResponse},
-)
+@bp.get("/policies/my", responses={200: Envelope[list[PolicyWithRiders]]})
 @require_auth
 def get_my_policies():
     """내 보험·특약 목록 조회."""
@@ -275,16 +249,7 @@ def get_my_policies():
         return response.fail("server_error", str(e), 500)
 
 
-@bp.get(
-    "/policies/<string:id>/source",
-    responses={
-        200: Envelope[PolicySourceResponse],
-        401: ErrorResponse,
-        403: ErrorResponse,
-        404: ErrorResponse,
-        500: ErrorResponse,
-    },
-)
+@bp.get("/policies/<string:id>/source", responses={200: Envelope[PolicySourceResponse]})
 @require_auth
 def get_policy_source(path: PolicyPath, query: SourceQuery):
     """약관 원문 조회.

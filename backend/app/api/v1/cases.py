@@ -24,23 +24,22 @@ from app.schemas.case import (
     PaymentResponse,
     PaymentTextRequest,
 )
-from app.schemas.common import Envelope, ErrorResponse
+from app.schemas.common import ERRORS_OWNERSHIP, Envelope
 from app.services import case_service
 
-bp = APIBlueprint("cases", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="cases")], abp_security=[{"jwt": []}])
-
-
-@bp.post(
-    "/cases",
-    responses={
-        201: Envelope[CaseCreateResponse],
-        400: ErrorResponse,
-        401: ErrorResponse,
-        403: ErrorResponse,
-        404: ErrorResponse,
-        500: ErrorResponse,
-    },
+# 본인 데이터 접근 도메인 — 검증/인증/소유권/미존재/서버오류는 블루프린트 공통.
+# 각 라우트는 성공 응답만 명시한다.
+bp = APIBlueprint(
+    "cases",
+    __name__,
+    url_prefix="/api/v1",
+    abp_tags=[Tag(name="cases")],
+    abp_security=[{"jwt": []}],
+    abp_responses=ERRORS_OWNERSHIP,
 )
+
+
+@bp.post("/cases", responses={201: Envelope[CaseCreateResponse]})
 @require_auth
 def create_case(body: CaseCreateRequest):
     """최초 상황 입력 및 분석 세션 시작 (v2.1)."""
@@ -62,17 +61,7 @@ def create_case(body: CaseCreateRequest):
         return response.fail("server_error", str(e), 500)
 
 
-@bp.post(
-    "/cases/<string:case_id>/payment",
-    responses={
-        200: Envelope[PaymentResponse],
-        400: ErrorResponse,
-        401: ErrorResponse,
-        403: ErrorResponse,
-        404: ErrorResponse,
-        500: ErrorResponse,
-    },
-)
+@bp.post("/cases/<string:case_id>/payment", responses={200: Envelope[PaymentResponse]})
 @require_auth
 def save_payment(path: CasePath, body: PaymentTextRequest):
     """결제 문자/카드내역 입력 및 추출 (v2.1)."""
@@ -90,17 +79,7 @@ def save_payment(path: CasePath, body: PaymentTextRequest):
         return response.fail("server_error", str(e), 500)
 
 
-@bp.post(
-    "/cases/<string:case_id>/medical-detail-statement",
-    responses={
-        200: Envelope[MedicalDetailResponse],
-        400: ErrorResponse,
-        401: ErrorResponse,
-        403: ErrorResponse,
-        404: ErrorResponse,
-        500: ErrorResponse,
-    },
-)
+@bp.post("/cases/<string:case_id>/medical-detail-statement", responses={200: Envelope[MedicalDetailResponse]})
 @require_auth
 def save_medical_detail_statement(path: CasePath, form: MedicalStatementUploadForm):
     """진료비 세부산정내역서 업로드 및 추출 — PDF 또는 사진(JPEG/PNG) (v2.1)."""
@@ -126,17 +105,7 @@ def save_medical_detail_statement(path: CasePath, form: MedicalStatementUploadFo
         return response.fail("server_error", str(e), 500)
 
 
-@bp.patch(
-    "/cases/<string:case_id>/extracted-info",
-    responses={
-        200: Envelope[ExtractedInfoPatchResponse],
-        400: ErrorResponse,
-        401: ErrorResponse,
-        403: ErrorResponse,
-        404: ErrorResponse,
-        500: ErrorResponse,
-    },
-)
+@bp.patch("/cases/<string:case_id>/extracted-info", responses={200: Envelope[ExtractedInfoPatchResponse]})
 @require_auth
 def patch_extracted_info(path: CasePath, body: ExtractedInfoPatchRequest):
     """추출된 결제/진료 정보 직접 확인 및 수정 (v2.1)."""
@@ -155,17 +124,7 @@ def patch_extracted_info(path: CasePath, body: ExtractedInfoPatchRequest):
         return response.fail("server_error", str(e), 500)
 
 
-@bp.post(
-    "/cases/<string:case_id>/answers",
-    responses={
-        200: Envelope[AnswersResponse],
-        400: ErrorResponse,
-        401: ErrorResponse,
-        403: ErrorResponse,
-        404: ErrorResponse,
-        500: ErrorResponse,
-    },
-)
+@bp.post("/cases/<string:case_id>/answers", responses={200: Envelope[AnswersResponse]})
 @require_auth
 def save_answers(path: CasePath, body: AnswersRequest):
     """부족 정보에 대한 추가 답변 저장 (v2.1)."""
@@ -184,16 +143,7 @@ def save_answers(path: CasePath, body: AnswersRequest):
         return response.fail("server_error", str(e), 500)
 
 
-@bp.get(
-    "/cases/<string:case_id>/dashboard",
-    responses={
-        200: Envelope[DashboardResponse],
-        401: ErrorResponse,
-        403: ErrorResponse,
-        404: ErrorResponse,
-        500: ErrorResponse,
-    },
-)
+@bp.get("/cases/<string:case_id>/dashboard", responses={200: Envelope[DashboardResponse]})
 @require_auth
 def get_dashboard(path: CasePath):
     """대시보드 화면 9개 항목 조회 (v2.1 신규)."""
@@ -211,17 +161,7 @@ def get_dashboard(path: CasePath):
         return response.fail("server_error", str(e), 500)
 
 
-@bp.patch(
-    "/cases/<string:case_id>/dashboard",
-    responses={
-        200: Envelope[DashboardPatchResponse],
-        400: ErrorResponse,
-        401: ErrorResponse,
-        403: ErrorResponse,
-        404: ErrorResponse,
-        500: ErrorResponse,
-    },
-)
+@bp.patch("/cases/<string:case_id>/dashboard", responses={200: Envelope[DashboardPatchResponse]})
 @require_auth
 def patch_dashboard(path: CasePath, body: DashboardPatchRequest):
     """대시보드 화면 9개 항목 직접 수정 및 저장 (v2.1 신규)."""
@@ -242,10 +182,7 @@ def patch_dashboard(path: CasePath, body: DashboardPatchRequest):
         return response.fail("server_error", str(e), 500)
 
 
-@bp.get(
-    "/cases/my",
-    responses={200: Envelope[list[CaseListItem]], 401: ErrorResponse, 500: ErrorResponse},
-)
+@bp.get("/cases/my", responses={200: Envelope[list[CaseListItem]]})
 @require_auth
 def get_my_cases():
     """내 분석 이력 목록 조회 (F-05)."""

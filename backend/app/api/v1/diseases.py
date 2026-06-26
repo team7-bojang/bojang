@@ -3,10 +3,11 @@ from flask_openapi3.models.tag import Tag
 from pydantic import BaseModel, Field
 
 from app.core import response
-from app.schemas.common import Envelope, ErrorResponse
+from app.schemas.common import ERRORS_500, Envelope
 from app.services import disease_service
 
-bp = APIBlueprint("diseases", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="diseases")])
+# 비인증 라우트 — 서버오류만 공통. 라우트는 성공 응답만 명시.
+bp = APIBlueprint("diseases", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="diseases")], abp_responses=ERRORS_500)
 
 
 class DiseaseSearchQuery(BaseModel):
@@ -41,10 +42,7 @@ class DiseaseSearchResult(BaseModel):
     }
 
 
-@bp.get(
-    "/diseases/search",
-    responses={200: Envelope[DiseaseSearchResult], 500: ErrorResponse},
-)
+@bp.get("/diseases/search", responses={200: Envelope[DiseaseSearchResult]})
 def search_diseases(query: DiseaseSearchQuery):
     """질병명 및 KCD 코드 검색 (SCR-03)."""
     try:
