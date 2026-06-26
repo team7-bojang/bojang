@@ -1,7 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Check } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Chip as ConfirmChip } from '@/features/confirm/components/controls';
 import { getActiveTreatmentTypes } from '@/features/confirm/treatmentTypes';
 import type { TreatmentType } from '@/types/case';
 
@@ -166,6 +168,10 @@ function getTreatmentsByGroup(group: string, treatmentTypes: TreatmentType[]) {
   });
 }
 
+function isNoTreatmentOption(option: NormalizedOption) {
+  return option.value === 'NONE';
+}
+
 function TreatmentItemPrompt({ question, onAnswer, disabled }: InnerProps) {
   const options = normalizeOptions(question.options);
   const treatmentTypes = getActiveTreatmentTypes(question.treatment_types ?? []);
@@ -190,35 +196,55 @@ function TreatmentItemPrompt({ question, onAnswer, disabled }: InnerProps) {
       <div className="flex flex-wrap gap-2">
         {options.map(opt => {
           const group = getOptionTreatmentGroup(opt, treatmentTypes);
+          const isNone = isNoTreatmentOption(opt);
           return (
-            <Chip
+            <ConfirmChip
               key={String(opt.value)}
-              label={opt.label}
-              selected={activeGroup === group}
-              disabled={disabled}
-              onClick={() => setSelectedGroup(group)}
-            />
+              active={!isNone && activeGroup === group}
+              variant={isNone ? 'toggle' : 'group'}
+              className={isNone ? 'border-dashed text-muted' : 'px-4 py-2 text-sm font-semibold'}
+              onClick={
+                disabled
+                  ? undefined
+                  : () => {
+                      if (isNone) {
+                        onAnswer(question.question_id, [], opt.label);
+                        return;
+                      }
+                      setSelectedGroup(group);
+                    }
+              }
+            >
+              {opt.label}
+            </ConfirmChip>
           );
         })}
       </div>
 
       {activeGroup && (
-        <div className="flex flex-wrap gap-2">
-          {groupTreatments.map(treatment => {
-            const displayName = treatment.display_name || treatment.name || treatment.code;
-            const selected = selectedTreatments.some(
-              item => item.code === treatment.code || item.displayName === displayName
-            );
-            return (
-              <Chip
-                key={treatment.code}
-                label={displayName}
-                selected={selected}
-                disabled={disabled}
-                onClick={() => toggleTreatment(treatment.code, displayName)}
-              />
-            );
-          })}
+        <div className="flex flex-col gap-2 border-t border-line/80 pt-3">
+          <span className="text-xs font-bold text-muted">세부 치료 항목</span>
+          <div className="flex flex-wrap gap-2">
+            {groupTreatments.map(treatment => {
+              const displayName = treatment.display_name || treatment.name || treatment.code;
+              const selected = selectedTreatments.some(
+                item => item.code === treatment.code || item.displayName === displayName
+              );
+              return (
+                <ConfirmChip
+                  key={treatment.code}
+                  active={selected}
+                  className="rounded-xl bg-white px-3.5 py-2 font-medium"
+                  onClick={
+                    disabled ? undefined : () => toggleTreatment(treatment.code, displayName)
+                  }
+                >
+                  {selected && <Check aria-hidden="true" className="size-3.5" />}
+                  <span>{displayName}</span>
+                </ConfirmChip>
+              );
+            })}
+          </div>
         </div>
       )}
 

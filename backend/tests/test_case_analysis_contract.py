@@ -201,3 +201,44 @@ def test_search_analysis_uses_selected_policies_and_new_admission_columns(monkey
     assert "7일 입원" in captured["query"]
     assert captured["judge_case"]["diag_days"] == 7
     assert captured["judge_case"]["current_days"] == 7
+
+
+def test_judge_analysis_endpoint(client, monkeypatch):
+    selected_policy_id = _create_policy(name="판정용 선택 보험")
+    monkeypatch.setattr(
+        case_service,
+        "_classify_intent_llm",
+        lambda situation: ("BEFORE_CLAIM", "PAYMENT", "테스트"),
+    )
+    case_id = case_service.create_case(
+        OWNER_ID,
+        "CASE1",
+        [selected_policy_id],
+        "허리디스크로 7일 입원했습니다.",
+    )["case_id"]
+
+    captured = {}
+
+    def fake_judge(case, rider):
+        captured["judge_case"] = case
+        return {"status": "eligible", "gap_days": None, "calc": None, "expected_amount": 70000}
+
+    monkeypatch.setattr(analysis_service, "judge", fake_judge)
+
+    # API 호출 시 인증 토큰 모의
+    monkeypatch.setattr("app.auth.middleware._verify_supabase_jwt", lambda token: OWNER_ID)
+
+    res = client.post(
+        "/api/v1/analysis/judge",
+        headers={"Authorization": "Bearer fake-token"},
+        json={"case_id": case_id},
+    )
+
+    assert res.status_code == 200
+    res_data = res.get_json()["data"]
+    assert "summary" in res_data
+    assert "results" in res_data
+    assert res_data["summary"]["eligible_count"] >= 0
+    # RAG/LLM(AI 설명문) 생성을 건너뛰고 기본 포맷이 적용되었는지 확인
+    for r in res_data["results"]:
+        assert "보장 요건을 충족하여" in r["explanation"] or "조건을 보완할 시" in r["explanation"] or "지급 상태가" in r["explanation"]

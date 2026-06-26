@@ -24,13 +24,3 @@ export async function fetchCaseDashboard(caseId: string) {
 export async function saveCaseDashboard(caseId: string, dashboard: CaseDashboardPatchRequest) {
   return casesApi.patchCaseDashboard(caseId, dashboard);
 }
-
-export interface CoverageAmountInput {
-  rider_id: string;
-  amount: number;
-  amount_source?: string;
-}
-
-export async function saveCoverageAmounts(caseId: string, coverageAmounts: CoverageAmountInput[]) {
-  return casesApi.patchExtractedInfo(caseId, { coverage_amounts: coverageAmounts });
-}

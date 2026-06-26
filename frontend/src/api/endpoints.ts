@@ -19,6 +19,7 @@ export const endpoints = {
   },
   analysis: {
     search: `${API_PREFIX}/analysis/search`,
+    judge: `${API_PREFIX}/analysis/judge`,
     compare: `${API_PREFIX}/analysis/compare`,
   },
 } as const;

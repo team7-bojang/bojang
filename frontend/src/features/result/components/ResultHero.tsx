@@ -2,45 +2,50 @@ import type { ServiceType } from '@/types/case';
 
 import { AmountTiles } from './AmountTiles';
 import { FallingSadEmojis } from './FallingSadEmojis';
-import { FireworkBurst } from './FireworkBurst';
+import { ResultConfetti } from './ResultConfetti';
 
 interface ResultHeroProps {
-  amount: number;
+  amount: number | null;
+  payableCount: number;
   hasPayableBenefits: boolean;
   serviceType: ServiceType;
 }
 
-export function ResultHero({ amount, hasPayableBenefits, serviceType }: ResultHeroProps) {
+export function ResultHero({
+  amount,
+  payableCount,
+  hasPayableBenefits,
+  serviceType,
+}: ResultHeroProps) {
   const isCompare = serviceType === 'CASE2';
+  const summaryText = isCompare
+    ? '입원 기간에 따른 추가 보장을 비교했습니다'
+    : hasPayableBenefits
+      ? `청구 가능한 보장을 ${payableCount}개 찾았습니다`
+      : '현재 조건에서 바로 청구 가능한 보장은 확인되지 않았습니다';
 
   return (
-    <section className="animate-result-enter relative overflow-hidden py-8 text-center">
-      {hasPayableBenefits && (
-        <>
-          <FireworkBurst className="left-2 top-0 sm:left-8 sm:top-2" />
-          <FireworkBurst className="right-0 top-8 sm:right-8 sm:top-10" delay={0.72} />
-          <FireworkBurst className="left-20 top-24 hidden sm:block" delay={1.48} />
-          <FireworkBurst className="right-24 top-28 hidden sm:block" delay={2.22} />
-        </>
-      )}
+    <section className="animate-result-enter relative overflow-hidden py-6 text-center sm:py-8">
       {!hasPayableBenefits && <FallingSadEmojis />}
 
       <div className="relative z-10">
-        <div className="font-tossface mx-auto flex size-12 items-center justify-center rounded-full bg-primary-tint text-2xl shadow-sm sm:size-14 sm:text-3xl">
-          {hasPayableBenefits ? '🎉' : '🥲'}
+        <div className="font-tossface mx-auto flex size-11 items-center justify-center rounded-full bg-primary-tint text-2xl shadow-sm sm:size-12">
+          {hasPayableBenefits ? '🎉' : '😢'}
         </div>
-        <h1 className="mt-5 text-4xl font-black tracking-normal text-ink">분석이 완료됐어요</h1>
-        <p className="mt-3 text-lg font-medium text-muted">
-          {isCompare
-            ? '입원 기간에 따라 달라지는 추가 보장을 비교했어요.'
-            : hasPayableBenefits
-              ? '현재 조건에서 청구 가능한 보장을 찾았어요.'
-              : '현재 조건에서 바로 청구 가능한 보장은 확인되지 않았어요.'}
-        </p>
+        <h1 className="relative mx-auto mt-4 inline-block text-3xl font-extrabold tracking-normal text-ink sm:text-4xl">
+          {hasPayableBenefits && (
+            <>
+              <ResultConfetti side="left" />
+              <ResultConfetti side="right" />
+            </>
+          )}
+          분석이 완료되었습니다!
+        </h1>
+        <p className="mt-2 text-base font-bold text-muted sm:text-lg">{summaryText}</p>
 
-        <div className="mt-10">
-          <p className="mb-4 text-lg font-bold text-muted">
-            {isCompare ? '추가 예상 보험금' : '예상 보험금'}
+        <div className="mt-7">
+          <p className="mb-3 text-base font-bold text-ink">
+            {isCompare ? '추가 예상 보험금' : '약관기준 산정금액'}
           </p>
           <AmountTiles amount={amount} />
         </div>

@@ -24,6 +24,7 @@ ALLOWED_TREATMENT_ITEMS = {
     "EMERGENCY",
     "OTHER",
     "ETC",
+    "NONE",
 }
 
 # treatment_types.code → 키워드 매핑 (결제 텍스트·세부산정내역서 항목명 매칭 공용)
@@ -1346,6 +1347,7 @@ def get_next_question(case: dict) -> dict | None:
                 {"value": "MANUAL_THERAPY", "label": "도수·충격파"},
                 {"value": "PHYSICAL_THERAPY", "label": "물리치료"},
                 {"value": "OTHER", "label": "기타 치료"},
+                {"value": "NONE", "label": "해당없음"},
             ],
         }
 
@@ -1362,9 +1364,15 @@ def get_next_question(case: dict) -> dict | None:
     if case.get("policy_elapsed_days") is None:
         return {
             "question_id": "policy_elapsed_days",
-            "question_text": "보험 가입일로부터 얼마나 지났나요?",
-            "input_type": "text_input",
-            "placeholder": "예: 180일",
+            "question_text": "마지막으로 가입 기간만 확인할게요.\n가입한 지 얼마 안 된 경우에는 보장 조건이 달라질 수 있어요.\n선택한 보험의 가입기간에 해당하는 구간을 골라주세요.",
+            "input_type": "radio_button",
+            "options": [
+                {"value": 80, "label": "90일 미만"},
+                {"value": 180, "label": "90일 이상~1년 미만"},
+                {"value": 540, "label": "1년 이상~2년 미만"},
+                {"value": 730, "label": "2년 이상"},
+                {"value": None, "label": "잘 모르겠어요"},
+            ],
         }
 
     return None
