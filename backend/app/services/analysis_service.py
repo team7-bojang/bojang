@@ -751,7 +751,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "missed": missed,
             "gap_days": judgement.get("gap_days"),
             "payable_days": judgement.get("payable_days"),
-            "estimated_amount": judgement.get("expected_amount") or 0,
+            "estimated_amount": judgement.get("expected_amount"),
             "reduction": judgement.get("reduction"),
             "calc": judgement.get("calc"),
             "explanation": explanation,
@@ -902,7 +902,7 @@ def compare_scenarios(
                     else case_data.get("coverage_amounts"),
                     "covered_amounts": covered_amounts
                     if covered_amounts is not None
-                    else case_data.get("coverage_amounts"),
+                    else case_data.get("covered_amounts"),
                     "payment_amount": case_data.get("payment_amount"),
                     "patient_paid_amount": patient_paid_amount
                     if patient_paid_amount is not None
@@ -959,7 +959,7 @@ def compare_scenarios(
                         "status": status.value if hasattr(status, "value") else str(status),
                         "calc": calc_text,
                         "gap_days": gap_days,
-                        "estimated_amount": judgement.get("expected_amount") or 0,
+                        "estimated_amount": judgement.get("expected_amount"),
                     }
                 )
 
@@ -1089,7 +1089,7 @@ def compare_scenarios(
                     "amount_note": amount_note,
                     "gap_days": gap_days,
                     "payable_days": judgement.get("payable_days"),
-                    "estimated_amount": judgement.get("expected_amount") or 0,
+                    "estimated_amount": judgement.get("expected_amount"),
                     "reduction": judgement.get("reduction"),
                 }
             )
@@ -1348,7 +1348,7 @@ def judge_analysis(user_id: str, case_id: str, coverage_amounts: list[dict] | No
             "missed": missed,
             "gap_days": judgement.get("gap_days"),
             "payable_days": judgement.get("payable_days"),
-            "estimated_amount": judgement.get("expected_amount") or 0,
+            "estimated_amount": judgement.get("expected_amount"),
             "reduction": judgement.get("reduction"),
             "calc": judgement.get("calc"),
             "explanation": explanation,
