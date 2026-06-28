@@ -9,6 +9,7 @@ import type {
   AnalysisSearchRequest,
   AnalysisSearchResponse,
   CoverageAmountInput,
+  MedicalCostInput,
 } from './model';
 
 export const analysisApi = {
@@ -22,14 +23,24 @@ export const analysisApi = {
     return unwrapApiResponse(data);
   },
 
-  async judgeCaseAnalysis(caseId: string, coverageAmounts?: CoverageAmountInput[]) {
+  async judgeCaseAnalysis(
+    caseId: string,
+    coverageAmounts?: CoverageAmountInput[],
+    medicalCosts?: MedicalCostInput
+  ) {
     // 룰 엔진 전용 경량 판정 API (RAG/LLM/스냅샷 생략).
-    // 가입금액(coverageAmounts)을 본문에 실어 DB 저장 없이 예상 보험금만 재계산한다.
+    // 가입금액(정액)과 급여 본인부담·비급여 의료비(실손)를 본문에 실어 DB 저장 없이 예상 보험금만 재계산한다.
     const { data } = await apiClient.post<ApiResponse<AnalysisSearchResponse>>(
       endpoints.analysis.judge,
       {
         case_id: caseId,
         ...(coverageAmounts ? { coverage_amounts: coverageAmounts } : {}),
+        ...(medicalCosts?.patient_paid_amount !== undefined
+          ? { patient_paid_amount: medicalCosts.patient_paid_amount }
+          : {}),
+        ...(medicalCosts?.non_covered_amount !== undefined
+          ? { non_covered_amount: medicalCosts.non_covered_amount }
+          : {}),
       } satisfies AnalysisSearchRequest
     );
     return unwrapApiResponse(data);

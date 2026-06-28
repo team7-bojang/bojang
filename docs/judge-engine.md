@@ -5,7 +5,9 @@
 - `judge(case, rider)` 는 **DB·LLM 접근이 없는 순수 함수**. 탐색(F-02)·비교(F-03)는 반드시 이 함수만 호출하고 판정 로직을 중복 구현하지 않는다.
 - 판정 우선순위: `waiting_period → boundary → eligible`.
 - 분기: `rider.claim_rule is None` → 정액 보장(`boundaries.py::judge_fixed`) / `not None` → 실손(`claim_rule.py::judge_reimbursement`).
+- **정액 `가입금액` 소스**(`amounts.py::resolve_subscribed`): 개인별 입력(`case.coverage_amounts`)에서만 받는다. 못 찾으면 `None`(보류) — `rider.unit_amount`(시드 기본값 등 임의값)로 폴백하지 않는다. 가입금액이 입력돼야 정액 예상보험금을 산출한다.
 - **이중차감 금지**: 실손 `claim_rule.formula` 를 그대로 신뢰하고 비율·공제를 추가로 곱·차감하지 않는다.
+- **실손 `covered_amount` 버킷 라우팅**(`amounts.py::resolve_covered`): per-rider `covered_amounts` → `claim_rule.medical_category` 분기(`비급여`/`3대비급여` → `case.non_covered_amount`, `급여` → `case.patient_paid_amount`) 순으로 해석한다. 못 구하면 `None`(보류). `payment_amount`(급여본인부담+전액본인+비급여 합계)는 버킷이 섞여 과대산정되므로 실손 covered 로 쓰지 않는다.
 - `deductible.type` 이 `by_table`/`from_policy` 면 계산을 보류(`calc=None`).
 - 입출력 타입은 `app/judge/types.py`(TypedDict), 상태값은 `app/core/constants.py::JudgeStatus`.
 

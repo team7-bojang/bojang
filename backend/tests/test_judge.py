@@ -67,18 +67,63 @@ def test_waiting_period_not_met_has_priority():
 def test_claim_rule_branch_uses_formula_for_simple_deductible():
     rider = _rider(
         claim_rule={
+            "medical_category": "비급여",
             "deductible": {"type": "max", "value": 30000, "rate": 0.3},
             "formula": "covered_amount - max(30000, covered_amount * 0.3)",
         }
     )
-    result = judge(_case(), rider)
-    assert result["calc"] == "covered_amount - max(30000, covered_amount * 0.3)"
+    result = judge(_case(non_covered_amount=100000), rider)
+    # 100,000 - max(30000, 30000) = 70,000
+    assert result["expected_amount"] == 70000
+    # calc 는 covered_amount 가 아니라 버킷 라벨+값으로 표시된다.
+    assert "covered_amount" not in result["calc"]
+    assert "비급여 의료비 100,000원" in result["calc"]
+    assert result["calc"].endswith("= 70,000원")
+
+
+def test_reimbursement_calc_labels_patient_paid_bucket():
+    rider = _rider(claim_rule={"medical_category": "급여", "formula": "covered_amount * 0.8"})
+    result = judge(_case(patient_paid_amount=50000), rider)
+    assert result["expected_amount"] == 40000
+    assert result["calc"] == "급여 본인부담 50,000원 × 0.8 = 40,000원"
 
 
 def test_claim_rule_defers_calc_for_table_deductible():
     rider = _rider(claim_rule={"deductible": {"type": "by_table"}, "formula": "..."})
     result = judge(_case(), rider)
     assert result["calc"] is None
+
+
+def test_reimbursement_covered_uses_patient_paid_for_benefit_category():
+    # 급여 실손: covered_amount = patient_paid_amount (급여 본인부담). payment_amount(합계)는 쓰지 않는다.
+    rider = _rider(claim_rule={"medical_category": "급여", "formula": "covered_amount * 0.8"})
+    case = _case(patient_paid_amount=700000, non_covered_amount=500000, payment_amount=1200000)
+    result = judge(case, rider)
+    assert result["status"] == "eligible"
+    assert result["expected_amount"] == 560000  # 700000 * 0.8 (1200000 합계가 아님)
+
+
+def test_reimbursement_covered_uses_non_covered_for_non_benefit_category():
+    # 비급여 실손: covered_amount = non_covered_amount (비급여 의료비)
+    rider = _rider(claim_rule={"medical_category": "비급여", "formula": "covered_amount * 0.7"})
+    case = _case(patient_paid_amount=700000, non_covered_amount=500000, payment_amount=1200000)
+    result = judge(case, rider)
+    assert result["expected_amount"] == 350000  # 500000 * 0.7
+
+
+def test_reimbursement_covered_routes_three_major_non_benefit_to_non_covered():
+    # "3대비급여"도 "비급여" 부분문자열 → 비급여 버킷으로 라우팅
+    rider = _rider(claim_rule={"medical_category": "3대비급여", "formula": "covered_amount * 0.7"})
+    result = judge(_case(non_covered_amount=500000), rider)
+    assert result["expected_amount"] == 350000
+
+
+def test_reimbursement_defers_when_no_bucket_amount():
+    # 급여/비급여 입력이 없으면 payment_amount(합계)로 폴백하지 않고 보류(expected=None)
+    rider = _rider(claim_rule={"medical_category": "급여", "formula": "covered_amount * 0.8"})
+    result = judge(_case(payment_amount=1200000), rider)
+    assert result["status"] == "eligible"
+    assert result["expected_amount"] is None
 
 
 def test_resolve_subscribed_type_mismatch_p2_1():
@@ -109,10 +154,9 @@ def test_judge_fixed_subscribed_is_none_with_reduction_p2_2():
 
 def test_judge_fixed_reduction_schema_compatibility():
     # 감액 적용 시 reduction 스키마가 이전 코드 규격(applied, until_elapsed_days)을 만족하는지 확인
-    rider = _rider(
-        unit_amount=100000, reductions=[{"until_elapsed_days": 365, "rate": 0.5, "note": "1년 미만 50% 감액"}]
-    )
-    case_data = _case(policy_elapsed_days=100)
+    # 가입금액은 coverage_amounts(개인 입력)에서만 받는다 (unit_amount 폴백 없음).
+    rider = _rider(id="r1", reductions=[{"until_elapsed_days": 365, "rate": 0.5, "note": "1년 미만 50% 감액"}])
+    case_data = _case(policy_elapsed_days=100, coverage_amounts=[{"rider_id": "r1", "amount": 100000}])
     result = judge(case_data, rider)
 
     assert result["status"] == "eligible"
@@ -122,3 +166,13 @@ def test_judge_fixed_reduction_schema_compatibility():
     assert result["reduction"]["applied"] is True
     assert result["reduction"]["until_elapsed_days"] == 365
     assert result["reduction"]["rate"] == 0.5
+
+
+def test_judge_fixed_no_unit_amount_fallback_defers():
+    # 가입금액 미입력이면 unit_amount(시드 기본값 등 임의값)로 폴백하지 않고 보류한다.
+    rider = _rider(unit_amount=10000)  # unit_amount 가 있어도 가입금액 입력이 없으면 쓰지 않는다
+    result = judge(_case(), rider)
+    assert result["status"] == "eligible"
+    assert result["subscribed_amount"] is None
+    assert result["expected_amount"] is None
+    assert result["calc"] is None

@@ -20,7 +20,7 @@ import { AppHeader } from '@/components/common/AppHeader';
 import { INSURERS } from '@/features/insurance/data/insurers';
 import { fetchMyPolicyOptions } from '@/features/insurance/queries';
 import type { PolicyOption } from '@/features/insurance/model';
-import { compareCaseAnalysis, searchCaseAnalysis } from '@/features/result/queries';
+import { searchCaseAnalysis } from '@/features/result/queries';
 import type { CaseDashboard, ServiceType, TreatmentType } from '@/types/case';
 import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
@@ -242,13 +242,7 @@ export function CaseReviewPage() {
       };
 
       await saveCaseDashboard(caseId, dashboardPayload);
-      if (serviceType === 'CASE2') {
-        const currentDays = form.admission_days_current ?? 0;
-        const targetDays = form.admission_days_diagnosed ?? currentDays;
-        const comparison = await compareCaseAnalysis(caseId, currentDays, targetDays);
-        navigate(`/cases/${caseId}/result`, { state: { comparison, serviceType } });
-        return;
-      }
+      // CASE1·CASE2 모두 judge 결과(analysis, case2_summary 포함)로 분석한다.
       const analysis = await searchCaseAnalysis(caseId);
       navigate(`/cases/${caseId}/result`, { state: { analysis, serviceType } });
     } catch {

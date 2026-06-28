@@ -478,6 +478,70 @@ def _parse_elapsed_days(raw_elapsed: any) -> int | None:
     return None
 
 
+def _is_daily_rider(rider: dict) -> bool:
+    """입원일당처럼 '일수 × 1일당 단가'로 지급되는 특약인지. (진단/수술/일시금=정액 가입금액)"""
+    unit_type = rider.get("unit_type") or ""
+    return (rider.get("trigger_type") == "입원" or "일" in unit_type) and "일시금" not in unit_type
+
+
+def _build_case2_summary(results: list[dict]) -> dict:
+    """CASE2(추가 보장·감액) 막대그래프용 집계.
+
+    judge가 결과별로 낸 estimated(현재)/additional(조건 충족 시 추가)/reduced(감액분)를 합산한다.
+    프론트는 이 값을 그대로 막대·리스트에 매핑하면 된다(집계 로직 중복 없음).
+    """
+    current_total = sum(r.get("estimated_amount") or 0 for r in results)
+    additional_total = sum(r.get("additional_amount") or 0 for r in results)
+    reduced_total = sum(r.get("reduced_amount") or 0 for r in results)
+
+    additional_items = [
+        {
+            "rider": r.get("rider"),
+            "policy": r.get("policy"),
+            "amount": r.get("additional_amount") or 0,
+            "condition": r.get("condition") or r.get("explanation"),
+        }
+        for r in results
+        if (r.get("additional_amount") or 0) > 0
+    ]
+    reduced_items = [
+        {
+            "rider": r.get("rider"),
+            "policy": r.get("policy"),
+            "amount": r.get("reduced_amount") or 0,
+            "reason": (r.get("reduction") or {}).get("condition") if isinstance(r.get("reduction"), dict) else None,
+        }
+        for r in results
+        if (r.get("reduced_amount") or 0) > 0
+    ]
+
+    return {
+        "current_total": current_total,  # 현재 받을 수 있는 합계
+        "additional_total": additional_total,  # 조건 충족 시 추가로 받을 수 있는 합계
+        "potential_total": current_total + additional_total,  # CASE 2-1 조건 충족 시 막대
+        "reduced_total": reduced_total,  # 감액으로 못 받는 합계
+        "before_reduction_total": current_total + reduced_total,  # CASE 2-2 감액 전 막대
+        "additional_items": additional_items,
+        "reduced_items": reduced_items,
+    }
+
+
+def _admission_days_additional(case: dict, rider: dict, judgement: dict, target_days: int | None) -> int:
+    """입원일당 특약을 target일까지 입원 시 더 받을 수 있는 금액(입원일수 추가).
+
+    target일로 재판정한 예상에서 현재 예상을 뺀다.
+    - 현재 eligible: 더 입원한 일수(target−current)분이 잡힌다.
+    - 현재 boundary 미달(예: 4일 이상 조건, 현재 3일): target일에 조건을 충족해 받게 되는 금액 전체가 잡힌다.
+    진단/일시금/실손은 입원일수와 무관하므로 0. 입원 중이 아니면(current_days<1) 0.
+    """
+    current_days = case.get("current_days") or 0
+    if not _is_daily_rider(rider) or current_days < 1 or not target_days or target_days <= current_days:
+        return 0
+    target_case = {**case, "current_days": target_days, "diag_days": target_days}
+    target_est = judge(target_case, rider).get("expected_amount") or 0
+    return max(0, target_est - (judgement.get("expected_amount") or 0))
+
+
 def search_analysis(user_id: str, case_id: str) -> dict:
     """RAG 탐색과 룰 판정을 연동해 청구 가능한 보장을 탐색하고 스냅샷을 저장합니다."""
     db = get_client()
@@ -661,6 +725,9 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "coverage_amounts": case_data.get("coverage_amounts"),
             "covered_amounts": case_data.get("covered_amounts"),
             "payment_amount": case_data.get("payment_amount"),
+            # 실손 covered_amount: 세부내역서 파싱분(급여 본인부담/비급여). 없으면 실손은 보류.
+            "patient_paid_amount": case_data.get("patient_paid_amount"),
+            "non_covered_amount": case_data.get("non_covered_amount"),
         }
 
         judge_rider = {
@@ -757,6 +824,17 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "explanation": explanation,
             "condition": condition_note,
             "evidence": evidence,
+            "coverage_kind": rider.get("coverage_kind"),  # 정액/실손 (프론트 입력폼 분기용)
+            "is_daily": _is_daily_rider(rider),  # True=입원일당(1일당 단가), False=진단/정액(가입금액)
+            # CASE2 비교용 — 현재(estimated) / 조건 충족 시 추가(additional) / 감액분(reduced)
+            # additional = max(judge 조건부 추가, 입원일수(target일) 추가). max 로 boundary 중복가산 방지.
+            "additional_amount": max(
+                judgement.get("additional_amount") or 0,
+                _admission_days_additional(
+                    judge_case, judge_rider, judgement, case_data.get("admission_days_diagnosed")
+                ),
+            ),
+            "reduced_amount": judgement.get("reduced_amount") or 0,
         }
         results.append(result_item)
 
@@ -796,6 +874,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "conditional_count": conditional_count,
         },
         "results": results,
+        "case2_summary": _build_case2_summary(results),
         "notice": notice,
     }
 
@@ -884,6 +963,11 @@ def compare_scenarios(
                 # 입원 특약은 시나리오 일수(days)로 판정, 그 외는 case의 기본 일수로 판정
                 actual_days = days if trigger == "입원" else (case_data.get("admission_days_current") or 1)
 
+                # compare(CASE2)는 가입금액 미입력 시 unit_amount 로 채워 표시(CASE1/search 는 폴백 없음).
+                demo_coverage = case_data.get("coverage_amounts")
+                if not demo_coverage and r.get("unit_amount") is not None:
+                    demo_coverage = [{"rider_id": r.get("id"), "amount": r.get("unit_amount")}]
+
                 temp_case = {
                     "disease_kcd": case_data.get("disease_kcd", ""),
                     "disease_name": case_data.get("disease_name", ""),
@@ -893,9 +977,11 @@ def compare_scenarios(
                     "policy_elapsed_days": _parse_elapsed_days(case_data.get("policy_elapsed_days")),
                     "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
                     "treatment_codes": case_data.get("treatment_items") or [],
-                    "coverage_amounts": case_data.get("coverage_amounts"),
+                    "coverage_amounts": demo_coverage,
                     "covered_amounts": case_data.get("covered_amounts"),
                     "payment_amount": case_data.get("payment_amount"),
+                    "patient_paid_amount": case_data.get("patient_paid_amount"),
+                    "non_covered_amount": case_data.get("non_covered_amount"),
                 }
 
                 judge_rider = {
@@ -927,18 +1013,9 @@ def compare_scenarios(
                     matched_b = judgement.get("matched_boundary") or "조건"
                     calc_text = f"{matched_b} 조건 미달"
                 elif status == JudgeStatus.ELIGIBLE:
-                    calc_text = judgement.get("calc")
-                    if not calc_text:
-                        unit_amount = r.get("unit_amount") or 10000
-                        deduct_days = r.get("deduct_days") or 0
-                        effective_days = max(0, actual_days - deduct_days)
-                        if trigger == "입원":
-                            if deduct_days > 0:
-                                calc_text = f"{deduct_days + 1}일째부터 지급, {effective_days}일 지급 ({unit_amount * effective_days:,}원)"
-                            else:
-                                calc_text = f"{effective_days}일 지급 ({unit_amount * effective_days:,}원)"
-                        else:
-                            calc_text = f"{unit_amount:,}원 지급"
+                    # judge가 산출한 calc(가입금액 기반)만 신뢰한다. 가입금액이 없으면
+                    # 임의값(unit_amount 시드 등)으로 추정하지 않고 보류 안내로 표시한다.
+                    calc_text = judgement.get("calc") or "가입금액 입력 시 산출"
 
                 outcomes.append(
                     {
@@ -996,6 +1073,12 @@ def compare_scenarios(
             )
             actual_days = days if days is not None else current_days
 
+            # compare(CASE2 비교)는 가입금액 미입력 시 unit_amount(약관 명시 금액)로 채워 표시한다.
+            # CASE1/search 의 정밀 판정은 폴백 없이 유지(resolve_subscribed 미변경).
+            demo_coverage = case_data.get("coverage_amounts")
+            if not demo_coverage and r.get("unit_amount") is not None:
+                demo_coverage = [{"rider_id": r.get("id"), "amount": r.get("unit_amount")}]
+
             temp_case = {
                 "disease_kcd": case_data.get("disease_kcd", ""),
                 "disease_name": case_data.get("disease_name", ""),
@@ -1005,7 +1088,7 @@ def compare_scenarios(
                 "policy_elapsed_days": _parse_elapsed_days(case_data.get("policy_elapsed_days")),
                 "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
                 "treatment_codes": case_data.get("treatment_items") or [],
-                "coverage_amounts": case_data.get("coverage_amounts"),
+                "coverage_amounts": demo_coverage,
                 "covered_amounts": case_data.get("covered_amounts"),
                 "payment_amount": case_data.get("payment_amount"),
             }
@@ -1041,28 +1124,10 @@ def compare_scenarios(
                 matched_b = judgement.get("matched_boundary") or "조건"
                 calc_text = f"{matched_b} 조건 미달 (gap_days: {gap_days})"
             elif status == JudgeStatus.ELIGIBLE:
-                unit_amount = r.get("unit_amount") or 10000
-                deduct_days = r.get("deduct_days") or 0
-                effective_days = max(0, actual_days - deduct_days)
-
-                calc_text = judgement.get("calc")
-                if not calc_text:
-                    if trigger == "입원":
-                        if deduct_days > 0:
-                            calc_text = (
-                                f"{deduct_days + 1}일째부터 지급, {effective_days}일 지급 (deduct_days: {deduct_days})"
-                            )
-                        else:
-                            calc_text = f"{effective_days}일 지급"
-                    else:
-                        calc_text = f"{unit_amount:,}원 지급"
-
-                if "일시금" in (r.get("unit_type") or "") or "정액" in (r.get("unit_basis") or ""):
-                    amount_note = f"{unit_amount:,}원"
-                elif trigger == "입원":
-                    amount_note = f"{unit_amount * effective_days:,}원"
-                else:
-                    amount_note = f"{unit_amount:,}원"
+                # judge가 산출한 calc/expected만 신뢰한다 (가입금액 미입력 시 임의값 추정 금지).
+                calc_text = judgement.get("calc") or "가입금액 입력 시 산출"
+                expected = judgement.get("expected_amount")
+                amount_note = f"{expected:,}원" if expected else None
 
             scenarios.append(
                 {
@@ -1127,12 +1192,19 @@ def compare_scenarios(
     }
 
 
-def judge_analysis(user_id: str, case_id: str, coverage_amounts: list[dict] | None = None) -> dict:
+def judge_analysis(
+    user_id: str,
+    case_id: str,
+    coverage_amounts: list[dict] | None = None,
+    patient_paid_amount: int | None = None,
+    non_covered_amount: int | None = None,
+) -> dict:
     """RAG 탐색과 AI 설명문 생성, DB 스냅샷 저장을 모두 생략하고,
     오직 룰 엔진 판정만 빠르게 수행하는 경량 API 서비스 메서드입니다.
 
-    coverage_amounts(보장별 가입금액)가 전달되면 DB 저장 없이 그 값으로 예상 보험금을 재계산한다.
-    (None 이면 기존 case 에 저장된 coverage_amounts 를 사용)"""
+    coverage_amounts(보장별 가입금액)가 전달되면 DB 저장 없이 그 값으로 정액 예상 보험금을 재계산한다.
+    patient_paid_amount(급여 본인부담)/non_covered_amount(비급여)가 전달되면 실손 covered_amount 로 재계산한다.
+    (각 값이 None 이면 기존 case 저장값을 사용)"""
     db = get_client()
 
     # 1. 상황 정보 조회
@@ -1255,6 +1327,13 @@ def judge_analysis(user_id: str, case_id: str, coverage_amounts: list[dict] | No
             "coverage_amounts": coverage_amounts if coverage_amounts is not None else case_data.get("coverage_amounts"),
             "covered_amounts": case_data.get("covered_amounts"),
             "payment_amount": case_data.get("payment_amount"),
+            # 실손 covered_amount: 요청 입력값 우선, 없으면 case 저장값(세부내역서 파싱분)
+            "patient_paid_amount": (
+                patient_paid_amount if patient_paid_amount is not None else case_data.get("patient_paid_amount")
+            ),
+            "non_covered_amount": (
+                non_covered_amount if non_covered_amount is not None else case_data.get("non_covered_amount")
+            ),
         }
 
         judge_rider = {
@@ -1339,6 +1418,17 @@ def judge_analysis(user_id: str, case_id: str, coverage_amounts: list[dict] | No
             "explanation": explanation,
             "condition": condition_note,
             "evidence": evidence,
+            "coverage_kind": rider.get("coverage_kind"),  # 정액/실손 (프론트 입력폼 분기용)
+            "is_daily": _is_daily_rider(rider),  # True=입원일당(1일당 단가), False=진단/정액(가입금액)
+            # CASE2 비교용 — 현재(estimated) / 조건 충족 시 추가(additional) / 감액분(reduced)
+            # additional = max(judge 조건부 추가, 입원일수(target일) 추가). max 로 boundary 중복가산 방지.
+            "additional_amount": max(
+                judgement.get("additional_amount") or 0,
+                _admission_days_additional(
+                    judge_case, judge_rider, judgement, case_data.get("admission_days_diagnosed")
+                ),
+            ),
+            "reduced_amount": judgement.get("reduced_amount") or 0,
         }
         results.append(result_item)
 
@@ -1350,5 +1440,6 @@ def judge_analysis(user_id: str, case_id: str, coverage_amounts: list[dict] | No
             "conditional_count": conditional_count,
         },
         "results": results,
+        "case2_summary": _build_case2_summary(results),
         "notice": notice,
     }
