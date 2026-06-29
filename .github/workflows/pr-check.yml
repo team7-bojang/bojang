@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
   changes:
@@ -29,15 +28,22 @@ jobs:
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
+              - '.github/workflows/pr-check.yml'
             backend:
               - 'backend/**'
               - 'ruff.toml'
               - 'tests/**'
+              - '.github/workflows/pr-check.yml'
 
   frontend-check:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      checks: write # 테스트 결과 체크런 생성
+      pull-requests: write # 테스트 결과 PR 코멘트
 
     defaults:
       run:
@@ -60,7 +66,7 @@ jobs:
       - run: pnpm build
 
       - name: 테스트 + 커버리지
-        run: pnpm vitest run --coverage
+        run: pnpm vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=./junit.xml
 
       - name: Codecov 업로드 (frontend)
         if: ${{ !cancelled() }}
@@ -72,10 +78,25 @@ jobs:
           name: frontend
           fail_ci_if_error: false
 
+      - name: 프론트엔드 테스트 결과 표시
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: frontend/junit.xml
+          check_name: 프론트엔드 테스트 결과
+          detailed_summary: true
+          comment: true
+          updateComment: true
+
   backend-check:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      checks: write # 테스트 결과 체크런 생성
+      pull-requests: write # 테스트 결과 PR 코멘트
 
     defaults:
       run:
@@ -93,7 +114,7 @@ jobs:
       - run: pip install -r requirements.txt
       - run: ruff check .
       - name: 테스트 + 커버리지
-        run: pytest --cov=app --cov-report=term-missing --cov-report=xml
+        run: pytest --cov=app --cov-report=term-missing --cov-report=xml --junitxml=junit.xml
 
       - name: Codecov 업로드 (backend)
         if: ${{ !cancelled() }}
@@ -104,6 +125,16 @@ jobs:
           flags: backend
           name: backend
           fail_ci_if_error: false
+
+      - name: 백엔드 테스트 결과 표시
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: backend/junit.xml
+          check_name: 백엔드 테스트 결과
+          detailed_summary: true
+          comment: true
+          updateComment: true
 
       - name: Gunicorn boot smoke test
         run: |
