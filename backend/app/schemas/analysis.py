@@ -91,6 +91,10 @@ class ScenarioInput(BaseModel):
 class CompareRequest(BaseModel):
     case_id: str
     scenarios: list[ScenarioInput]
+    coverage_amounts: int | None = None
+    covered_amounts: dict | None = None
+    patient_paid_amount: int | None = None
+    non_covered_amount: int | None = None
 
 
 class ScenarioOutput(BaseModel):
@@ -101,6 +105,7 @@ class Outcome(BaseModel):
     status: str
     calc: str | None = None
     gap_days: int | None = None
+    estimated_amount: int | None = None
 
 
 class Comparison(BaseModel):

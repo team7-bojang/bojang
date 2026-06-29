@@ -751,7 +751,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "missed": missed,
             "gap_days": judgement.get("gap_days"),
             "payable_days": judgement.get("payable_days"),
-            "estimated_amount": judgement.get("expected_amount") or 0,
+            "estimated_amount": judgement.get("expected_amount"),
             "reduction": judgement.get("reduction"),
             "calc": judgement.get("calc"),
             "explanation": explanation,
@@ -806,6 +806,10 @@ def compare_scenarios(
     scenarios_input: list[dict] = None,
     current_days: int = None,
     target_days: int = None,
+    coverage_amounts: int | None = None,
+    covered_amounts: dict | None = None,
+    patient_paid_amount: int | None = None,
+    non_covered_amount: int | None = None,
 ) -> dict:
     """입원 경과일수를 기준으로 보장 조건 차이를 비교합니다 (v2.1).
 
@@ -893,9 +897,19 @@ def compare_scenarios(
                     "policy_elapsed_days": _parse_elapsed_days(case_data.get("policy_elapsed_days")),
                     "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
                     "treatment_codes": case_data.get("treatment_items") or [],
-                    "coverage_amounts": case_data.get("coverage_amounts"),
-                    "covered_amounts": case_data.get("covered_amounts"),
+                    "coverage_amounts": coverage_amounts
+                    if coverage_amounts is not None
+                    else case_data.get("coverage_amounts"),
+                    "covered_amounts": covered_amounts
+                    if covered_amounts is not None
+                    else case_data.get("covered_amounts"),
                     "payment_amount": case_data.get("payment_amount"),
+                    "patient_paid_amount": patient_paid_amount
+                    if patient_paid_amount is not None
+                    else case_data.get("patient_paid_amount"),
+                    "non_covered_amount": non_covered_amount
+                    if non_covered_amount is not None
+                    else case_data.get("non_covered_amount"),
                 }
 
                 judge_rider = {
@@ -945,6 +959,7 @@ def compare_scenarios(
                         "status": status.value if hasattr(status, "value") else str(status),
                         "calc": calc_text,
                         "gap_days": gap_days,
+                        "estimated_amount": judgement.get("expected_amount"),
                     }
                 )
 
@@ -1074,7 +1089,7 @@ def compare_scenarios(
                     "amount_note": amount_note,
                     "gap_days": gap_days,
                     "payable_days": judgement.get("payable_days"),
-                    "estimated_amount": judgement.get("expected_amount") or 0,
+                    "estimated_amount": judgement.get("expected_amount"),
                     "reduction": judgement.get("reduction"),
                 }
             )
@@ -1333,7 +1348,7 @@ def judge_analysis(user_id: str, case_id: str, coverage_amounts: list[dict] | No
             "missed": missed,
             "gap_days": judgement.get("gap_days"),
             "payable_days": judgement.get("payable_days"),
-            "estimated_amount": judgement.get("expected_amount") or 0,
+            "estimated_amount": judgement.get("expected_amount"),
             "reduction": judgement.get("reduction"),
             "calc": judgement.get("calc"),
             "explanation": explanation,
