@@ -64,12 +64,17 @@ def _get_openai() -> OpenAI:
 
 
 def _make_query_hash(
-    policy_id: str,
+    content_key: str,
     disease_kcd: str,
     disease_name: str,
     normalized_items: list[str],
 ) -> str:
     """정규화된 입력값 기반 결정론적 MD5 해시 생성 (캐시 키).
+
+    content_key: policies.pdf_hash 가 있으면 그 값, 없으면 policy_id 그대로.
+    같은 PDF(pdf_hash 동일)를 다른 사용자가 올려도 같은 content_key 가 되어
+    동일 질병/처치 조합이면 동일 query_hash 를 공유한다 (get_or_parse_riders 의 공유 캐시 조회).
+    payload 키는 과거 캐시(policy_id 기반)와의 해시 호환을 위해 "policy_id" 이름을 그대로 쓴다.
 
     visit_type/surgery 는 _normalize_items() 에서 이미 normalized_items 에 통합됐으므로
     별도 필드 없이 items 만 해시에 포함한다.
@@ -78,7 +83,7 @@ def _make_query_hash(
       {"treatment_items": [],            "visit_type": "EMERGENCY"}
     """
     payload = {
-        "policy_id": policy_id,
+        "policy_id": content_key,
         "kcd": disease_kcd.upper(),
         "name": disease_name.strip(),
         "items": sorted(normalized_items),
@@ -137,9 +142,29 @@ def extract_pages(pdf_bytes: bytes) -> list[dict]:
     return pages
 
 
+def _insert_pages_or_rollback(db, policy_id: str, page_rows: list[dict]) -> None:
+    """policy_pages 를 100행씩 배치 insert. 실패 시 생성된 policies 행을 롤백(삭제)한다."""
+    try:
+        for i in range(0, len(page_rows), 100):
+            db.table("policy_pages").insert(page_rows[i : i + 100]).execute()
+    except Exception:
+        db.table("policies").delete().eq("id", policy_id).execute()
+        raise
+
+
+def _count_policy_pages(db, policy_id: str) -> int:
+    """저장된 페이지 수를 반환한다. 중복 업로드 재사용은 페이지가 실제로 있을 때만 허용한다."""
+    page_rows = db.table("policy_pages").select("id").eq("policy_id", policy_id).execute()
+    return len(page_rows.data or [])
+
+
 def upload_pdf(user_id: str, file_name: str, pdf_bytes: bytes) -> dict:
     """PDF 업로드 처리.
 
+    0. 동일 사용자가 이전에 올린 동일 PDF(sha256 동일)면 기존 policy_id 그대로 반환
+       (텍스트 추출/온디맨드 파싱 캐시를 그대로 재사용하기 위함)
+    0-1. 다른 사용자가 이미 같은 PDF를 올려 추출해뒀다면, pdfplumber 재실행 없이
+         그 policy_pages 를 내 새 policy_id 로 복제 (소유권은 분리, 추출만 재사용)
     1. PDF 기본 검증 (크기, 매직바이트, 페이지 수, 빈 텍스트)
     2. policies 행 생성 (is_preset=False)
     3. policy_pages 에 페이지별 텍스트 저장
@@ -154,6 +179,21 @@ def upload_pdf(user_id: str, file_name: str, pdf_bytes: bytes) -> dict:
         raise ValueError("유효한 PDF 파일이 아닙니다.")
 
     db = get_client()
+    pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
+
+    # ── 0. 동일 사용자의 동일 PDF 재업로드 감지 ──
+    own_existing = db.table("policies").select("id").eq("user_id", user_id).eq("pdf_hash", pdf_hash).limit(1).execute()
+    if own_existing.data:
+        existing_policy_id = own_existing.data[0]["id"]
+        page_count = _count_policy_pages(db, existing_policy_id)
+        if page_count > 0:
+            return {"policy_id": existing_policy_id, "page_count": page_count}
+        # 과거 실패/수동 수정으로 policies 행만 남은 경우에는 재사용하지 않고 새로 추출한다.
+        db.table("policies").delete().eq("id", existing_policy_id).execute()
+
+    # ── 0-1. 다른 사용자가 이미 올린 동일 PDF 탐지 (추출 결과만 복제, 소유권은 새로 분리) ──
+    other_existing = db.table("policies").select("id").eq("pdf_hash", pdf_hash).limit(1).execute()
+
     policy_id = str(uuid.uuid4())
 
     # ── 1. policies 행 생성 ──
@@ -167,8 +207,19 @@ def upload_pdf(user_id: str, file_name: str, pdf_bytes: bytes) -> dict:
             "is_preset": False,
             "user_id": user_id,
             "pdf_path": None,  # 원본 PDF Storage 업로드 미구현 — null 유지
+            "pdf_hash": pdf_hash,
         }
     ).execute()
+
+    if other_existing.data:
+        source_policy_id = other_existing.data[0]["id"]
+        source_pages = db.table("policy_pages").select("page_num, text").eq("policy_id", source_policy_id).execute()
+        if source_pages.data:
+            page_rows = [
+                {"policy_id": policy_id, "page_num": p["page_num"], "text": p["text"]} for p in source_pages.data
+            ]
+            _insert_pages_or_rollback(db, policy_id, page_rows)
+            return {"policy_id": policy_id, "page_count": len(page_rows)}
 
     try:
         # ── 2. 텍스트 추출 ──
@@ -183,16 +234,13 @@ def upload_pdf(user_id: str, file_name: str, pdf_bytes: bytes) -> dict:
             raise ValueError(
                 "텍스트 추출 실패 — 스캔 이미지 PDF는 지원되지 않습니다. 텍스트 레이어가 포함된 PDF를 업로드해주세요."
             )
-
-        # ── 3. policy_pages 저장 (100행씩 배치) ──
-        page_rows = [{"policy_id": policy_id, "page_num": p["page_num"], "text": p["text"]} for p in pages]
-        for i in range(0, len(page_rows), 100):
-            db.table("policy_pages").insert(page_rows[i : i + 100]).execute()
-
     except Exception:
-        # 롤백: orphan policies 행 제거
         db.table("policies").delete().eq("id", policy_id).execute()
         raise
+
+    # ── 3. policy_pages 저장 (100행씩 배치) ──
+    page_rows = [{"policy_id": policy_id, "page_num": p["page_num"], "text": p["text"]} for p in pages]
+    _insert_pages_or_rollback(db, policy_id, page_rows)
 
     return {"policy_id": policy_id, "page_count": len(pages)}
 
@@ -401,6 +449,46 @@ def _save_riders(policy_id: str, query_hash: str, riders_raw: list[dict]) -> lis
     return rider_ids
 
 
+def _clone_riders(source_policy_id: str, target_policy_id: str, query_hash: str) -> list[dict]:
+    """다른 policy_id(동일 pdf_hash)에 이미 파싱되어 있는 riders를 target_policy_id로 복제한다.
+
+    내용이 동일한 PDF이므로 LLM 재파싱 없이 riders/rider_chunks 행만 새 policy_id로 복사한다.
+    rider_chunks의 content는 chunk_rider() 로 재생성하되(meta.policy_id가 target을 가리키도록),
+    임베딩은 원본 청크와 content가 같으면 그대로 재사용해 embed() 재호출을 피한다.
+
+    반환: target_policy_id 아래 새로 생성된 rider 행 목록
+    """
+    db = get_client()
+    source_riders = (
+        db.table("riders").select("*").eq("policy_id", source_policy_id).eq("parse_query_hash", query_hash).execute()
+    )
+
+    cloned: list[dict] = []
+    for r in source_riders.data or []:
+        new_id = str(uuid.uuid4())
+        new_row = {**r, "id": new_id, "policy_id": target_policy_id}
+        new_row.pop("created_at", None)
+        db.table("riders").insert(new_row).execute()
+
+        source_chunks = db.table("rider_chunks").select("content, embedding").eq("rider_id", r["id"]).execute()
+        embedding_by_content = {c["content"]: c["embedding"] for c in (source_chunks.data or [])}
+
+        new_chunks = chunk_rider({**new_row, "id": new_id})
+        if new_chunks:
+            missing = [c["content"] for c in new_chunks if c["content"] not in embedding_by_content]
+            if missing:
+                for content, emb in zip(missing, embed(missing), strict=True):
+                    embedding_by_content[content] = emb
+            for c in new_chunks:
+                c["rider_id"] = new_id
+                c["embedding"] = embedding_by_content[c["content"]]
+                db.table("rider_chunks").insert(c).execute()
+
+        cloned.append(new_row)
+
+    return cloned
+
+
 def get_or_parse_riders(
     user_id: str,
     policy_id: str,
@@ -411,7 +499,8 @@ def get_or_parse_riders(
     surgery: bool | None = None,
 ) -> list[dict]:
     """캐시 우선: (policy_id, query_hash) 캐시 히트 시 해당 hash의 riders만 반환.
-    캐시 미스 시 온디맨드 파싱 후 저장.
+    같은 PDF(pdf_hash 동일)를 다른 사용자가 먼저 파싱해뒀다면 그 결과를 복제해 LLM 재호출을 건너뛴다.
+    둘 다 미스면 온디맨드 파싱 후 저장.
 
     Raises:
         NotFoundError: policy_id 없음 또는 페이지 데이터 없음
@@ -421,19 +510,25 @@ def get_or_parse_riders(
     db = get_client()
 
     # ── 소유자 검증 ──
-    policy_res = db.table("policies").select("id, user_id, is_preset").eq("id", policy_id).maybe_single().execute()
+    policy_res = (
+        db.table("policies").select("id, user_id, is_preset, pdf_hash").eq("id", policy_id).maybe_single().execute()
+    )
     if not policy_res.data:
         raise NotFoundError(f"policy_id={policy_id} 를 찾을 수 없습니다.")
     if not policy_res.data.get("is_preset") and policy_res.data.get("user_id") != user_id:
         raise ForbiddenError("해당 약관에 대한 접근 권한이 없습니다.")
 
+    # ── 공유 캐시 조회 키: pdf_hash 있으면 그 값(다른 사용자와 공유), 없으면 policy_id 그대로 ──
+    pdf_hash = policy_res.data.get("pdf_hash")
+    content_key = pdf_hash or policy_id
+
     # ── visit_type, surgery → treatment_items 정규화 ──
     normalized_items = _normalize_items(treatment_items, visit_type, surgery)
 
     # ── query_hash 생성 (정규화된 items만 사용 — visit_type/surgery 중복 방지) ──
-    q_hash = _make_query_hash(policy_id, disease_kcd, disease_name, normalized_items)
+    q_hash = _make_query_hash(content_key, disease_kcd, disease_name, normalized_items)
 
-    # ── 캐시 확인 (query_hash 기반) ──
+    # ── 캐시 확인 (이 policy_id에 대해 직접 파싱/복제된 적 있는지) ──
     cache_res = (
         db.table("policy_parse_cache").select("id").eq("policy_id", policy_id).eq("query_hash", q_hash).execute()
     )
@@ -445,6 +540,41 @@ def get_or_parse_riders(
             f"policy_id={policy_id} query_hash={q_hash} riders={len(existing.data or [])}"
         )
         return existing.data or []
+
+    # ── 공유 캐시 조회 (다른 policy_id가 동일 pdf_hash+질병/처치 조합을 이미 파싱했는지) ──
+    if pdf_hash:
+        shared_res = (
+            db.table("policy_parse_cache")
+            .select("policy_id")
+            .eq("content_key", content_key)
+            .eq("query_hash", q_hash)
+            .neq("policy_id", policy_id)
+            .limit(1)
+            .execute()
+        )
+        if shared_res.data:
+            source_policy_id = shared_res.data[0]["policy_id"]
+            cloned = _clone_riders(source_policy_id, policy_id, q_hash)
+            if not cloned:
+                print(
+                    "[user_policy_service] policy_parse_cache shared_stale "
+                    f"policy_id={policy_id} source_policy_id={source_policy_id} query_hash={q_hash}"
+                )
+            else:
+                try:
+                    db.table("policy_parse_cache").insert(
+                        {"policy_id": policy_id, "query_hash": q_hash, "content_key": content_key}
+                    ).execute()
+                except Exception as e:
+                    err_str = str(e).lower()
+                    if "duplicate" not in err_str and "unique" not in err_str:
+                        raise
+                print(
+                    "[user_policy_service] policy_parse_cache shared_hit "
+                    f"policy_id={policy_id} source_policy_id={source_policy_id} "
+                    f"query_hash={q_hash} riders={len(cloned)}"
+                )
+                return cloned
 
     print(
         "[user_policy_service] policy_parse_cache miss "
@@ -470,6 +600,7 @@ def get_or_parse_riders(
             {
                 "policy_id": policy_id,
                 "query_hash": q_hash,
+                "content_key": content_key,
             }
         ).execute()
         print(f"[user_policy_service] policy_parse_cache lock_acquired policy_id={policy_id} query_hash={q_hash}")

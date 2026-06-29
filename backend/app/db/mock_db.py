@@ -8,6 +8,8 @@ from pathlib import Path
 class InMemoryDB:
     def __init__(self):
         self.policies = []
+        self.policy_pages = []
+        self.policy_parse_cache = []
         self.riders = []
         self.rider_chunks = []
         self.cases = []
@@ -1212,6 +1214,8 @@ class MockQueryBuilder:
         self._select_columns = "*"
         self._is_insert = False
         self._is_update = False
+        self._is_delete = False
+        self._maybe_single = False
         self._mutation_data = None
         self._range_start = None
         self._range_end = None
@@ -1233,6 +1237,18 @@ class MockQueryBuilder:
     def update(self, data):
         self._is_update = True
         self._mutation_data = data
+        return self
+
+    def delete(self):
+        self._is_delete = True
+        return self
+
+    def maybe_single(self):
+        self._maybe_single = True
+        return self
+
+    def single(self):
+        self._maybe_single = True
         return self
 
     def eq(self, column, value):
@@ -1291,6 +1307,18 @@ class MockQueryBuilder:
                     new_row["id"] = str(uuid.uuid4())
                 if "created_at" not in new_row:
                     new_row["created_at"] = datetime.now(UTC).isoformat()
+                if self.table_name == "policy_parse_cache":
+                    for item in self.data_list:
+                        if item.get("policy_id") == new_row.get("policy_id") and item.get("query_hash") == new_row.get(
+                            "query_hash"
+                        ):
+                            raise ValueError("duplicate key value violates unique constraint")
+                if self.table_name == "policy_pages":
+                    for item in self.data_list:
+                        if item.get("policy_id") == new_row.get("policy_id") and item.get("page_num") == new_row.get(
+                            "page_num"
+                        ):
+                            raise ValueError("duplicate key value violates unique constraint")
                 self.data_list.append(new_row)
                 inserted_rows.append(new_row)
             return MockAPIResponse(inserted_rows if isinstance(self._mutation_data, list) else inserted_rows[0])
@@ -1315,6 +1343,26 @@ class MockQueryBuilder:
                 self.data_list[idx].update(self._mutation_data)
                 updated_rows.append(self.data_list[idx])
             return MockAPIResponse(updated_rows)
+
+        if self._is_delete:
+            deleted_rows = []
+            kept_rows = []
+            for item in self.data_list:
+                match = True
+                for op, col, val in self._filters:
+                    item_val = self._get_nested_val(item, col)
+                    if op == "eq" and item_val != val:
+                        match = False
+                    elif op == "neq" and item_val == val:
+                        match = False
+                    elif op == "in" and item_val not in (val or []):
+                        match = False
+                if match:
+                    deleted_rows.append(item)
+                else:
+                    kept_rows.append(item)
+            self.data_list[:] = kept_rows
+            return MockAPIResponse(deleted_rows)
 
         results = []
         for item in self.data_list:
@@ -1379,6 +1427,9 @@ class MockQueryBuilder:
         if self._limit_count is not None:
             results = results[: self._limit_count]
 
+        if self._maybe_single:
+            return MockAPIResponse(results[0] if results else None, count=len(results))
+
         return MockAPIResponse(results, count=total_count)
 
 
@@ -1387,6 +1438,10 @@ class MockSupabaseClient:
         db_instance.initialize_if_needed()
         if table_name == "policies":
             return MockQueryBuilder(table_name, db_instance.policies)
+        elif table_name == "policy_pages":
+            return MockQueryBuilder(table_name, db_instance.policy_pages)
+        elif table_name == "policy_parse_cache":
+            return MockQueryBuilder(table_name, db_instance.policy_parse_cache)
         elif table_name == "riders":
             return MockQueryBuilder(table_name, db_instance.riders)
         elif table_name == "rider_chunks":
