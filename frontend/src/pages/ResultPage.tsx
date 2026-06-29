@@ -6,7 +6,7 @@ import { Stepper } from '@/components/common/Stepper';
 import { Button } from '@/components/ui/button';
 import { fetchCaseDashboard } from '@/features/case/queries';
 import { AnalysisModal } from '@/features/result/components/AnalysisModal';
-import { Case2SummaryGraph } from '@/features/result/components/Case2SummaryGraph';
+import { ScenarioCompareGraph } from '@/features/result/components/ScenarioCompareGraph';
 import { ClaimDocumentsSection } from '@/features/result/components/ClaimDocumentsSection';
 import {
   CoverageAmountForm,
@@ -27,7 +27,9 @@ import {
   getExpectedAmount,
   inferInsurerId,
   isConditional,
+  isDailyRider,
   isEligible,
+  needsCoverageAmount,
   type ResultLocationState,
   toPayableBenefit,
   unwrapAnalysisFromState,
@@ -62,6 +64,10 @@ export function ResultPage() {
   const [coverageAmounts, setCoverageAmounts] = useState<Record<string, number>>({});
   // 실손 covered_amount 입력값(급여 본인부담 / 비급여 의료비). 가입금액과 함께 매 재계산에 실어 보낸다.
   const [medicalCosts, setMedicalCosts] = useState<MedicalCostInput>({});
+  // 시나리오 비교용 입원일수 — 현재(admission_days_current) vs 의사권고(admission_days_diagnosed).
+  const [scenarioDays, setScenarioDays] = useState<{ current: number; target: number } | null>(
+    null
+  );
 
   useEffect(() => {
     if (analysis || comparison || !caseId) {
@@ -107,9 +113,38 @@ export function ResultPage() {
     };
   }, [analysis, caseId, comparison]);
 
+  // 시나리오 비교용 입원일수를 대시보드에서 로드한다.
+  // 분석 결과가 navigation state 로 미리 들어오면 위 load effect 가 스킵되므로 일수는 따로 가져온다.
+  useEffect(() => {
+    if (!caseId) {
+      return;
+    }
+    let alive = true;
+    fetchCaseDashboard(caseId)
+      .then(dashboard => {
+        if (!alive) {
+          return;
+        }
+        const current = dashboard.dashboard.admission_days_current;
+        const diagnosed = dashboard.dashboard.admission_days_diagnosed;
+        if (current !== null && current !== undefined) {
+          setScenarioDays({ current, target: diagnosed ?? current });
+        }
+      })
+      .catch(() => {
+        // 일수 로드 실패 시 시나리오 비교는 생략하고 기존 그래프로 폴백한다.
+      });
+    return () => {
+      alive = false;
+    };
+  }, [caseId]);
+
   const results = useMemo(() => analysis?.results ?? [], [analysis]);
   const payableResults = useMemo(() => results.filter(isEligible), [results]);
   const conditionalResults = useMemo(() => results.filter(isConditional), [results]);
+  // 가입금액 입력 대상 — eligible 외에 boundary_not_met·waiting_period_not_met(조건 충족 시 추가)도 포함해
+  // 같은 정액 단가를 적용받게 한다. (이게 빠지면 boundary 특약의 '조건 충족 시 추가' 금액이 0으로 누락된다.)
+  const coverageInputResults = useMemo(() => results.filter(needsCoverageAmount), [results]);
   // 실손 특약이 하나라도 있으면 병원비 입력 폼을 노출한다(coverage_kind 단일 출처로 판단).
   const hasReimbursementRiders = useMemo(
     () => results.some(result => result.coverage_kind === '실손'),
@@ -133,7 +168,7 @@ export function ResultPage() {
         riderIds: string[];
       }
     >();
-    for (const result of payableResults) {
+    for (const result of coverageInputResults) {
       if (!result.rider_id || result.coverage_kind === '실손') {
         continue;
       }
@@ -171,7 +206,7 @@ export function ResultPage() {
       riderIdMap[key] = byKey.get(key)!.riderIds;
     }
     return { coverageGroups: rows, groupRiderIds: riderIdMap };
-  }, [payableResults]);
+  }, [coverageInputResults]);
 
   // 선택된 특약은 rider_id 로 보관하고 현재 results 에서 다시 찾는다.
   // 재계산으로 analysis 가 갱신되면 모달도 최신 estimated_amount·calc 를 자동 반영한다.
@@ -221,15 +256,12 @@ export function ResultPage() {
     void recompute(coverageAmounts, costs);
   };
 
-  const case2Summary = analysis?.case2_summary ?? null;
   const expectedAmount = getExpectedAmount(payableResults);
   const displayExpectedAmount = hasCalculationBasis(payableResults) ? expectedAmount : null;
-  const additionalAmount = case2Summary?.additional_total ?? 0;
-  const heroAmount = serviceType === 'CASE2' ? additionalAmount : displayExpectedAmount;
+  // CASE2 는 금액을 다루지 않으므로(입원 기간 시나리오 비교 전용) hero 금액은 CASE1 에서만 쓴다.
+  const heroAmount = serviceType === 'CASE2' ? null : displayExpectedAmount;
   const hasPayableBenefits =
-    serviceType === 'CASE2'
-      ? additionalAmount > 0 || (case2Summary?.current_total ?? 0) > 0
-      : payableResults.length > 0 || heroAmount !== null;
+    serviceType === 'CASE2' ? results.length > 0 : payableResults.length > 0 || heroAmount !== null;
   const displayError =
     error ??
     (serviceType === 'CASE2' && !analysis
@@ -277,28 +309,18 @@ export function ResultPage() {
             />
 
             {serviceType === 'CASE2' ? (
-              <>
-                <CoverageAmountForm
-                  groups={coverageGroups}
-                  initialAmounts={coverageAmounts}
-                  expectedAmount={displayExpectedAmount}
-                  submitting={recomputing}
-                  onApply={handleApplyAmounts}
-                  onMeasure={setPanelHeight}
+              // CASE2 는 금액 입력·예상금액 없이 입원 기간(현재 vs 의사 권고)별 보장 변화만 보여준다.
+              !results.some(isDailyRider) ? (
+                <p className="mt-6 rounded-card bg-surface p-6 text-center text-sm font-semibold text-muted shadow-sm ring-1 ring-line">
+                  입원 기간에 따라 달라지는 입원일당 보장이 확인되지 않았습니다.
+                </p>
+              ) : scenarioDays ? (
+                <ScenarioCompareGraph
+                  results={results}
+                  currentDays={scenarioDays.current}
+                  targetDays={scenarioDays.target}
                 />
-
-                {hasReimbursementRiders && (
-                  <div className="mt-6">
-                    <MedicalCostForm
-                      initial={medicalCosts}
-                      submitting={recomputing}
-                      onApply={handleApplyMedicalCosts}
-                    />
-                  </div>
-                )}
-
-                {case2Summary && <Case2SummaryGraph summary={case2Summary} />}
-              </>
+              ) : null
             ) : (
               <>
                 <CoverageAmountForm
