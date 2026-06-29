@@ -10,15 +10,22 @@ from flask_openapi3.models.tag import Tag
 
 from app.auth import require_auth
 from app.core import response
-from app.schemas.analysis import CompareRequest, SearchRequest
+from app.schemas.analysis import CompareRequest, CompareResponse, SearchRequest, SearchResponse
+from app.schemas.common import ERRORS_AUTH, Envelope
 from app.services import analysis_service
 
+# 인증/서버오류는 블루프린트 공통. 라우트는 성공 응답만 명시.
 bp = APIBlueprint(
-    "analysis", __name__, url_prefix="/api/v1", abp_tags=[Tag(name="analysis")], abp_security=[{"jwt": []}]
+    "analysis",
+    __name__,
+    url_prefix="/api/v1",
+    abp_tags=[Tag(name="analysis")],
+    abp_security=[{"jwt": []}],
+    abp_responses=ERRORS_AUTH,
 )
 
 
-@bp.post("/analysis/search")
+@bp.post("/analysis/search", responses={200: Envelope[SearchResponse]})
 @require_auth
 def search_analysis(body: SearchRequest):
     """상황 기준 보장 교차 검색 (RAG + 룰 엔진 연동) (SCR-04)."""
@@ -26,7 +33,7 @@ def search_analysis(body: SearchRequest):
     return response.ok(data)
 
 
-@bp.post("/analysis/judge")
+@bp.post("/analysis/judge", responses={200: Envelope[SearchResponse]})
 @require_auth
 def judge_analysis(body: SearchRequest):
     """상황 기준 보장 판정 (RAG/LLM/스냅샷을 생략한 룰 엔진 고속 판정) (SCR-04).
@@ -45,7 +52,7 @@ def judge_analysis(body: SearchRequest):
     return response.ok(data)
 
 
-@bp.post("/analysis/compare")
+@bp.post("/analysis/compare", responses={200: Envelope[CompareResponse]})
 @require_auth
 def compare_scenarios(body: CompareRequest):
     """조건별 비교 분석.
@@ -53,16 +60,18 @@ def compare_scenarios(body: CompareRequest):
     scenarios(v2.1 다중 시나리오)가 오면 그 형식으로, 없으면 current_days/target_days(옛 형식)로 분기한다.
     """
     try:
-        if body.scenarios is not None:
-            scenarios_list = [sc.model_dump() for sc in body.scenarios]
-            data = analysis_service.compare_scenarios(g.user_id, body.case_id, scenarios_list)
-        else:
-            data = analysis_service.compare_scenarios(
-                g.user_id,
-                body.case_id,
-                current_days=body.current_days,
-                target_days=body.target_days,
-            )
+        scenarios_list = [sc.model_dump() for sc in body.scenarios] if body.scenarios is not None else None
+        data = analysis_service.compare_scenarios(
+            g.user_id,
+            body.case_id,
+            scenarios_list,
+            current_days=body.current_days,
+            target_days=body.target_days,
+            coverage_amounts=body.coverage_amounts,
+            covered_amounts=body.covered_amounts,
+            patient_paid_amount=body.patient_paid_amount,
+            non_covered_amount=body.non_covered_amount,
+        )
         return response.ok(data)
     except Exception as e:
         return response.fail("server_error", str(e), 500)

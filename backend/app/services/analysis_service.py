@@ -818,7 +818,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "missed": missed,
             "gap_days": judgement.get("gap_days"),
             "payable_days": judgement.get("payable_days"),
-            "estimated_amount": judgement.get("expected_amount") or 0,
+            "estimated_amount": judgement.get("expected_amount"),
             "reduction": judgement.get("reduction"),
             "calc": judgement.get("calc"),
             "explanation": explanation,
@@ -885,6 +885,10 @@ def compare_scenarios(
     scenarios_input: list[dict] = None,
     current_days: int = None,
     target_days: int = None,
+    coverage_amounts: int | None = None,
+    covered_amounts: dict | None = None,
+    patient_paid_amount: int | None = None,
+    non_covered_amount: int | None = None,
 ) -> dict:
     """입원 경과일수를 기준으로 보장 조건 차이를 비교합니다 (v2.1).
 
@@ -963,8 +967,8 @@ def compare_scenarios(
                 # 입원 특약은 시나리오 일수(days)로 판정, 그 외는 case의 기본 일수로 판정
                 actual_days = days if trigger == "입원" else (case_data.get("admission_days_current") or 1)
 
-                # compare(CASE2)는 가입금액 미입력 시 unit_amount 로 채워 표시(CASE1/search 는 폴백 없음).
-                demo_coverage = case_data.get("coverage_amounts")
+                # compare 가입금액: 요청값(단일 숫자) → case 저장값 → unit_amount(데모 폴백) 순.
+                demo_coverage = coverage_amounts if coverage_amounts is not None else case_data.get("coverage_amounts")
                 if not demo_coverage and r.get("unit_amount") is not None:
                     demo_coverage = [{"rider_id": r.get("id"), "amount": r.get("unit_amount")}]
 
@@ -978,10 +982,16 @@ def compare_scenarios(
                     "disease_groups": get_disease_groups_for_kcd(db, case_data.get("disease_kcd")),
                     "treatment_codes": case_data.get("treatment_items") or [],
                     "coverage_amounts": demo_coverage,
-                    "covered_amounts": case_data.get("covered_amounts"),
+                    "covered_amounts": covered_amounts
+                    if covered_amounts is not None
+                    else case_data.get("covered_amounts"),
                     "payment_amount": case_data.get("payment_amount"),
-                    "patient_paid_amount": case_data.get("patient_paid_amount"),
-                    "non_covered_amount": case_data.get("non_covered_amount"),
+                    "patient_paid_amount": patient_paid_amount
+                    if patient_paid_amount is not None
+                    else case_data.get("patient_paid_amount"),
+                    "non_covered_amount": non_covered_amount
+                    if non_covered_amount is not None
+                    else case_data.get("non_covered_amount"),
                 }
 
                 judge_rider = {
@@ -1022,6 +1032,7 @@ def compare_scenarios(
                         "status": status.value if hasattr(status, "value") else str(status),
                         "calc": calc_text,
                         "gap_days": gap_days,
+                        "estimated_amount": judgement.get("expected_amount"),
                     }
                 )
 
@@ -1139,7 +1150,7 @@ def compare_scenarios(
                     "amount_note": amount_note,
                     "gap_days": gap_days,
                     "payable_days": judgement.get("payable_days"),
-                    "estimated_amount": judgement.get("expected_amount") or 0,
+                    "estimated_amount": judgement.get("expected_amount"),
                     "reduction": judgement.get("reduction"),
                 }
             )
@@ -1412,7 +1423,7 @@ def judge_analysis(
             "missed": missed,
             "gap_days": judgement.get("gap_days"),
             "payable_days": judgement.get("payable_days"),
-            "estimated_amount": judgement.get("expected_amount") or 0,
+            "estimated_amount": judgement.get("expected_amount"),
             "reduction": judgement.get("reduction"),
             "calc": judgement.get("calc"),
             "explanation": explanation,

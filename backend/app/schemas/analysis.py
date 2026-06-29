@@ -28,6 +28,7 @@ class CoverageResult(BaseModel):
 class SearchSummary(BaseModel):
     eligible_count: int
     missed_count: int
+    conditional_count: int = 0
 
 
 class Case2SummaryItem(BaseModel):
@@ -55,6 +56,41 @@ class SearchResponse(BaseModel):
     results: list[CoverageResult]
     case2_summary: Case2Summary | None = None
     notice: str | None = None
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "summary": {"eligible_count": 2, "missed_count": 1, "conditional_count": 1},
+                "results": [
+                    {
+                        "policy": "삼성생명 무배당 건강보험",
+                        "rider": "뇌혈관질환 진단비 특약",
+                        "status": "eligible",
+                        "missed": False,
+                        "gap_days": None,
+                        "calc": "2,000만원",
+                        "explanation": "뇌경색증(I63)은 뇌혈관질환 진단비 보장 대상입니다.",
+                        "evidence": {
+                            "article": "제3조(보험금의 지급사유)",
+                            "page": 12,
+                            "quote": "회사는 피보험자가 보험기간 중 뇌혈관질환으로 진단확정된 경우...",
+                        },
+                    },
+                    {
+                        "policy": "현대해상 굿앤굿실손",
+                        "rider": "질병입원 의료비",
+                        "status": "boundary_not_met",
+                        "missed": True,
+                        "gap_days": 2,
+                        "calc": None,
+                        "explanation": "입원 기준일수에 2일 부족합니다.",
+                        "evidence": None,
+                    },
+                ],
+                "notice": "검수 전 데이터는 잠정(potential) 등급으로 표시됩니다.",
+            }
+        }
+    }
 
 
 class CoverageAmountInput(BaseModel):
@@ -89,6 +125,11 @@ class CompareRequest(BaseModel):
     scenarios: list[ScenarioInput] | None = None
     current_days: int | None = None
     target_days: int | None = None
+    # 가입금액(단일 숫자, 전 특약 동일)·실손 covered 입력 (Case 2 비교용)
+    coverage_amounts: int | None = None
+    covered_amounts: dict | None = None
+    patient_paid_amount: int | None = None
+    non_covered_amount: int | None = None
 
 
 class ScenarioOutput(BaseModel):
@@ -99,6 +140,7 @@ class Outcome(BaseModel):
     status: str
     calc: str | None = None
     gap_days: int | None = None
+    estimated_amount: int | None = None
 
 
 class Comparison(BaseModel):
@@ -110,3 +152,21 @@ class Comparison(BaseModel):
 class CompareResponse(BaseModel):
     scenarios: list[ScenarioOutput]
     comparisons: list[Comparison]
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "scenarios": [{"name": "현재 (5일 입원)"}, {"name": "8일 입원 시"}],
+                "comparisons": [
+                    {
+                        "policy": "현대해상 굿앤굿실손",
+                        "rider": "질병입원 의료비",
+                        "outcomes": [
+                            {"status": "boundary_not_met", "calc": None, "gap_days": 2},
+                            {"status": "eligible", "calc": "1,200만원", "gap_days": None},
+                        ],
+                    }
+                ],
+            }
+        }
+    }
