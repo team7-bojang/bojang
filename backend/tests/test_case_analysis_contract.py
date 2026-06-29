@@ -241,4 +241,8 @@ def test_judge_analysis_endpoint(client, monkeypatch):
     assert res_data["summary"]["eligible_count"] >= 0
     # RAG/LLM(AI 설명문) 생성을 건너뛰고 기본 포맷이 적용되었는지 확인
     for r in res_data["results"]:
-        assert "보장 요건을 충족하여" in r["explanation"] or "조건을 보완할 시" in r["explanation"] or "지급 상태가" in r["explanation"]
+        assert (
+            "보장 요건을 충족하여" in r["explanation"]
+            or "조건을 보완할 시" in r["explanation"]
+            or "지급 상태가" in r["explanation"]
+        )

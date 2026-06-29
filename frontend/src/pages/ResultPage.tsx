@@ -85,8 +85,10 @@ export function ResultPage() {
       const patientPaid = dashboard.dashboard.patient_paid_amount;
       const nonCovered = dashboard.dashboard.non_covered_amount;
       setMedicalCosts({
-        patient_paid_amount: patientPaid !== null && patientPaid !== undefined ? patientPaid : undefined,
-        non_covered_amount: nonCovered !== null && nonCovered !== undefined ? nonCovered : undefined,
+        patient_paid_amount:
+          patientPaid !== null && patientPaid !== undefined ? patientPaid : undefined,
+        non_covered_amount:
+          nonCovered !== null && nonCovered !== undefined ? nonCovered : undefined,
       });
       // CASE1·CASE2 모두 judge 결과(case2_summary 포함)로 로드한다.
       const result = await searchCaseAnalysis(caseId);
@@ -139,8 +141,10 @@ export function ResultPage() {
         const patientPaid = dashboard.dashboard.patient_paid_amount;
         const nonCovered = dashboard.dashboard.non_covered_amount;
         setMedicalCosts({
-          patient_paid_amount: patientPaid !== null && patientPaid !== undefined ? patientPaid : undefined,
-          non_covered_amount: nonCovered !== null && nonCovered !== undefined ? nonCovered : undefined,
+          patient_paid_amount:
+            patientPaid !== null && patientPaid !== undefined ? patientPaid : undefined,
+          non_covered_amount:
+            nonCovered !== null && nonCovered !== undefined ? nonCovered : undefined,
         });
       })
       .catch(() => {
