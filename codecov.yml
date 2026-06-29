@@ -1,0 +1,33 @@
+# Codecov 설정 — 커버리지 리포트/PR 코멘트/상태체크 동작 정의
+# 스키마: https://docs.codecov.com/docs/codecovyml-reference
+
+coverage:
+  status:
+    # 프로젝트 전체: 직전 대비 1% 이상 떨어지면 실패 (auto = base 커밋 기준)
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    # 변경분(patch): 초기에는 informational 로 두어 PR 을 막지 않음
+    # 테스트가 쌓이면 target 을 두고 게이팅으로 전환 권장
+    patch:
+      default:
+        informational: true
+
+# flag 별 규칙. 잡이 path 필터로 스킵돼도 직전 커버리지를 이어받음(carryforward)
+flag_management:
+  default_rules:
+    carryforward: true
+  individual_flags:
+    - name: frontend
+      paths:
+        - frontend/src/
+    - name: backend
+      paths:
+        - backend/app/
+
+# PR 코멘트: 변경이 없어도 표를 남기고, flag/파일 단위로 표시
+comment:
+  layout: "header, diff, flags, files"
+  behavior: default
+  require_changes: false
