@@ -133,6 +133,8 @@ export function DiagnosisSection({ form, patch }: DiagnosisSectionProps) {
                   onBlur={() => window.setTimeout(() => setDiseaseSearchFocused(false), 100)}
                   onChange={event => {
                     setSearchText(event.target.value);
+                    // 드롭다운 미선택 자유 입력도 폼에 반영한다. 검증된 KCD가 없으므로 코드는 비운다.
+                    patch({ disease_name: event.target.value, disease_kcd: null });
                     setDiseaseSearchError(null);
                   }}
                   className="pr-10"

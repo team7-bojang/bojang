@@ -3,7 +3,10 @@ import type { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axio
 import { useAuthModalStore } from '@/features/auth/store/authModalStore';
 import { supabase } from '@/lib/supabase';
 
-type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
+type RetriableConfig = InternalAxiosRequestConfig & {
+  _retried?: boolean;
+  _loginRetried?: boolean;
+};
 
 const initializedClients = new WeakSet<AxiosInstance>();
 const UNAUTHORIZED_MESSAGE = '로그인이 필요합니다. 다시 로그인해주세요.';
@@ -119,7 +122,9 @@ export function setupHttpInterceptors(apiClient: AxiosInstance) {
       }
     }
 
-    if (config) {
+    // 재로그인 후에도 401이 반복되면 무한 재시도가 되므로, 이 경로도 1회로 제한한다.
+    if (config && !config._loginRetried) {
+      config._loginRetried = true;
       await waitForLoginAfterUnauthorized();
       return apiClient(config);
     }
