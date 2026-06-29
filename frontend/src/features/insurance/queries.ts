@@ -85,8 +85,8 @@ export async function registerSelectedPolicyPresets(policyIds: string[]) {
   return policiesApi.selectPolicyPresets({ preset_ids: policyIds });
 }
 
-export async function uploadUserPolicy(file: File) {
-  return policiesApi.uploadPolicy(file);
+export async function uploadUserPolicy(file: File, onProgress?: (percent: number) => void) {
+  return policiesApi.uploadPolicy(file, onProgress);
 }
 
 function toFlatMyPolicy(policy: MyPolicyWithNestedPolicy): MyPolicy {

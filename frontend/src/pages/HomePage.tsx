@@ -113,11 +113,11 @@ export function HomePage() {
             </p>
           )}
           <PdfUpload
-            onSelect={async file => {
+            onSelect={async (file, onProgress) => {
               setUploadingPolicy(true);
               setPolicyError(null);
               try {
-                const result = await uploadUserPolicy(file);
+                const result = await uploadUserPolicy(file, onProgress);
                 const previousUploadedPdfs = uploadedPdfs;
                 setUploadedPdfs([{ id: result.policy_id, name: file.name }]);
                 setSelectedIds(prev => {
@@ -127,9 +127,12 @@ export function HomePage() {
                   return next;
                 });
               } catch (error) {
-                setPolicyError(
-                  error instanceof Error ? error.message : '약관 PDF 업로드에 실패했습니다.'
-                );
+                const message =
+                  error instanceof Error
+                    ? error.message
+                    : '약관 PDF 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.';
+                setPolicyError(message);
+                throw error instanceof Error ? error : new Error(message);
               } finally {
                 setUploadingPolicy(false);
               }

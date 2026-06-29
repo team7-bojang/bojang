@@ -34,13 +34,21 @@ export const policiesApi = {
     return unwrapApiResponse(data);
   },
 
-  async uploadPolicy(file: File) {
+  async uploadPolicy(file: File, onProgress?: (percent: number) => void) {
     const formData = new FormData();
     formData.append('file', file);
 
     const { data } = await formDataClient.post<ApiResponse<UploadPolicyResponse>>(
       endpoints.policies.upload,
-      formData
+      formData,
+      {
+        onUploadProgress: event => {
+          if (!onProgress) {
+            return;
+          }
+          onProgress(event.total ? Math.round((event.loaded / event.total) * 100) : 99);
+        },
+      }
     );
     return unwrapApiResponse(data);
   },
