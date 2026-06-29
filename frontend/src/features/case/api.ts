@@ -114,6 +114,8 @@ function normalizeDashboardResponse(
       visit_dates: visitDates,
       annual_visit_count: dashboard.annual_visit_count ?? null,
       policy_elapsed_days: dashboard.policy_elapsed_days ?? null,
+      patient_paid_amount: dashboard.patient_paid_amount ?? null,
+      non_covered_amount: dashboard.non_covered_amount ?? null,
     },
     treatment_types: response.treatment_types ?? [],
   };

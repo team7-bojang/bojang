@@ -1140,6 +1140,8 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
             "surgery": c.get("surgery"),
             "annual_visit_count": c.get("annual_visit_count") or 1,
             "policy_elapsed_days": c.get("policy_elapsed_days"),
+            "patient_paid_amount": c.get("patient_paid_amount"),
+            "non_covered_amount": c.get("non_covered_amount"),
         },
     }
 
@@ -1214,6 +1216,14 @@ def patch_dashboard(user_id: str, case_id: str, data: dict) -> dict:
     if "annual_visit_count" in data:
         updates["annual_visit_count"] = (
             int(data["annual_visit_count"]) if data["annual_visit_count"] is not None else None
+        )
+    if "patient_paid_amount" in data:
+        updates["patient_paid_amount"] = (
+            int(data["patient_paid_amount"]) if data["patient_paid_amount"] is not None else None
+        )
+    if "non_covered_amount" in data:
+        updates["non_covered_amount"] = (
+            int(data["non_covered_amount"]) if data["non_covered_amount"] is not None else None
         )
 
     is_inpt = data.get("is_inpatient")
