@@ -17,8 +17,9 @@ def resolve_subscribed(case: Case, rider: Rider) -> int | None:
     """case.coverage_amounts 에서 이 특약의 '가입금액'을 찾는다.
 
     약관(riders)에는 가입금액이 없으므로 개인별 입력(coverage_amounts)에서 받는다.
-    단일 숫자로 전달된 경우 모든 특약에 동일하게 적용한다 (Case 2 비교 시나리오용).
-    못 찾으면 rider.unit_amount 로 폴백한다.
+    단일 숫자로 전달되면 모든 특약에 동일 적용한다 (Case 2 비교 시나리오용).
+    못 찾으면 None(보류) — rider.unit_amount(시드 기본값 등 임의값)로 폴백하지 않는다.
+    가입금액이 입력돼야만 정액 예상보험금을 산출한다.
     """
     ca = case.get("coverage_amounts")
     if isinstance(ca, (int, float)):
@@ -48,14 +49,19 @@ def resolve_subscribed(case: Case, rider: Rider) -> int | None:
             if item.get("rider_name") == rname or item.get("coverage_key") == rname:
                 return item.get("amount")
 
-    return rider.get("unit_amount")
+    return None
 
 
 def resolve_covered(case: Case, rider: Rider) -> int | None:
     """실손 covered_amount(보상대상 의료비)를 특약별로 찾는다.
 
-    같은 결제건이라도 급여/비급여 특약마다 보상대상 금액이 다르므로 특약별로 받는다.
-    못 찾으면 case.payment_amount(총 결제금액)로 폴백한다.
+    우선순위:
+      1) per-rider covered_amounts (특약별 직접 지정, 가장 구체적)
+      2) 급여/비급여 버킷 — claim_rule.medical_category 로 분기
+         · "비급여"(비급여·3대비급여) → case.non_covered_amount (비급여 의료비)
+         · "급여"                      → case.patient_paid_amount (급여 본인부담금)
+    못 찾으면 None(보류) — payment_amount(급여본인부담+전액본인+비급여 합계)는
+    버킷이 섞여 과대산정되므로 실손 covered 로 쓰지 않는다.
     """
     cov = case.get("covered_amounts")
     rid = rider.get("id")
@@ -81,7 +87,14 @@ def resolve_covered(case: Case, rider: Rider) -> int | None:
                     return item.get("amount")
             if item.get("rider_name") == rname or item.get("coverage_key") == rname:
                 return item.get("amount")
-    return case.get("payment_amount")
+
+    # 급여/비급여 버킷 라우팅 — "비급여"가 "급여"의 상위 문자열이므로 비급여를 먼저 본다.
+    medical_category = (rider.get("claim_rule") or {}).get("medical_category") or ""
+    if "비급여" in medical_category:
+        return case.get("non_covered_amount")
+    if "급여" in medical_category:
+        return case.get("patient_paid_amount")
+    return None
 
 
 _BIN_OPS = {

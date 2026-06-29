@@ -8,22 +8,25 @@ import { cn } from '@/lib/utils';
 
 import { formatWon } from '../utils/format';
 
-export interface CoveragePolicyRow {
-  /** 보험상품명. 같은 상품의 특약은 가입금액이 동일하므로 입력 단위로 삼는다. */
+export interface CoverageGroupRow {
+  /** 입력 단위 키: `${policy}|${kind}`. 같은 상품이라도 일당/정액은 단위가 달라 따로 입력받는다. */
+  key: string;
   policy: string;
   insurerId: InsurerId;
-  /** 이 상품에 속한 청구 가능 특약명 목록(표시용). */
+  /** daily=입원일당(1일당 단가) · fixed=진단/정액(가입금액) */
+  kind: 'daily' | 'fixed';
+  /** 이 그룹에 속한 청구 가능 특약명 목록(표시용). */
   riders: string[];
 }
 
 interface CoverageAmountFormProps {
-  policies: CoveragePolicyRow[];
-  /** 이미 입력된 가입금액(policy → amount). 값을 복원한다. */
+  groups: CoverageGroupRow[];
+  /** 이미 입력된 값(groupKey → amount). 값을 복원한다. */
   initialAmounts: Record<string, number>;
   /** 현재 예상 보험금 합계(미산출이면 null). */
   expectedAmount: number | null;
   submitting: boolean;
-  /** 입력된 보험상품별 가입금액 전체를 한 번에 전달한다(policy → amount). */
+  /** 입력된 그룹별 금액 전체를 한 번에 전달한다(groupKey → amount). */
   onApply: (amounts: Record<string, number>) => void;
   /** 하단 고정 패널의 실제 높이를 알려준다(본문 하단 여백 확보용). */
   onMeasure?: (height: number) => void;
@@ -32,11 +35,11 @@ interface CoverageAmountFormProps {
 const onlyDigits = (value: string) => value.replace(/[^0-9]/g, '');
 const formatComma = (digits: string) => (digits ? Number(digits).toLocaleString('ko-KR') : '');
 
-/** 청구 가능한 정액 보장(암/질병/상해 등)의 가입금액을 화면 하단 고정 패널에서 바로 입력받아 한 번에 재계산한다.
- *  같은 보험상품의 특약은 가입금액이 동일하므로 상품당 1개만 입력받는다.
+/** 청구 가능한 정액 보장의 (특별약관) 가입금액을 화면 하단 고정 패널에서 바로 입력받아 한 번에 재계산한다.
+ *  입원일당 특약(특별약관 가입금액=1일당 지급액)과 진단/정액 특약은 금액 규모가 달라 그룹을 나눠 입력받는다.
  *  (실손은 병원비 기준이라 여기서 다루지 않는다.) */
 export function CoverageAmountForm({
-  policies,
+  groups,
   initialAmounts,
   expectedAmount,
   submitting,
@@ -47,10 +50,7 @@ export function CoverageAmountForm({
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      policies.map(p => [
-        p.policy,
-        initialAmounts[p.policy] ? String(initialAmounts[p.policy]) : '',
-      ])
+      groups.map(g => [g.key, initialAmounts[g.key] ? String(initialAmounts[g.key]) : ''])
     )
   );
 
@@ -65,27 +65,27 @@ export function CoverageAmountForm({
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [onMeasure, policies.length]);
+  }, [onMeasure, groups.length]);
 
   const filledCount = useMemo(
     () => Object.values(values).filter(digits => Number(digits) > 0).length,
     [values]
   );
 
-  if (policies.length === 0) {
+  if (groups.length === 0) {
     return null;
   }
 
-  const handleChange = (policy: string, value: string) => {
-    setValues(prev => ({ ...prev, [policy]: onlyDigits(value) }));
+  const handleChange = (key: string, value: string) => {
+    setValues(prev => ({ ...prev, [key]: onlyDigits(value) }));
   };
 
   const handleApply = () => {
     const amounts: Record<string, number> = {};
-    for (const [policy, digits] of Object.entries(values)) {
+    for (const [key, digits] of Object.entries(values)) {
       const amount = Number(digits || 0);
       if (amount > 0) {
-        amounts[policy] = amount;
+        amounts[key] = amount;
       }
     }
     onApply(amounts);
@@ -122,7 +122,7 @@ export function CoverageAmountForm({
               {hasAmount ? '가입금액 수정하기' : '가입금액을 입력하면 바로 계산돼요'}
             </span>
             <span className="mt-0.5 block text-sm font-medium text-muted">
-              가입금액이 없어 예상 보험금을 계산하지 못했어요
+              보장 특약별 가입금액을 입력하세요
             </span>
           </span>
           <span className="flex shrink-0 items-center gap-3">
@@ -152,34 +152,47 @@ export function CoverageAmountForm({
             )}
           >
             <div className="mt-3 max-h-[min(50svh,28rem)] space-y-2 overflow-y-auto overscroll-contain px-px pb-1 scrollbar-hide">
-              {policies.map(row => (
-                <label
-                  key={row.policy}
-                  className="flex items-center gap-3 rounded-xl border border-line bg-canvas/60 px-3 py-2 sm:px-4"
-                >
-                  <InsurerLogo
-                    insurerId={row.insurerId}
-                    size="sm"
-                    className="shrink-0 rounded-full"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-bold text-ink">{row.policy}</span>
-                    <span className="block truncate text-xs font-medium text-muted">
-                      {row.riders.join(', ')}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1">
-                    <input
-                      inputMode="numeric"
-                      value={formatComma(values[row.policy] ?? '')}
-                      onChange={event => handleChange(row.policy, event.target.value)}
-                      placeholder="0"
-                      className="w-24 rounded-xl border border-line bg-surface px-3 py-2 text-right text-sm font-semibold text-ink outline-none focus:border-primary sm:w-36"
+              {groups.map(row => {
+                const isDaily = row.kind === 'daily';
+                return (
+                  <label
+                    key={row.key}
+                    className="flex items-center gap-3 rounded-xl border border-line bg-canvas/60 px-3 py-2 sm:px-4"
+                  >
+                    <InsurerLogo
+                      insurerId={row.insurerId}
+                      size="sm"
+                      className="shrink-0 rounded-full"
                     />
-                    <span className="text-sm font-medium text-muted">원</span>
-                  </span>
-                </label>
-              ))}
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate text-sm font-bold text-ink">{row.policy}</span>
+                        <span
+                          className={cn(
+                            'shrink-0 rounded-full px-1.5 py-0.5 text-[0.65rem] font-bold',
+                            isDaily ? 'bg-primary-tint text-primary' : 'bg-canvas text-muted'
+                          )}
+                        >
+                          {isDaily ? '특별약관 가입금액' : '가입금액'}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs font-medium text-muted">
+                        {row.riders.join(', ')}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1">
+                      <input
+                        inputMode="numeric"
+                        value={formatComma(values[row.key] ?? '')}
+                        onChange={event => handleChange(row.key, event.target.value)}
+                        placeholder="0"
+                        className="w-24 rounded-xl border border-line bg-surface px-3 py-2 text-right text-sm font-semibold text-ink outline-none focus:border-primary sm:w-36"
+                      />
+                      <span className="text-sm font-medium text-muted">원</span>
+                    </span>
+                  </label>
+                );
+              })}
             </div>
 
             <Button

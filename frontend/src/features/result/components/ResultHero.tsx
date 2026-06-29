@@ -19,7 +19,7 @@ export function ResultHero({
 }: ResultHeroProps) {
   const isCompare = serviceType === 'CASE2';
   const summaryText = isCompare
-    ? '입원 기간에 따른 추가 보장을 비교했습니다'
+    ? '추가로 받을 수 있는 보장과 감액 가능성을 분석했습니다'
     : hasPayableBenefits
       ? `청구 가능한 보장을 ${payableCount}개 찾았습니다`
       : '현재 조건에서 바로 청구 가능한 보장은 확인되지 않았습니다';

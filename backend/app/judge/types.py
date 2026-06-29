@@ -18,10 +18,12 @@ class Case(TypedDict):
     current_days: int
     policy_elapsed_days: int | None  # None → 면책·감액 "확인 불가"
     coverage_amounts: NotRequired[Any]  # 보장별 가입금액 [{rider_id, amount, amount_source}]
-    payment_amount: NotRequired[int | None]  # 결제금액 = 실손 covered_amount
+    payment_amount: NotRequired[int | None]  # 환자 결제 합계(급여본인+전액본인+비급여). 실손 covered 로는 안 씀
     claimed: NotRequired[list[Any]]  # 기청구 보험(보험명/ID) 목록
     is_deceased: NotRequired[bool]
     covered_amounts: NotRequired[Any]  # 실손 보상대상 의료비(특약별) [{rider_id/key, amount}]
+    patient_paid_amount: NotRequired[int | None]  # 급여 본인부담금 → 급여 실손 covered_amount
+    non_covered_amount: NotRequired[int | None]  # 비급여 의료비 → 비급여 실손 covered_amount
     # ── resolver(룰테이블)가 채워주는 정밀 매칭 입력 (없으면 judge가 키워드 폴백) ──
     disease_groups: NotRequired[list[str]]  # 이 질병이 속한 질병군 id 목록
     treatment_codes: NotRequired[list[str]]  # 표준화된 치료항목 코드 목록

@@ -38,23 +38,35 @@ def search_analysis(body: SearchRequest):
 def judge_analysis(body: SearchRequest):
     """상황 기준 보장 판정 (RAG/LLM/스냅샷을 생략한 룰 엔진 고속 판정) (SCR-04).
 
-    body.coverage_amounts 가 전달되면 DB 저장 없이 그 가입금액으로 예상 보험금을 재계산한다.
+    body.coverage_amounts 가 전달되면 DB 저장 없이 그 가입금액으로 정액 예상 보험금을 재계산한다.
+    body.patient_paid_amount/non_covered_amount 가 전달되면 실손 covered_amount 로 재계산한다.
     """
     coverage_amounts = [c.model_dump() for c in body.coverage_amounts] if body.coverage_amounts is not None else None
-    data = analysis_service.judge_analysis(g.user_id, body.case_id, coverage_amounts)
+    data = analysis_service.judge_analysis(
+        g.user_id,
+        body.case_id,
+        coverage_amounts,
+        patient_paid_amount=body.patient_paid_amount,
+        non_covered_amount=body.non_covered_amount,
+    )
     return response.ok(data)
 
 
 @bp.post("/analysis/compare", responses={200: Envelope[CompareResponse]})
 @require_auth
 def compare_scenarios(body: CompareRequest):
-    """조건별 비교 분석 (v2.1)."""
+    """조건별 비교 분석.
+
+    scenarios(v2.1 다중 시나리오)가 오면 그 형식으로, 없으면 current_days/target_days(옛 형식)로 분기한다.
+    """
     try:
-        scenarios_list = [sc.model_dump() for sc in body.scenarios]
+        scenarios_list = [sc.model_dump() for sc in body.scenarios] if body.scenarios is not None else None
         data = analysis_service.compare_scenarios(
             g.user_id,
             body.case_id,
             scenarios_list,
+            current_days=body.current_days,
+            target_days=body.target_days,
             coverage_amounts=body.coverage_amounts,
             covered_amounts=body.covered_amounts,
             patient_paid_amount=body.patient_paid_amount,

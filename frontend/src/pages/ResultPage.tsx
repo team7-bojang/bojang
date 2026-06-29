@@ -6,12 +6,13 @@ import { Stepper } from '@/components/common/Stepper';
 import { Button } from '@/components/ui/button';
 import { fetchCaseDashboard } from '@/features/case/queries';
 import { AnalysisModal } from '@/features/result/components/AnalysisModal';
+import { Case2SummaryGraph } from '@/features/result/components/Case2SummaryGraph';
 import { ClaimDocumentsSection } from '@/features/result/components/ClaimDocumentsSection';
-import { CompareSection } from '@/features/result/components/CompareSection';
 import {
   CoverageAmountForm,
-  type CoveragePolicyRow,
+  type CoverageGroupRow,
 } from '@/features/result/components/CoverageAmountForm';
+import { MedicalCostForm } from '@/features/result/components/MedicalCostForm';
 import { ResultHero } from '@/features/result/components/ResultHero';
 import { ResultSection } from '@/features/result/components/ResultSection';
 import type {
@@ -19,14 +20,10 @@ import type {
   AnalysisSearchResponse,
   AnalysisSearchResult,
   CoverageAmountInput,
+  MedicalCostInput,
 } from '@/features/result/model';
+import { judgeCaseAnalysis, searchCaseAnalysis } from '@/features/result/queries';
 import {
-  compareCaseAnalysis,
-  judgeCaseAnalysis,
-  searchCaseAnalysis,
-} from '@/features/result/queries';
-import {
-  getAdditionalAmount,
   getExpectedAmount,
   inferInsurerId,
   isConditional,
@@ -51,7 +48,7 @@ export function ResultPage() {
   const [analysis, setAnalysis] = useState<AnalysisSearchResponse | null>(() =>
     unwrapAnalysisFromState(location.state)
   );
-  const [comparison, setComparison] = useState<AnalysisCompareResponse | null>(initialComparison);
+  const [comparison] = useState<AnalysisCompareResponse | null>(initialComparison);
   const [serviceType, setServiceType] = useState<ServiceType>(
     state?.serviceType === 'CASE2' || initialComparison ? 'CASE2' : 'CASE1'
   );
@@ -63,6 +60,8 @@ export function ResultPage() {
   const [selectedRiderId, setSelectedRiderId] = useState<string | null>(null);
   // 특약별 입력한 가입금액(riderId → amount). 입력값을 누적해 전체 합계·다른 특약 금액을 유지한다.
   const [coverageAmounts, setCoverageAmounts] = useState<Record<string, number>>({});
+  // 실손 covered_amount 입력값(급여 본인부담 / 비급여 의료비). 가입금액과 함께 매 재계산에 실어 보낸다.
+  const [medicalCosts, setMedicalCosts] = useState<MedicalCostInput>({});
 
   useEffect(() => {
     if (analysis || comparison || !caseId) {
@@ -77,16 +76,7 @@ export function ResultPage() {
       }
 
       setServiceType(dashboard.service_type);
-      if (dashboard.service_type === 'CASE2') {
-        const currentDays = dashboard.dashboard.admission_days_current ?? 0;
-        const targetDays = dashboard.dashboard.admission_days_diagnosed ?? currentDays;
-        const result = await compareCaseAnalysis(caseId, currentDays, targetDays);
-        if (alive) {
-          setComparison(result);
-        }
-        return;
-      }
-
+      // CASE1·CASE2 모두 judge 결과(case2_summary 포함)로 로드한다.
       const result = await searchCaseAnalysis(caseId);
       if (alive) {
         setAnalysis(result);
@@ -120,42 +110,67 @@ export function ResultPage() {
   const results = useMemo(() => analysis?.results ?? [], [analysis]);
   const payableResults = useMemo(() => results.filter(isEligible), [results]);
   const conditionalResults = useMemo(() => results.filter(isConditional), [results]);
+  // 실손 특약이 하나라도 있으면 병원비 입력 폼을 노출한다(coverage_kind 단일 출처로 판단).
+  const hasReimbursementRiders = useMemo(
+    () => results.some(result => result.coverage_kind === '실손'),
+    [results]
+  );
   const payablePolicyNames = useMemo(
     () => [...new Set(payableResults.map(result => result.policy))],
     [payableResults]
   );
-  // 청구 가능한 정액 보장을 보험상품(policy) 단위로 묶는다.
-  // 같은 상품의 특약은 가입금액이 동일하므로 상품당 1개만 입력받고, 그 상품의 모든 특약에 적용한다.
-  const { coveragePolicies, policyRiderIds } = useMemo(() => {
+  // 청구 가능한 정액 보장을 (보험상품 × 일당/정액) 단위로 묶는다.
+  // 입원일당(1일당 단가)과 진단·정액(가입금액)은 단위가 달라 따로 입력받는다. (실손은 병원비 폼에서 처리)
+  const { coverageGroups, groupRiderIds } = useMemo(() => {
     const order: string[] = [];
-    const byPolicy = new Map<
+    const byKey = new Map<
       string,
-      { insurerId: ReturnType<typeof inferInsurerId>; riders: string[]; riderIds: string[] }
+      {
+        policy: string;
+        insurerId: ReturnType<typeof inferInsurerId>;
+        kind: 'daily' | 'fixed';
+        riders: string[];
+        riderIds: string[];
+      }
     >();
     for (const result of payableResults) {
-      if (!result.rider_id) {
+      if (!result.rider_id || result.coverage_kind === '실손') {
         continue;
       }
-      let entry = byPolicy.get(result.policy);
+      const kind: 'daily' | 'fixed' = result.is_daily ? 'daily' : 'fixed';
+      const key = `${result.policy}|${kind}`;
+      let entry = byKey.get(key);
       if (!entry) {
-        entry = { insurerId: inferInsurerId(result.policy), riders: [], riderIds: [] };
-        byPolicy.set(result.policy, entry);
-        order.push(result.policy);
+        entry = {
+          policy: result.policy,
+          insurerId: inferInsurerId(result.policy),
+          kind,
+          riders: [],
+          riderIds: [],
+        };
+        byKey.set(key, entry);
+        order.push(key);
       }
       if (!entry.riderIds.includes(result.rider_id)) {
         entry.riderIds.push(result.rider_id);
         entry.riders.push(result.rider);
       }
     }
-    const rows: CoveragePolicyRow[] = order.map(policy => {
-      const entry = byPolicy.get(policy)!;
-      return { policy, insurerId: entry.insurerId, riders: entry.riders };
+    const rows: CoverageGroupRow[] = order.map(key => {
+      const entry = byKey.get(key)!;
+      return {
+        key,
+        policy: entry.policy,
+        insurerId: entry.insurerId,
+        kind: entry.kind,
+        riders: entry.riders,
+      };
     });
     const riderIdMap: Record<string, string[]> = {};
-    for (const policy of order) {
-      riderIdMap[policy] = byPolicy.get(policy)!.riderIds;
+    for (const key of order) {
+      riderIdMap[key] = byKey.get(key)!.riderIds;
     }
-    return { coveragePolicies: rows, policyRiderIds: riderIdMap };
+    return { coverageGroups: rows, groupRiderIds: riderIdMap };
   }, [payableResults]);
 
   // 선택된 특약은 rider_id 로 보관하고 현재 results 에서 다시 찾는다.
@@ -165,22 +180,26 @@ export function ResultPage() {
     [results, selectedRiderId]
   );
 
-  // 보험상품별로 입력받은 가입금액을 그 상품의 모든 특약(rider_id)으로 펼쳐 한 번에 judge 로 보낸다.
-  // (DB 저장 없이 judge API 본문으로 직접 전달 — RAG 재탐색·extracted-info 는 거치지 않는다)
-  const handleApplyAmounts = async (amountsByPolicy: Record<string, number>) => {
+  // 가입금액(정액)과 병원비(실손)를 DB 저장 없이 judge API 본문으로 함께 보내 재계산한다.
+  // judge 재계산은 무상태라 매 호출에 두 입력을 모두 실어야 한쪽 입력이 다른 쪽을 덮어쓰지 않는다.
+  // (RAG 재탐색·extracted-info 는 거치지 않는다)
+  const recompute = async (amountsByGroup: Record<string, number>, medical: MedicalCostInput) => {
     if (!caseId) {
       return;
     }
-    setCoverageAmounts(amountsByPolicy);
     setRecomputing(true);
     try {
       const payload: CoverageAmountInput[] = [];
-      for (const [policy, amount] of Object.entries(amountsByPolicy)) {
-        for (const rider_id of policyRiderIds[policy] ?? []) {
+      for (const [key, amount] of Object.entries(amountsByGroup)) {
+        for (const rider_id of groupRiderIds[key] ?? []) {
           payload.push({ rider_id, amount, amount_source: '결과화면 입력' });
         }
       }
-      const refreshed = await judgeCaseAnalysis(caseId, payload);
+      const refreshed = await judgeCaseAnalysis(
+        caseId,
+        payload.length > 0 ? payload : undefined,
+        medical
+      );
       setAnalysis(refreshed);
       setError(null);
     } catch (err) {
@@ -190,18 +209,30 @@ export function ResultPage() {
     }
   };
 
-  const comparisonItems = comparison?.comparison ?? [];
+  // 그룹(상품×일당/정액)별 입력값을 그 그룹의 모든 특약으로 펼쳐 보낸다(현재 병원비 입력 유지).
+  const handleApplyAmounts = (amountsByGroup: Record<string, number>) => {
+    setCoverageAmounts(amountsByGroup);
+    void recompute(amountsByGroup, medicalCosts);
+  };
+
+  // 급여 본인부담·비급여 의료비를 보낸다(현재 가입금액 입력 유지).
+  const handleApplyMedicalCosts = (costs: MedicalCostInput) => {
+    setMedicalCosts(costs);
+    void recompute(coverageAmounts, costs);
+  };
+
+  const case2Summary = analysis?.case2_summary ?? null;
   const expectedAmount = getExpectedAmount(payableResults);
   const displayExpectedAmount = hasCalculationBasis(payableResults) ? expectedAmount : null;
-  const additionalAmount = getAdditionalAmount(comparisonItems);
+  const additionalAmount = case2Summary?.additional_total ?? 0;
   const heroAmount = serviceType === 'CASE2' ? additionalAmount : displayExpectedAmount;
   const hasPayableBenefits =
     serviceType === 'CASE2'
-      ? additionalAmount > 0
+      ? additionalAmount > 0 || (case2Summary?.current_total ?? 0) > 0
       : payableResults.length > 0 || heroAmount !== null;
   const displayError =
     error ??
-    (serviceType === 'CASE2' && !comparison
+    (serviceType === 'CASE2' && !analysis
       ? '비교 분석 결과가 없습니다. 입력 내용을 다시 확인해 주세요.'
       : null);
   const selectedBenefit = selectedResult ? toPayableBenefit(selectedResult) : null;
@@ -246,17 +277,48 @@ export function ResultPage() {
             />
 
             {serviceType === 'CASE2' ? (
-              <CompareSection comparison={comparisonItems} />
-            ) : (
               <>
                 <CoverageAmountForm
-                  policies={coveragePolicies}
+                  groups={coverageGroups}
                   initialAmounts={coverageAmounts}
                   expectedAmount={displayExpectedAmount}
                   submitting={recomputing}
                   onApply={handleApplyAmounts}
                   onMeasure={setPanelHeight}
                 />
+
+                {hasReimbursementRiders && (
+                  <div className="mt-6">
+                    <MedicalCostForm
+                      initial={medicalCosts}
+                      submitting={recomputing}
+                      onApply={handleApplyMedicalCosts}
+                    />
+                  </div>
+                )}
+
+                {case2Summary && <Case2SummaryGraph summary={case2Summary} />}
+              </>
+            ) : (
+              <>
+                <CoverageAmountForm
+                  groups={coverageGroups}
+                  initialAmounts={coverageAmounts}
+                  expectedAmount={displayExpectedAmount}
+                  submitting={recomputing}
+                  onApply={handleApplyAmounts}
+                  onMeasure={setPanelHeight}
+                />
+
+                {hasReimbursementRiders && (
+                  <div className="mt-6">
+                    <MedicalCostForm
+                      initial={medicalCosts}
+                      submitting={recomputing}
+                      onApply={handleApplyMedicalCosts}
+                    />
+                  </div>
+                )}
 
                 <div className="mt-6 border-t border-line pt-6">
                   <ResultSection
