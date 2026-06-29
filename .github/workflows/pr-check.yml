@@ -85,6 +85,17 @@ jobs:
           comment: true
           updateComment: true
 
+      - name: 프론트엔드 테스트 상세 리포트
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@v2
+        with:
+          name: 프론트엔드 테스트 리포트
+          path: frontend/junit.xml
+          reporter: java-junit
+          list-suites: all
+          list-tests: all
+          fail-on-error: false
+
   backend-check:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
@@ -127,6 +138,17 @@ jobs:
           detailed_summary: true
           comment: true
           updateComment: true
+
+      - name: 백엔드 테스트 상세 리포트
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@v2
+        with:
+          name: 백엔드 테스트 리포트
+          path: backend/junit.xml
+          reporter: java-junit
+          list-suites: all
+          list-tests: all
+          fail-on-error: false
 
       - name: Gunicorn boot smoke test
         run: |
