@@ -34,7 +34,7 @@ export function HeroSection() {
             </Button>
             <Button asChild size="lg" variant="outline">
               <Link to="/home?serviceType=CASE2">
-                추가보장찾기 시작하기
+                조건별 보장확인하기
                 <ArrowRight />
               </Link>
             </Button>

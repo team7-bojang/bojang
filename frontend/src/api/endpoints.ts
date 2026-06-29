@@ -22,4 +22,7 @@ export const endpoints = {
     judge: `${API_PREFIX}/analysis/judge`,
     compare: `${API_PREFIX}/analysis/compare`,
   },
+  diseases: {
+    search: `${API_PREFIX}/diseases/search`,
+  },
 } as const;

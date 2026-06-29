@@ -36,7 +36,7 @@ export function toPolicyOption(preset: PolicyPreset): PolicyOption {
     id: preset.id,
     insurerId: resolveInsurerId(preset.insurer),
     name: preset.name,
-    tags: [preset.insurer, preset.type].filter(Boolean) as string[],
+    tags: [preset.type].filter(Boolean) as string[],
   };
 }
 

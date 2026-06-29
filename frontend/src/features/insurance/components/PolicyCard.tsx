@@ -27,7 +27,7 @@ export function PolicyCard({ policy, selected, onToggle, index = 0 }: PolicyCard
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.99 }}
       className={cn(
-        'flex cursor-pointer flex-col gap-3 rounded-card border bg-surface p-4 shadow-sm transition-colors hover:shadow-md',
+        'flex h-34 cursor-pointer flex-col gap-3 rounded-card border bg-surface p-4 shadow-sm transition-colors hover:shadow-md',
         selected ? 'border-primary ring-1 ring-primary/30' : 'border-line hover:border-primary/40'
       )}
     >
@@ -52,11 +52,11 @@ export function PolicyCard({ policy, selected, onToggle, index = 0 }: PolicyCard
         />
       </div>
 
-      <div className="flex flex-wrap gap-1.5 ">
+      <div className="mt-auto flex flex-wrap justify-end gap-1.5 overflow-hidden">
         {policy.tags.map(tag => (
           <span
             key={tag}
-            className="rounded-full border items-center border-line px-2.5 py-0.5 text-xs font-medium text-muted"
+            className="flex h-6 items-center rounded-full border border-line px-2.5 text-xs font-medium leading-none text-muted"
           >
             {tag}
           </span>

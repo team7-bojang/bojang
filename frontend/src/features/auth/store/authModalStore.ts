@@ -18,6 +18,6 @@ export const useAuthModalStore = create<AuthModalState>(set => ({
   message: null,
   openAuth: (mode = 'login') => set({ isOpen: true, mode, message: null }),
   setMode: mode => set({ mode, message: null }),
-  switchToLoginWithMessage: message => set({ mode: 'login', message }),
+  switchToLoginWithMessage: message => set({ isOpen: true, mode: 'login', message }),
   close: () => set({ isOpen: false, message: null }),
 }));

@@ -1,10 +1,78 @@
 import type { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
+import { useAuthModalStore } from '@/features/auth/store/authModalStore';
 import { supabase } from '@/lib/supabase';
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 
 const initializedClients = new WeakSet<AxiosInstance>();
+const UNAUTHORIZED_MESSAGE = '로그인이 필요합니다. 다시 로그인해주세요.';
+let loginRequiredPromise: Promise<void> | null = null;
+
+async function waitForLoginAfterUnauthorized() {
+  if (loginRequiredPromise) {
+    return loginRequiredPromise;
+  }
+
+  useAuthModalStore.getState().switchToLoginWithMessage(UNAUTHORIZED_MESSAGE);
+
+  loginRequiredPromise = new Promise<void>((resolve, reject) => {
+    let unsubscribeAuth: { data: { subscription: { unsubscribe: () => void } } } | null = null;
+    let unsubscribeModal: (() => void) | null = null;
+    let settled = false;
+
+    const cleanup = () => {
+      unsubscribeAuth?.data.subscription.unsubscribe();
+      unsubscribeModal?.();
+      loginRequiredPromise = null;
+    };
+
+    const resolveAfterLogin = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      resolve();
+    };
+
+    const rejectAfterClose = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      reject(new Error('로그인이 취소되었습니다.'));
+    };
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        resolveAfterLogin();
+      }
+    });
+
+    unsubscribeAuth = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        resolveAfterLogin();
+      }
+    });
+
+    unsubscribeModal = useAuthModalStore.subscribe(state => {
+      if (!state.isOpen) {
+        void supabase.auth.getSession().then(({ data }) => {
+          if (data.session) {
+            resolveAfterLogin();
+            return;
+          }
+
+          rejectAfterClose();
+        });
+      }
+    });
+  });
+
+  return loginRequiredPromise;
+}
 
 /**
  * 인증이 필요한 axios 인스턴스에 공통 인터셉터를 등록한다.
@@ -38,13 +106,22 @@ export function setupHttpInterceptors(apiClient: AxiosInstance) {
   apiClient.interceptors.response.use(undefined, async (error: AxiosError) => {
     const config = error.config as RetriableConfig | undefined;
 
-    if (error.response?.status === 401 && config && !config._retried) {
+    if (error.response?.status !== 401) {
+      return Promise.reject(error);
+    }
+
+    if (config && !config._retried) {
       config._retried = true;
 
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (!refreshError) {
+      const { data, error: refreshError } = await supabase.auth.refreshSession();
+      if (!refreshError && data.session) {
         return apiClient(config);
       }
+    }
+
+    if (config) {
+      await waitForLoginAfterUnauthorized();
+      return apiClient(config);
     }
 
     return Promise.reject(error);

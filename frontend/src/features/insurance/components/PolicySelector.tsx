@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
+import { Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -9,11 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { INSURER_LIST } from '../data/insurers';
-import { PolicyCard } from './PolicyCard';
 import type { PolicyOption } from '../model';
+import { PolicyCard } from './PolicyCard';
 
 interface PolicySelectorProps {
   policies: PolicyOption[];
@@ -25,7 +25,7 @@ interface PolicySelectorProps {
 
 const ALL = 'all';
 
-/** "선제시 보험 선택" — 보험사 필터 + 검색 + 보험 카드 그리드. */
+/** "가입된 보험 선택" — 보험사 필터 + 검색 + 보험 카드 그리드. */
 export function PolicySelector({
   policies,
   selectedIds,
@@ -52,7 +52,7 @@ export function PolicySelector({
         className
       )}
     >
-      <h2 className="shrink-0 text-lg font-bold text-ink">선제시 보험 선택</h2>
+      <h2 className="shrink-0 text-lg font-bold text-ink">가입된 보험을 선택해주세요</h2>
 
       <div className="mt-5 flex shrink-0 flex-col gap-3 sm:flex-row">
         <Select value={insurerFilter} onValueChange={setInsurerFilter}>
@@ -80,7 +80,7 @@ export function PolicySelector({
         </div>
       </div>
 
-      <div className="scrollbar-primary mt-5 grid gap-3 py-1 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-2">
+      <div className="scrollbar-primary mt-5 grid content-start items-start gap-3 py-1 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-2">
         {loading ? (
           <PolicySelectorSkeleton />
         ) : filtered.length === 0 ? (

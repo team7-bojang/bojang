@@ -24,3 +24,7 @@ export async function fetchCaseDashboard(caseId: string) {
 export async function saveCaseDashboard(caseId: string, dashboard: CaseDashboardPatchRequest) {
   return casesApi.patchCaseDashboard(caseId, dashboard);
 }
+
+export async function searchDiseases(q: string, offset = 0, signal?: AbortSignal) {
+  return casesApi.searchDiseases(q, offset, signal);
+}

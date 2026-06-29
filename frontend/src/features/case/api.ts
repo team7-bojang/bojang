@@ -8,6 +8,7 @@ import type {
   CaseDashboardResponse,
   CreateCaseRequest,
   CreateCaseResponse,
+  DiseaseSearchResponse,
   SaveAnswersRequest,
   SaveAnswersResponse,
   SaveMedicalDetailStatementResponse,
@@ -72,6 +73,21 @@ export const casesApi = {
     const { data } = await apiClient.patch<ApiResponse<unknown>>(
       endpoints.cases.extractedInfo(caseId),
       body
+    );
+    return unwrapApiResponse(data);
+  },
+
+  async searchDiseases(
+    q: string,
+    offset = 0,
+    signal?: AbortSignal
+  ): Promise<DiseaseSearchResponse> {
+    const { data } = await apiClient.get<ApiResponse<DiseaseSearchResponse>>(
+      endpoints.diseases.search,
+      {
+        params: { q, limit: 5, offset },
+        signal,
+      }
     );
     return unwrapApiResponse(data);
   },
