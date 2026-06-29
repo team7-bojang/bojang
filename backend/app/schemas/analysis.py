@@ -14,6 +14,7 @@ class CoverageResult(BaseModel):
     rider: str
     status: str  # judge 출력 (eligible/claimed/boundary_not_met/.../potential)
     coverage_kind: str | None = None  # 정액/실손
+    is_daily: bool = False  # True=입원일당(특별약관 가입금액=1일당), False=진단/정액(가입금액)
     missed: bool = False
     gap_days: int | None = None
     estimated_amount: int = 0  # 현재 받을 수 있는 (감액 반영 후)
