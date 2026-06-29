@@ -24,6 +24,7 @@ node_modules/
 frontend/dist/
 frontend/.vite/
 *.tsbuildinfo
+.pnpm-store/
 
 # ─────────────── Coverage (테스트 커버리지 산출물) ───────────────
 coverage/
