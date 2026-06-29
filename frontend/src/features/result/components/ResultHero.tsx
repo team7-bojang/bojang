@@ -19,7 +19,7 @@ export function ResultHero({
 }: ResultHeroProps) {
   const isCompare = serviceType === 'CASE2';
   const summaryText = isCompare
-    ? '추가로 받을 수 있는 보장과 감액 가능성을 분석했습니다'
+    ? '입원 기간에 따라 받을 수 있는 보장이 달라져요'
     : hasPayableBenefits
       ? `청구 가능한 보장을 ${payableCount}개 찾았습니다`
       : '현재 조건에서 바로 청구 가능한 보장은 확인되지 않았습니다';
@@ -43,12 +43,13 @@ export function ResultHero({
         </h1>
         <p className="mt-2 text-base font-bold text-muted sm:text-lg">{summaryText}</p>
 
-        <div className="mt-7">
-          <p className="mb-3 text-base font-bold text-ink">
-            {isCompare ? '추가 예상 보험금' : '약관기준 산정금액'}
-          </p>
-          <AmountTiles amount={amount} />
-        </div>
+        {/* CASE2(입원 기간 시나리오 비교)는 금액을 다루지 않으므로 예상금액 타일을 숨긴다. */}
+        {!isCompare && (
+          <div className="mt-7">
+            <p className="mb-3 text-base font-bold text-ink">약관기준 산정금액</p>
+            <AmountTiles amount={amount} />
+          </div>
+        )}
       </div>
     </section>
   );

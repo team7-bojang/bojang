@@ -50,6 +50,47 @@ export function isConditional(result: AnalysisSearchResult) {
   return result.status === 'conditional';
 }
 
+// 가입금액(정액 단가) 입력 대상 — 현재 지급(eligible)뿐 아니라 '조건 충족 시 추가 지급'이 가능한
+// boundary_not_met(입원일수 미달)·waiting_period_not_met(면책기간 미경과)도 포함한다.
+// 이들은 같은 정액 단가를 적용받아야 judge가 '조건 충족 시 추가' 금액(additional_amount)을 산출할 수 있다.
+// (입력란은 상품 × 일당/정액 그룹 단위라, 같은 그룹의 eligible 특약과 묶여 입력 행이 늘지 않는다.)
+export function needsCoverageAmount(result: AnalysisSearchResult) {
+  return (
+    result.status === 'eligible' ||
+    result.status === 'boundary_not_met' ||
+    result.status === 'waiting_period_not_met'
+  );
+}
+
+// ── 입원 기간(일수) 시나리오 비교 (CASE2) ──
+// 입원일수로 게이팅되는 입원일당(is_daily) 특약만 비교 대상이다.
+// 진단/수술/일시금(is_daily=false)은 입원일수와 무관해 시나리오 비교에서 제외한다.
+export function isDailyRider(result: AnalysisSearchResult) {
+  return result.is_daily === true;
+}
+
+// 현재 입원일수 기준 바로 청구 가능한 입원일당 보장.
+export function isDailyClaimableNow(result: AnalysisSearchResult) {
+  return isDailyRider(result) && result.status === 'eligible';
+}
+
+// 더 입원(의사 권고일수)하면 조건을 충족해 '새로' 청구 가능해지는 입원일당 보장.
+// judge가 낸 boundary 미달(gap_days = 임계일수 − 현재일수)을 목표일수가 메우는지로 판단한다.
+// (판정을 다시 하지 않고 judge 출력 status·gap_days만 해석한다.)
+export function becomesDailyClaimableAt(
+  result: AnalysisSearchResult,
+  currentDays: number,
+  targetDays: number
+) {
+  return (
+    isDailyRider(result) &&
+    result.status === 'boundary_not_met' &&
+    result.gap_days !== null &&
+    result.gap_days !== undefined &&
+    targetDays >= currentDays + result.gap_days
+  );
+}
+
 export function inferInsurerId(policy: string): InsurerId {
   if (policy.includes('KB')) {
     return 'kb';
