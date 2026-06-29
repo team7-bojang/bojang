@@ -17,6 +17,8 @@ export interface CaseDashboard {
   surgery: boolean;
   annual_visit_count: number | null;
   policy_elapsed_days: number | null;
+  patient_paid_amount: number | null;
+  non_covered_amount: number | null;
 }
 
 export interface TreatmentType {

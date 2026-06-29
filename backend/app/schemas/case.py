@@ -292,6 +292,8 @@ class DashboardData(BaseModel):
     surgery: bool | None = None
     annual_visit_count: int | None = None
     policy_elapsed_days: int | None = None
+    patient_paid_amount: int | None = None
+    non_covered_amount: int | None = None
 
     model_config = {"json_schema_extra": {"example": _DASHBOARD_EXAMPLE}}
 
@@ -328,6 +330,8 @@ class DashboardPatchRequest(BaseModel):
     visit_date: Any | None = None
     annual_visit_count: int | None = None
     policy_elapsed_days: int | None = None
+    patient_paid_amount: int | None = None
+    non_covered_amount: int | None = None
 
 
 class DashboardPatchResponse(BaseModel):
