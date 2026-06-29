@@ -35,8 +35,8 @@ interface CoverageAmountFormProps {
 const onlyDigits = (value: string) => value.replace(/[^0-9]/g, '');
 const formatComma = (digits: string) => (digits ? Number(digits).toLocaleString('ko-KR') : '');
 
-/** 청구 가능한 정액 보장의 가입금액/일당 단가를 화면 하단 고정 패널에서 바로 입력받아 한 번에 재계산한다.
- *  입원일당(1일당 단가)과 진단/정액(가입금액)은 단위가 다르므로 그룹을 나눠 입력받는다.
+/** 청구 가능한 정액 보장의 (특별약관) 가입금액을 화면 하단 고정 패널에서 바로 입력받아 한 번에 재계산한다.
+ *  입원일당 특약(특별약관 가입금액=1일당 지급액)과 진단/정액 특약은 금액 규모가 달라 그룹을 나눠 입력받는다.
  *  (실손은 병원비 기준이라 여기서 다루지 않는다.) */
 export function CoverageAmountForm({
   groups,
@@ -119,10 +119,10 @@ export function CoverageAmountForm({
         >
           <span className="min-w-0">
             <span className="block text-md font-bold text-ink">
-              {hasAmount ? '가입금액 수정하기' : '가입금액·일당 단가를 입력하면 바로 계산돼요'}
+              {hasAmount ? '가입금액 수정하기' : '가입금액을 입력하면 바로 계산돼요'}
             </span>
             <span className="mt-0.5 block text-sm font-medium text-muted">
-              입원일당은 1일당 단가, 진단·정액은 가입금액을 입력하세요
+              보장 특약별 가입금액을 입력하세요
             </span>
           </span>
           <span className="flex shrink-0 items-center gap-3">
@@ -173,7 +173,7 @@ export function CoverageAmountForm({
                             isDaily ? 'bg-primary-tint text-primary' : 'bg-canvas text-muted'
                           )}
                         >
-                          {isDaily ? '입원일당 · 1일당 단가' : '가입금액'}
+                          {isDaily ? '특별약관 가입금액' : '가입금액'}
                         </span>
                       </span>
                       <span className="mt-0.5 block truncate text-xs font-medium text-muted">
@@ -188,9 +188,7 @@ export function CoverageAmountForm({
                         placeholder="0"
                         className="w-24 rounded-xl border border-line bg-surface px-3 py-2 text-right text-sm font-semibold text-ink outline-none focus:border-primary sm:w-36"
                       />
-                      <span className="text-sm font-medium text-muted">
-                        {isDaily ? '원/일' : '원'}
-                      </span>
+                      <span className="text-sm font-medium text-muted">원</span>
                     </span>
                   </label>
                 );
