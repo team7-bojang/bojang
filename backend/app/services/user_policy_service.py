@@ -482,7 +482,7 @@ def _clone_riders(source_policy_id: str, target_policy_id: str, query_hash: str)
             for c in new_chunks:
                 c["rider_id"] = new_id
                 c["embedding"] = embedding_by_content[c["content"]]
-                db.table("rider_chunks").insert(c).execute()
+            db.table("rider_chunks").insert(new_chunks).execute()
 
         cloned.append(new_row)
 
@@ -554,21 +554,46 @@ def get_or_parse_riders(
         )
         if shared_res.data:
             source_policy_id = shared_res.data[0]["policy_id"]
-            cloned = _clone_riders(source_policy_id, policy_id, q_hash)
+
+            # ── 캐시 선점 먼저 (복제 전에) — 동시 요청의 중복 복제 방지 + 복제 실패 시 고아 행 없음 ──
+            try:
+                db.table("policy_parse_cache").insert(
+                    {"policy_id": policy_id, "query_hash": q_hash, "content_key": content_key}
+                ).execute()
+            except Exception as e:
+                err_str = str(e).lower()
+                if "duplicate" in err_str or "unique" in err_str:
+                    # 다른 요청이 이미 선점(복제 또는 LLM 파싱) → 그 결과를 그대로 재조회
+                    existing = (
+                        db.table("riders")
+                        .select("*")
+                        .eq("policy_id", policy_id)
+                        .eq("parse_query_hash", q_hash)
+                        .execute()
+                    )
+                    return existing.data or []
+                raise
+
+            try:
+                cloned = _clone_riders(source_policy_id, policy_id, q_hash)
+            except Exception:
+                # 복제 중 실패 — 선점한 캐시 행과 부분 복제된 riders(있다면)를 함께 정리
+                db.table("policy_parse_cache").delete().eq("policy_id", policy_id).eq("query_hash", q_hash).execute()
+                db.table("riders").delete().eq("policy_id", policy_id).eq("parse_query_hash", q_hash).execute()
+                print(
+                    "[user_policy_service] policy_parse_cache shared_clone_failed_rollback "
+                    f"policy_id={policy_id} source_policy_id={source_policy_id} query_hash={q_hash}"
+                )
+                raise
+
             if not cloned:
+                # source 쪽 riders가 아직 저장되지 않은 race(동시 진행 중인 파싱) — 선점한 빈 캐시 행 정리 후 일반 파싱으로 진행
+                db.table("policy_parse_cache").delete().eq("policy_id", policy_id).eq("query_hash", q_hash).execute()
                 print(
                     "[user_policy_service] policy_parse_cache shared_stale "
                     f"policy_id={policy_id} source_policy_id={source_policy_id} query_hash={q_hash}"
                 )
             else:
-                try:
-                    db.table("policy_parse_cache").insert(
-                        {"policy_id": policy_id, "query_hash": q_hash, "content_key": content_key}
-                    ).execute()
-                except Exception as e:
-                    err_str = str(e).lower()
-                    if "duplicate" not in err_str and "unique" not in err_str:
-                        raise
                 print(
                     "[user_policy_service] policy_parse_cache shared_hit "
                     f"policy_id={policy_id} source_policy_id={source_policy_id} "
