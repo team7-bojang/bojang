@@ -13,6 +13,8 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 dist/
 build/
@@ -22,6 +24,9 @@ node_modules/
 frontend/dist/
 frontend/.vite/
 *.tsbuildinfo
+
+# ─────────────── Coverage (테스트 커버리지 산출물) ───────────────
+coverage/
 
 # ─────────────── Data (원본/대용량 산출물) ───────────────
 # 원본 약관 PDF 및 파싱 산출물은 커밋하지 않음 (README 정책)
