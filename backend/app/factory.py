@@ -31,7 +31,7 @@ def create_app() -> OpenAPI:
     (flask-openapi3 의 app 레벨 responses 는 블루프린트 라우트로 전파되지 않음.)
     """
     app = OpenAPI(__name__, info=_info, security_schemes=_security_schemes)
-    app.config["JSON_AS_ASCII"] = False  # 한글 응답 그대로 직렬화
+    app.json.ensure_ascii = False  # 한글 응답을 \uXXXX 이스케이프 없이 그대로 직렬화 (Flask 2.3+: JSON_AS_ASCII 폐기됨)
     app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024  # 업로드(약관 PDF·세부산정내역서 PDF/사진) 크기 상한 15MB
 
     CORS(app, origins=settings.cors_origins)

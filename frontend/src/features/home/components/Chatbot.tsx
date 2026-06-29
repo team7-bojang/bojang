@@ -152,11 +152,11 @@ export function Chatbot({
             <Lock className="size-6" />
           </span>
           <div>
-            <p className="text-sm font-semibold text-ink">먼저 분석할 보험을 선택해주세요</p>
+            <p className="text-sm font-semibold text-ink">먼저 가입한 보험을 선택해주세요</p>
             <p className="mt-1 text-sm leading-6 text-muted">
-              보험을 선택하거나 약관 PDF를 올리면
+              그다음 챗봇에게 병원에 다녀온 상황을 편하게 알려주시면
               <br />
-              상황 입력을 시작할 수 있어요.
+              보장을 확인해드려요.
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Stepper } from '@/components/common/Stepper';
 import { Button } from '@/components/ui/button';
@@ -85,7 +85,13 @@ export function HomePage() {
       <AppHeader />
 
       <div className="shrink-0 border-b border-line bg-surface/80">
-        <div className="mx-auto max-w-7xl px-5 py-3 sm:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:px-8">
+          <Button asChild variant="ghost" size="sm" className="w-fit shrink-0 text-muted">
+            <Link to="/">
+              <ArrowLeft />
+              홈으로
+            </Link>
+          </Button>
           <Stepper current={1} />
         </div>
       </div>
@@ -100,7 +106,7 @@ export function HomePage() {
             selectedIds={selectedIds}
             onToggle={toggle}
             loading={loadingPolicies}
-            className="lg:min-h-0 lg:flex-8"
+            className="lg:min-h-0 lg:flex-1"
           />
           {uploadingPolicy && (
             <p className="rounded-card border border-line bg-surface px-4 py-3 text-sm text-muted">
@@ -137,7 +143,7 @@ export function HomePage() {
                 setUploadingPolicy(false);
               }
             }}
-            className="lg:min-h-0 lg:flex-2"
+            className="shrink-0"
           />
 
           {/* 모바일 전용: 다음 단계로 넘어가는 스티키 CTA */}

@@ -14,6 +14,18 @@ export interface DiseaseCandidate {
   friendly_name?: string;
 }
 
+export interface DiseaseSearchResult {
+  kcd: string;
+  name: string;
+}
+
+export interface DiseaseSearchResponse {
+  has_more: boolean;
+  offset: number;
+  results: DiseaseSearchResult[];
+  total: number;
+}
+
 export type QuestionInputType =
   | 'radio_button'
   | 'select_button'

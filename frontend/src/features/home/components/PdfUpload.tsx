@@ -15,13 +15,14 @@ interface PdfUploadProps {
   className?: string;
 }
 
-/** "PDF 업로드" — 약관 PDF 업로드 + 진행률 표시. */
+/** 목록에 없는 보험 추가 — 약관 PDF 업로드 + 진행률 표시. */
 export function PdfUpload({ onSelect, className }: PdfUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [progress, setProgress] = useState(0);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
 
   const handleFile = async (file: File | undefined) => {
     if (!file) {
@@ -69,39 +70,66 @@ export function PdfUpload({ onSelect, className }: PdfUploadProps) {
           ? error
           : `PDF만 가능 · 최대 ${MAX_SIZE_MB}MB`;
 
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setDragActive(false);
+    handleFile(event.dataTransfer.files[0]);
+  };
+
   return (
     <section
       className={cn(
-        'flex flex-col rounded-card bg-surface p-5 shadow-sm ring-1 ring-line sm:p-6',
+        'flex flex-col rounded-card bg-surface p-5 shadow-sm ring-1 ring-line sm:p-6 lg:p-4',
         className
       )}
     >
-      <h2 className="shrink-0 text-lg font-bold text-ink">PDF 업로드</h2>
+      <div className="shrink-0">
+        <h2 className="text-lg font-bold text-ink lg:text-base">목록에 없는 보험 추가하기</h2>
+      </div>
 
-      <div className="mt-3 flex flex-1 flex-col justify-center gap-2.5 rounded-card border-2 border-dashed border-line bg-canvas px-4 py-3 lg:min-h-0">
+      <div
+        className={cn(
+          'mt-3 flex flex-col justify-center gap-2 rounded-card border-2 border-dashed bg-canvas px-4 py-2.5 transition-colors lg:mt-2 lg:py-2',
+          dragActive ? 'border-primary bg-primary-tint/35' : 'border-line'
+        )}
+        onDragEnter={event => {
+          event.preventDefault();
+          setDragActive(true);
+        }}
+        onDragOver={event => {
+          event.preventDefault();
+          setDragActive(true);
+        }}
+        onDragLeave={event => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            setDragActive(false);
+          }
+        }}
+        onDrop={handleDrop}
+      >
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <span
               className={cn(
-                'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+                'flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors',
                 status === 'done' ? 'bg-success-tint text-success' : 'bg-primary-tint text-primary'
               )}
             >
               {status === 'done' ? (
                 <motion.span initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="flex">
-                  <CheckCircle2 className="size-5" />
+                  <CheckCircle2 className="size-4" />
                 </motion.span>
               ) : (
-                <FileText className="size-5" />
+                <FileText className="size-4" />
               )}
             </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-ink">
-                {fileName ?? '보험 약관 PDF를 업로드 해주세요'}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-ink lg:text-xs">
+                {fileName ?? '목록에 내 보험이 없다면 약관 PDF를 직접 올려주세요.'}
               </p>
               <p
                 className={cn(
-                  'truncate text-xs',
+                  'truncate text-xs lg:text-[11px]',
                   status === 'error' ? 'text-red-500' : 'text-muted'
                 )}
               >
@@ -147,7 +175,10 @@ export function PdfUpload({ onSelect, className }: PdfUploadProps) {
           type="file"
           accept="application/pdf"
           className="hidden"
-          onChange={event => handleFile(event.target.files?.[0])}
+          onChange={event => {
+            handleFile(event.target.files?.[0]);
+            event.target.value = '';
+          }}
         />
       </div>
     </section>

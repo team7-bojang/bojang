@@ -18,6 +18,24 @@ export const SCENARIOS: Scenario[] = [
     tag: '진단',
     emoji: '🎗️',
   },
+  {
+    id: 'diagnosis-discharge-date',
+    question: '진단일과 퇴원일이 달라요. 입원 보장에 영향이 있을까요?',
+    tag: '입원',
+    emoji: '📅',
+  },
+  {
+    id: 'thyroid-cancer-early',
+    question: '갑상선암 진단, 가입 초기에도 청구 가능할까요?',
+    tag: '진단',
+    emoji: '🎗️',
+  },
+  {
+    id: 'short-hospitalization',
+    question: '짧게 입원했는데도 받을 수 있는 보장이 있을까요?',
+    tag: '입원',
+    emoji: '🏥',
+  },
   { id: 'surgery', question: '백내장 수술을 했는데 청구할 수 있나요?', tag: '수술', emoji: '👁️' },
   {
     id: 'childbirth',
