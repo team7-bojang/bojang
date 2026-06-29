@@ -128,7 +128,9 @@ export function HomePage() {
                 });
               } catch (error) {
                 const message =
-                  error instanceof Error ? error.message : '약관 PDF 업로드에 실패했습니다.';
+                  error instanceof Error
+                    ? error.message
+                    : '약관 PDF 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.';
                 setPolicyError(message);
                 throw error instanceof Error ? error : new Error(message);
               } finally {

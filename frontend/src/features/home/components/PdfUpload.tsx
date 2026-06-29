@@ -50,7 +50,11 @@ export function PdfUpload({ onSelect, className }: PdfUploadProps) {
       setStatus('done');
     } catch (err) {
       setStatus('error');
-      setError(err instanceof Error ? err.message : '업로드에 실패했습니다.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : '약관 PDF 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.'
+      );
     }
   };
 
