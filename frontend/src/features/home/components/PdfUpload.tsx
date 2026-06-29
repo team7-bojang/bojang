@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { CheckCircle2, FileText, Upload } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -10,23 +10,20 @@ const MAX_SIZE_MB = 15;
 type UploadStatus = 'idle' | 'uploading' | 'done' | 'error';
 
 interface PdfUploadProps {
-  onSelect?: (file: File) => void;
+  /** 전송 중에는 onProgress로 실제 진행률을 보고하고, 서버 처리까지 끝나야 resolve 한다. */
+  onSelect?: (file: File, onProgress: (percent: number) => void) => Promise<void>;
   className?: string;
 }
 
 /** "PDF 업로드" — 약관 PDF 업로드 + 진행률 표시. */
 export function PdfUpload({ onSelect, className }: PdfUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const timerRef = useRef<number | undefined>(undefined);
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [progress, setProgress] = useState(0);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // 컴포넌트 언마운트 시 진행률 타이머 정리.
-  useEffect(() => () => window.clearInterval(timerRef.current), []);
-
-  const handleFile = (file: File | undefined) => {
+  const handleFile = async (file: File | undefined) => {
     if (!file) {
       return;
     }
@@ -46,25 +43,22 @@ export function PdfUpload({ onSelect, className }: PdfUploadProps) {
     setStatus('uploading');
     setProgress(0);
 
-    // TODO: 실제 업로드 연동 시 axios onUploadProgress 값으로 setProgress 교체.
-    window.clearInterval(timerRef.current);
-    timerRef.current = window.setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          window.clearInterval(timerRef.current);
-          setStatus('done');
-          // 업로드 성공 후에만 스토어에 반영 (실패 시 잔류 방지).
-          onSelect?.(file);
-          return 100;
-        }
-        return prev + 8;
-      });
-    }, 90);
+    try {
+      // 전송(0~100%) 이후 서버의 텍스트 추출이 끝나야 resolve 되므로, 그 사이는 진행률 100%로 고정한 채 "처리 중" 문구로 안내한다.
+      await onSelect?.(file, percent => setProgress(percent));
+      setProgress(100);
+      setStatus('done');
+    } catch (err) {
+      setStatus('error');
+      setError(err instanceof Error ? err.message : '업로드에 실패했습니다.');
+    }
   };
 
   const subText =
     status === 'uploading'
-      ? `업로드 중... ${Math.min(progress, 100)}%`
+      ? progress >= 100
+        ? '처리 중...'
+        : `업로드 중... ${progress}%`
       : status === 'done'
         ? '업로드 완료'
         : status === 'error'
