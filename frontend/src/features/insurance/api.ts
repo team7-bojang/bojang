@@ -43,9 +43,10 @@ export const policiesApi = {
       formData,
       {
         onUploadProgress: event => {
-          if (onProgress && event.total) {
-            onProgress(Math.round((event.loaded / event.total) * 100));
+          if (!onProgress) {
+            return;
           }
+          onProgress(event.total ? Math.round((event.loaded / event.total) * 100) : 99);
         },
       }
     );
