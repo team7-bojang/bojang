@@ -16,7 +16,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'cancer',
     question: '갑상선암 진단을 받았어요. 받을 수 있는 보험금이 있을까요?',
     tag: '진단',
-    emoji: '🎗️',
+    emoji: '📄',
   },
   {
     id: 'diagnosis-discharge-date',
@@ -28,7 +28,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'thyroid-cancer-early',
     question: '갑상선암 진단, 가입 초기에도 청구 가능할까요?',
     tag: '진단',
-    emoji: '🎗️',
+    emoji: '📄',
   },
   {
     id: 'short-hospitalization',
@@ -43,17 +43,10 @@ export const SCENARIOS: Scenario[] = [
     tag: '출산',
     emoji: '👶',
   },
-  { id: 'pet', question: '반려견 치료비도 청구 대상이 되나요?', tag: '특약', emoji: '🐶' },
   {
     id: 'dental',
     question: '임플란트 치료, 놓친 치아 보장이 있는지 궁금해요.',
     tag: '치과',
     emoji: '🦷',
-  },
-  {
-    id: 'mental',
-    question: '공황장애로 통원 치료 중인데 청구 가능할까요?',
-    tag: '통원',
-    emoji: '🧠',
   },
 ];

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { AppHeader } from '@/components/common/AppHeader';
 import { Stepper } from '@/components/common/Stepper';
 import { Button } from '@/components/ui/button';
 import { fetchCaseDashboard, saveCaseDashboard } from '@/features/case/queries';
@@ -12,17 +13,13 @@ import { ConfirmActions } from '@/features/confirm/components/ConfirmActions';
 import { ConfirmFormSkeleton } from '@/features/confirm/components/ConfirmFormSkeleton';
 import { DiagnosisSection } from '@/features/confirm/components/DiagnosisSection';
 import { PolicyEnrollmentSection } from '@/features/confirm/components/PolicyEnrollmentSection';
-import { getPolicyElapsedLabel } from '@/features/confirm/policyElapsed';
 import { TreatmentSection } from '@/features/confirm/components/TreatmentSection';
-import { getTreatmentCode, getTreatmentDisplayName } from '@/features/confirm/treatmentTypes';
 import { VisitSection } from '@/features/confirm/components/VisitSection';
-import { AppHeader } from '@/components/common/AppHeader';
-import { INSURERS } from '@/features/insurance/data/insurers';
-import { fetchMyPolicyOptions } from '@/features/insurance/queries';
-import type { PolicyOption } from '@/features/insurance/model';
+import { getPolicyElapsedLabel } from '@/features/confirm/policyElapsed';
+import { getTreatmentCode, getTreatmentDisplayName } from '@/features/confirm/treatmentTypes';
 import { searchCaseAnalysis } from '@/features/result/queries';
-import type { CaseDashboard, ServiceType, TreatmentType } from '@/types/case';
 import { cn } from '@/lib/utils';
+import type { CaseDashboard, DashboardPolicy, ServiceType, TreatmentType } from '@/types/case';
 import { ChevronDown } from 'lucide-react';
 
 const MIN_SKELETON_MS = 500;
@@ -54,11 +51,17 @@ function summarizeVisit(form: CaseDashboard) {
   return `${formatWon(form.payment_amount)} · ${visits}`;
 }
 
-function summarizeClaim(claimedPolicyIds: string[], analysisTargets: ClaimOption[]) {
-  const claimed =
-    claimedPolicyIds.length > 0 ? `기청구 ${claimedPolicyIds.length}개` : '기청구 없음';
-  const targets =
-    analysisTargets.length > 0 ? `분석 대상 ${analysisTargets.length}개` : '분석 대상 없음';
+function summarizeClaim(
+  claimedPolicyIds: string[],
+  analysisTargets: ClaimOption[],
+  claimOptions: ClaimOption[]
+) {
+  const labelOf = (id: string) => claimOptions.find(option => option.id === id)?.label ?? id;
+  const claimedNames = claimedPolicyIds.map(labelOf);
+  const claimed = `이미 청구한 보험: ${claimedNames.length > 0 ? claimedNames.join(', ') : '없음'}`;
+  const targets = `확인할 보험: ${
+    analysisTargets.length > 0 ? analysisTargets.map(target => target.label).join(', ') : '없음'
+  }`;
 
   return `${claimed} · ${targets}`;
 }
@@ -102,8 +105,6 @@ function AccordionSection({
 export function CaseReviewPage() {
   const { caseId = '' } = useParams();
   const navigate = useNavigate();
-  const selectedPolicyIds = useCaseStore(state => state.selectedPolicyIds);
-  const selectedPolicies = useCaseStore(state => state.selectedPolicies);
   const uploadedPdfs = useCaseStore(state => state.uploadedPdfs);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -112,7 +113,7 @@ export function CaseReviewPage() {
   const [serviceType, setServiceType] = useState<ServiceType>('CASE1');
   const [saving, setSaving] = useState(false);
   const [claimedPolicyIds, setClaimedPolicyIds] = useState<string[]>([]);
-  const [fetchedPolicyOptions, setFetchedPolicyOptions] = useState<PolicyOption[]>([]);
+  const [dashboardPolicies, setDashboardPolicies] = useState<DashboardPolicy[]>([]);
   const [treatmentTypes, setTreatmentTypes] = useState<TreatmentType[]>([]);
   const [openSections, setOpenSections] = useState<ConfirmSectionId[]>(['diagnosis']);
 
@@ -130,6 +131,7 @@ export function CaseReviewPage() {
           setForm(res.dashboard);
           setServiceType(res.service_type);
           setTreatmentTypes(res.treatment_types ?? []);
+          setDashboardPolicies(res.policies ?? []);
           setLoading(false);
         }
       } catch {
@@ -146,30 +148,6 @@ export function CaseReviewPage() {
       alive = false;
     };
   }, [caseId, reloadKey]);
-
-  useEffect(() => {
-    if (selectedPolicies.length > 0) {
-      return;
-    }
-
-    let alive = true;
-    const loadPolicyOptions = async () => {
-      try {
-        const options = await fetchMyPolicyOptions();
-        if (alive) {
-          setFetchedPolicyOptions(options);
-        }
-      } catch (error) {
-        console.warn('[Policies] 내 보험 목록 조회 실패:', error);
-      }
-    };
-
-    void loadPolicyOptions();
-
-    return () => {
-      alive = false;
-    };
-  }, [selectedPolicies]);
 
   useEffect(() => {
     if (!saving) {
@@ -206,19 +184,14 @@ export function CaseReviewPage() {
   const toggleClaimed = (id: string) =>
     setClaimedPolicyIds(prev => (prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]));
 
-  const policyOptions = selectedPolicies.length > 0 ? selectedPolicies : fetchedPolicyOptions;
-
-  // 홈에서 선택/업로드한 보험만 후보로 (선택 보험 + 업로드 PDF).
-  const claimOptions: ClaimOption[] = [
-    ...(selectedPolicyIds.length > 0
-      ? selectedPolicyIds
-      : policyOptions.map(policy => policy.id)
-    ).map(id => {
-      const policy = policyOptions.find(p => p.id === id);
-      return { id, label: policy ? INSURERS[policy.insurerId].name : id };
-    }),
-    ...uploadedPdfs.map(pdf => ({ id: pdf.id, label: pdf.name })),
-  ];
+  // 청구 후보 = 대시보드 응답의 케이스 보험 (서버가 진실의 원천 → 새로고침에도 일관).
+  // 업로드 PDF는 스토어에 파일명이 있으면 그 라벨을 우선 사용한다.
+  const claimOptions: ClaimOption[] = dashboardPolicies
+    .filter((policy): policy is DashboardPolicy & { id: string } => Boolean(policy.id))
+    .map(policy => {
+      const uploaded = uploadedPdfs.find(pdf => pdf.id === policy.id);
+      return { id: policy.id, label: uploaded?.name ?? policy.insurer ?? policy.name };
+    });
 
   // 분석 대상 = 후보 − 기청구 보험 (자동 계산, 잠금 표시).
   const analysisTargets = claimOptions.filter(o => !claimedPolicyIds.includes(o.id));
@@ -244,7 +217,15 @@ export function CaseReviewPage() {
       await saveCaseDashboard(caseId, dashboardPayload);
       // CASE1·CASE2 모두 judge 결과(analysis, case2_summary 포함)로 분석한다.
       const analysis = await searchCaseAnalysis(caseId);
-      navigate(`/cases/${caseId}/result`, { state: { analysis, serviceType } });
+      // CASE2 그래프에 필요한 입원일수는 여기서 이미 알고 있으므로 함께 넘긴다(결과 페이지의 대시보드 재호출 방지).
+      const scenarioDays =
+        form.admission_days_current !== null && form.admission_days_current !== undefined
+          ? {
+              current: form.admission_days_current,
+              target: form.admission_days_diagnosed ?? form.admission_days_current,
+            }
+          : null;
+      navigate(`/cases/${caseId}/result`, { state: { analysis, serviceType, scenarioDays } });
     } catch {
       setError(true);
     } finally {
@@ -268,10 +249,12 @@ export function CaseReviewPage() {
           !saving && !loading && !error && form ? 'pb-40 sm:pb-32' : 'pb-8'
         )}
       >
-        <h1 className="text-2xl font-bold text-ink sm:text-3xl">입력하신 내용을 확인해주세요</h1>
-        <p className="mt-2 text-sm text-muted">
-          정확한 분석을 위해 아래 정보를 확인하고 입력해주세요.
-        </p>
+        {!saving && (
+          <>
+            <h1 className="text-2xl font-bold text-ink sm:text-3xl">보장 확인에 필요한 정보에요</h1>
+            <p className="mt-2 text-sm text-muted">빠진 내용이나 다른 부분이 있다면 수정해주세요</p>
+          </>
+        )}
 
         {saving ? (
           <AnalysisLoadingScreen serviceType={serviceType} />
@@ -344,7 +327,7 @@ export function CaseReviewPage() {
 
             <AccordionSection
               title="청구 보험"
-              summary={summarizeClaim(claimedPolicyIds, analysisTargets)}
+              summary={summarizeClaim(claimedPolicyIds, analysisTargets, claimOptions)}
               open={openSections.includes('claim')}
               onToggle={() => toggleSection('claim')}
             >

@@ -1,5 +1,5 @@
 import { AnimatePresence } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { Info, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,10 @@ interface PolicySelectorProps {
   onToggle: (id: string) => void;
   loading?: boolean;
   className?: string;
+  /** 선택 갯수 제한 — 'single'은 한 개만, 'multiple'은 여러 개. 기본값 'multiple'. */
+  selectionMode?: 'single' | 'multiple';
+  /** 현재 진행 중인 분석 플로우 이름 (예: "청구가능 보험 확인하기"). 배지로 표시. */
+  flowLabel?: string;
 }
 
 const ALL = 'all';
@@ -32,6 +36,8 @@ export function PolicySelector({
   onToggle,
   loading = false,
   className,
+  selectionMode = 'multiple',
+  flowLabel,
 }: PolicySelectorProps) {
   const [insurerFilter, setInsurerFilter] = useState(ALL);
   const [keyword, setKeyword] = useState('');
@@ -52,7 +58,22 @@ export function PolicySelector({
         className
       )}
     >
-      <h2 className="shrink-0 text-lg font-bold text-ink">가입된 보험을 선택해주세요</h2>
+      <div className="shrink-0">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h2 className="text-lg font-bold text-ink">가입된 보험을 선택해주세요</h2>
+          {flowLabel && (
+            <span className="rounded-full bg-primary-tint px-2.5 py-1 text-xs font-medium text-primary">
+              {flowLabel}
+            </span>
+          )}
+        </div>
+        <p className="mt-1 flex items-center gap-1 text-sm font-medium text-primary">
+          <Info className="size-3.5 shrink-0" />
+          {selectionMode === 'single'
+            ? '보험을 한 개만 선택할 수 있어요'
+            : '보험을 여러 개 선택할 수 있어요'}
+        </p>
+      </div>
 
       <div className="mt-5 flex shrink-0 flex-col gap-3 sm:flex-row">
         <Select value={insurerFilter} onValueChange={setInsurerFilter}>

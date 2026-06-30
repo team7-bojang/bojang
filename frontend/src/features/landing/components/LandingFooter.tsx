@@ -2,7 +2,7 @@ import { ShieldCheck } from 'lucide-react';
 
 const LINKS = [
   { label: '서비스 소개', href: '#hero' },
-  { label: '고객센터', href: '/home' },
+  { label: '고객센터', href: '/analyze' },
 ];
 
 /** 랜딩 하단 footer (정적). */

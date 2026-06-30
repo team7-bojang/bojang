@@ -52,7 +52,7 @@ function ResultRowBody({ result }: { result: AnalysisSearchResult }) {
         {/* 청구 가능하지만 예상 보험금이 아직 산출되지 않은 경우(가입금액 미입력)에만 안내 */}
         {isEligible(result) && result.estimated_amount <= 0 && (
           <span className="mt-1 block truncate text-sm font-medium text-muted">
-            가입 금액을 입력하시면 예상 보험금 계산이 가능합니다.
+            금액을 입력하시면 예상 보험금 계산이 가능합니다.
           </span>
         )}
       </span>

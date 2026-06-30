@@ -2,26 +2,20 @@ import { useEffect, useState } from 'react';
 
 import type { ServiceType } from '@/types/case';
 
-import { LoadingMiniGame } from './LoadingMiniGame';
+import { AdvertisementRotator } from './AdvertisementRotator';
 
 interface AnalysisLoadingScreenProps {
   serviceType: ServiceType;
 }
 
-const serviceCopy: Record<ServiceType, { title: string; description: string }> = {
-  CASE1: {
-    title: '청구 가능한 보장을 분석하고 있습니다',
-    description: '입력하신 진단·치료 정보와 선택한 보험 약관을 대조하고 있습니다.',
-  },
-  CASE2: {
-    title: '추가로 받을 수 있는 입원 보장을 비교하고 있습니다',
-    description: '현재 입원일수와 진단 기준 입원일수를 비교해 추가 보장 가능성을 계산합니다.',
-  },
+const loadingSteps: Record<ServiceType, string[]> = {
+  CASE1: ['가입 보장 확인 중', '약관 근거 대조 중', '결과 화면 준비 중'],
+  CASE2: ['입원 일수 확인 중', '추가 보장 조건 대조 중', '결과 화면 준비 중'],
 };
 
 /** 분석 요청이 끝나고 결과 페이지로 이동하기 전까지 보여주는 진행 화면. */
 export function AnalysisLoadingScreen({ serviceType }: AnalysisLoadingScreenProps) {
-  const copy = serviceCopy[serviceType];
+  const steps = loadingSteps[serviceType];
   const [progress, setProgress] = useState(7);
 
   useEffect(() => {
@@ -51,35 +45,46 @@ export function AnalysisLoadingScreen({ serviceType }: AnalysisLoadingScreenProp
 
   return (
     <section
-      className="animate-confirm-form-enter mt-6 overflow-hidden rounded-card bg-surface shadow-sm ring-1 ring-line"
+      className="animate-confirm-form-enter mt-6 overflow-hidden rounded-card bg-surface p-4 shadow-sm ring-1 ring-line sm:p-6"
       aria-busy="true"
       aria-live="polite"
     >
-      <div className="border-b border-line bg-canvas px-4 pt-4 sm:px-6 sm:pt-6">
-        <LoadingMiniGame />
-        <p className="mt-2 text-center text-xs text-muted">
-          스페이스 · 클릭 · 터치로 점프하며 기다려보세요
-        </p>
-        <div className="mt-3 pb-5">
-          <div className="flex items-center justify-between gap-3 text-sm font-semibold text-ink">
-            <span>분석 진행률</span>
-            <span>{progress}%</span>
-          </div>
-          <div className="mt-2 h-3 overflow-hidden rounded-full bg-line">
-            <div
-              className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      </div>
+      <AdvertisementRotator />
 
-      <div className="p-6 text-center sm:p-8">
-        <h2 className="text-lg font-bold text-ink sm:text-xl">{copy.title}</h2>
-        <p className="mt-2 text-sm leading-6 text-muted">{copy.description}</p>
-        <p className="mt-4 text-xs text-muted">
-          새로고침·뒤로 가기·탭 닫기를 하면 분석이 취소돼요. 잠시만 기다려주세요.
-        </p>
+      <div className="mt-5 rounded-2xl bg-canvas px-4 py-3 ring-1 ring-line">
+        <div
+          className="h-2 overflow-hidden rounded-full bg-line"
+          role="progressbar"
+          aria-label="분석 진행 상태"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={progress}
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <ol className="mt-3 grid gap-2 text-xs font-semibold text-muted sm:grid-cols-3">
+          {steps.map((step, index) => {
+            const threshold = ((index + 1) / steps.length) * 94;
+            const isReached = progress >= threshold;
+
+            return (
+              <li key={step} className="flex items-center gap-2">
+                <span
+                  className={[
+                    'flex size-5 shrink-0 items-center justify-center rounded-full text-[0.68rem]',
+                    isReached ? 'bg-primary text-white' : 'bg-surface text-muted ring-1 ring-line',
+                  ].join(' ')}
+                >
+                  {index + 1}
+                </span>
+                <span className={isReached ? 'text-ink' : undefined}>{step}</span>
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </section>
   );

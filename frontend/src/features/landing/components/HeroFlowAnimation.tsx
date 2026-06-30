@@ -19,13 +19,13 @@ const STEP_HOLD_MS: Record<StepKey, number> = {
 // 케이스별 탭 정의.
 const CASES: { key: CaseKey; label: string }[] = [
   { key: 'case1', label: '청구가능보험 찾기' },
-  { key: 'case2', label: '추가보장찾기' },
+  { key: 'case2', label: '조건별 보장 확인하기' },
 ];
 
 // 케이스별 홈 단계 타이핑 질문.
 const TYPING_TARGET: Record<CaseKey, string> = {
   case1: '허리디스크로 입원했어요. 청구가 가능할까요?',
-  case2: '받을 수 있는 보장을 더 찾고 싶어요.',
+  case2: '조건에 따라 보장이 달라지는지 확인하고 싶어요.',
 };
 
 const TYPING_SPEED_MS = 55;
