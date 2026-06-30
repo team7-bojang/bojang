@@ -1123,9 +1123,35 @@ def get_dashboard(user_id: str, case_id: str) -> dict:
     if service_type == "CASE1":
         admission_days_diagnosed = None
 
+    # 사용자가 가입/선택한 보험 조회
+    policy_ids = c.get("policy_ids") or []
+    policies = []
+    if policy_ids:
+        try:
+            res_policies = db.table("policies").select("id", "name", "insurer").in_("id", policy_ids).execute()
+            if res_policies.data:
+                policies = res_policies.data
+        except Exception as e:
+            print(f"[Dashboard] Failed to fetch selected policies: {e}")
+
+    # 사용자 display_name 조회
+    display_name = "사용자"
+    if settings.debug and user_id == "00000000-0000-0000-0000-000000000000":
+        display_name = "테스터"
+    else:
+        try:
+            user_res = db.auth.admin.get_user_by_id(user_id)
+            if user_res and user_res.user:
+                meta = user_res.user.user_metadata or {}
+                display_name = meta.get("display_name") or meta.get("full_name") or "사용자"
+        except Exception as e:
+            print(f"[Dashboard] Failed to fetch user profile metadata: {e}")
+
     return {
         "case_id": case_id,
         "service_type": service_type,
+        "policies": policies,
+        "display_name": display_name,
         "dashboard": {
             "disease_name": c.get("disease_name"),
             "disease_kcd": c.get("disease_kcd"),

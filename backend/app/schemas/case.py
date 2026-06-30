@@ -302,6 +302,8 @@ class DashboardResponse(BaseModel):
     case_id: str
     service_type: str
     dashboard: DashboardData
+    policies: list[Any] = []
+    display_name: str | None = None
 
     model_config = {
         "json_schema_extra": {
