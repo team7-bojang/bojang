@@ -25,7 +25,9 @@ if os.getenv("DEBUG", "").lower() not in ["", "0", "1", "true", "false", "yes", 
 
 HOST = os.getenv("BOJANG_MCP_HOST", "0.0.0.0")
 PORT = int(os.getenv("BOJANG_MCP_PORT", "8101"))
-MCP_DEMO_USER_ID = os.getenv("BOJANG_MCP_DEMO_USER_ID", "00000000-0000-0000-0000-000000000000")
+if not os.getenv("BOJANG_MCP_DEMO_USER_ID"):
+    raise RuntimeError("BOJANG_MCP_DEMO_USER_ID 환경변수가 없습니다. (MCP 데모 사용자 식별용 필수값)")
+MCP_DEMO_USER_ID = os.environ["BOJANG_MCP_DEMO_USER_ID"]
 MCP_DEMO_ELAPSED_DAYS = int(os.getenv("BOJANG_MCP_DEMO_ELAPSED_DAYS", "730"))
 logger = logging.getLogger(__name__)
 INJURY_PART_PATTERN = r"(손가락|발가락|손목|발목|무릎|어깨|허리|팔꿈치|팔|다리|손|발)"
@@ -226,22 +228,15 @@ def _get_public_db() -> Client:
 
 def _fetch_public_policies(query: str | None = None, limit: int = 10) -> list[dict[str, object]]:
     db = _get_public_db()
-    res = (
-        db.table("policies")
-        .select("id,name,insurer,type,is_preset")
-        .eq("is_preset", True)
-        .limit(max(limit * 3, limit))
-        .execute()
-    )
-    rows = res.data or []
+    builder = db.table("policies").select("id,name,insurer,type,is_preset").eq("is_preset", True)
 
-    if query:
-        normalized = query.replace("보험", "").strip().lower()
-        rows = [
-            row
-            for row in rows
-            if normalized in " ".join(str(row.get(key) or "") for key in ["name", "insurer", "type"]).lower()
-        ]
+    normalized = re.sub(r"[,()%]", "", query.replace("보험", "")).strip() if query else ""
+    if normalized:
+        pattern = f"%{normalized}%"
+        builder = builder.or_(f"name.ilike.{pattern},insurer.ilike.{pattern},type.ilike.{pattern}")
+
+    res = builder.limit(limit).execute()
+    rows = res.data or []
 
     return [
         {
@@ -250,7 +245,7 @@ def _fetch_public_policies(query: str | None = None, limit: int = 10) -> list[di
             "insurer": row.get("insurer"),
             "type": row.get("type"),
         }
-        for row in rows[:limit]
+        for row in rows
     ]
 
 
