@@ -52,7 +52,7 @@ const PAYMENT_TEXT_QUESTION: NextQuestion = {
 
 const MEDICAL_DETAIL_STATEMENT_QUESTION: NextQuestion = {
   question_id: 'medical_detail_statement',
-  question_text: '진료비 세부산정내역서 PDF를 업로드해 주세요.',
+  question_text: '진료비 세부산정내역서 이미지를 업로드해 주세요.',
   input_type: 'file_upload',
 };
 
@@ -225,7 +225,7 @@ export function useChatFlow({
 
         if (questionId === 'medical_detail_statement') {
           if (!(value instanceof File)) {
-            setError('PDF 파일을 선택해주세요.');
+            setError('이미지 파일을 선택해주세요.');
             return;
           }
           const res = await submitMedicalDetailStatement(caseId, value);

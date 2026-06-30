@@ -174,4 +174,33 @@ describe('QuestionPrompt', () => {
 
     expect(onAnswer).toHaveBeenCalledWith('annual_visit_count', '3회', '3회');
   });
+
+  it('file_upload: PDF와 이미지 파일을 선택하고 선택한 파일명을 표시한다', async () => {
+    const onAnswer = vi.fn();
+    const { container } = render(
+      <QuestionPrompt
+        question={{
+          question_id: 'medical_detail_statement',
+          question_text: '진료비 세부산정내역서 파일(PDF 또는 이미지)을 업로드해 주세요.',
+          input_type: 'file_upload',
+        }}
+        onAnswer={onAnswer}
+      />
+    );
+
+    const input = container.querySelector('input[type="file"]');
+
+    expect(input).toHaveAttribute(
+      'accept',
+      'application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png'
+    );
+    expect(screen.getByText('선택된 파일 없음')).toBeInTheDocument();
+    expect(screen.getByText('파일 선택')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '파일 업로드' })).toBeInTheDocument();
+
+    const file = new File(['image'], 'statement.png', { type: 'image/png' });
+    await userEvent.upload(input as HTMLInputElement, file);
+
+    expect(screen.getByText('statement.png')).toBeInTheDocument();
+  });
 });

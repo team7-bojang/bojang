@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { Check } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Check, Upload } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -302,10 +302,11 @@ function TextPrompt({ question, onAnswer, disabled }: InnerProps) {
 
 function FilePrompt({ question, onAnswer, disabled }: InnerProps) {
   const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   return (
     <form
-      className="flex flex-col gap-3"
+      className="flex max-w-full flex-col gap-3"
       onSubmit={event => {
         event.preventDefault();
         if (file) {
@@ -313,14 +314,31 @@ function FilePrompt({ question, onAnswer, disabled }: InnerProps) {
         }
       }}
     >
-      <Input
-        type="file"
-        accept="application/pdf,.pdf"
-        disabled={disabled}
-        onChange={event => setFile(event.target.files?.[0] ?? null)}
-      />
+      <div className="flex max-w-full items-center gap-2">
+        <Input
+          ref={fileInputRef}
+          type="file"
+          className="sr-only"
+          accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+          disabled={disabled}
+          onChange={event => setFile(event.target.files?.[0] ?? null)}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload aria-hidden="true" />
+          이미지 선택
+        </Button>
+        <span className="min-w-0 flex-1 truncate rounded-xl border border-line bg-surface px-3 py-2 text-sm text-muted">
+          {file?.name ?? '선택된 이미지 없음'}
+        </span>
+      </div>
       <Button type="submit" size="sm" className="self-start" disabled={disabled || !file}>
-        PDF 업로드
+        이미지 업로드
       </Button>
     </form>
   );
