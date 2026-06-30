@@ -159,17 +159,20 @@ export function ResultPage() {
 
             <div className="mt-6 border-t border-line pt-6">
               <div className="grid gap-3 sm:mx-auto sm:max-w-2xl sm:grid-cols-2">
-                <Button type="button" variant="outline" size="lg">
-                  <span className="font-tossface">📄</span>
-                  결과 다운로드
-                </Button>
                 <Button
                   type="button"
                   size="lg"
-                  onClick={() => navigate(`/analyze?serviceType=${serviceType}`)}
+                  onClick={() => navigate('/analyze?serviceType=CASE1')}
                 >
-                  <span className="font-tossface">📝</span>
-                  새로운 분석
+                  <span className="font-tossface">💸</span>새 청구가능보험 확인하기
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => navigate('/analyze?serviceType=CASE2')}
+                >
+                  <span className="font-tossface">🏥</span>새 조건별 보장 확인하기
                 </Button>
               </div>
               {analysis?.notice && (
