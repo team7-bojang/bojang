@@ -385,6 +385,43 @@ def test_get_or_parse_riders_returns_existing_on_duplicate_lock_race(monkeypatch
     assert result[0]["id"] == winning_rider["id"]
 
 
+def test_upload_pdf_reuses_existing_policy_with_null_hash(monkeypatch):
+    """pdf_hash=NULL 인 기존 행(이 기능 도입 전 업로드)이 있을 때 uq_policies_user_name_insurer 충돌 없이 재사용한다."""
+    # 과거에 업로드된 행: pdf_hash 가 아직 NULL
+    old_policy_id = "00000001-0000-0000-0000-000000000001"
+    db_instance.policies.append(
+        {
+            "id": old_policy_id,
+            "name": "KB 3.N.암 심플러스(Simple us)",  # file_name 에서 derive 된 name
+            "insurer": "직접업로드",
+            "type": "질병",
+            "is_preset": False,
+            "user_id": OWNER_ID,
+            "pdf_hash": None,  # 기존 행: pdf_hash 없음
+        }
+    )
+    # 페이지도 저장돼 있음 (정상 완료 상태)
+    db_instance.policy_pages.extend(
+        {"policy_id": old_policy_id, "page_num": p["page_num"], "text": p["text"]} for p in _pages()
+    )
+
+    def fail_extract(pdf_bytes):
+        raise AssertionError("기존 행과 페이지가 있으면 pdfplumber 를 다시 돌리면 안 됩니다.")
+
+    monkeypatch.setattr(user_policy_service, "extract_pages", fail_extract)
+
+    result = user_policy_service.upload_pdf(OWNER_ID, "KB 3.N.암 심플러스(Simple us).pdf", PDF_BYTES)
+
+    assert result["policy_id"] == old_policy_id
+    assert result["page_count"] == 2
+    # pdf_hash 역보완 됐는지 확인
+    pdf_hash = user_policy_service.hashlib.sha256(PDF_BYTES).hexdigest()
+    updated_row = next(p for p in db_instance.policies if p["id"] == old_policy_id)
+    assert updated_row["pdf_hash"] == pdf_hash
+    # 중복 insert 없이 policies 행 1개만
+    assert len(db_instance.policies) == 1
+
+
 def test_clone_riders_recomputes_embedding_when_missing(monkeypatch):
     pdf_hash = user_policy_service.hashlib.sha256(PDF_BYTES).hexdigest()
     source_policy_id = "cccccccc-cccc-cccc-cccc-cccccccccccc"
