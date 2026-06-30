@@ -35,7 +35,7 @@ const DISEASE_CONFIRMATION_MESSAGE =
 const INPUT_METHOD_QUESTION: NextQuestion = {
   question_id: 'input_method',
   question_text:
-    '상황을 확인했어요. 분석을 진행할 자료의 입력 방식을 선택해 주세요. 문자나 카드내역만 있어도 빠르게 확인할 수 있어요.',
+    '상황을 확인했어요. 분석을 진행할 자료의 입력 방식을 선택해 주세요.\n\n💳 문자나 카드내역만 있어도 빠르게 확인할 수 있어요.\n(대신 치료 내용이 부족하면 제가 짧게 몇 가지 더 여쭤볼게요)\n\n📄 진료비 세부산정내역서가 있다면 치료 항목을 직접 고르는 과정이 생략됩니다.',
   input_type: 'radio_button',
   options: [
     { value: 'PAYMENT', label: '문자·카드내역으로 빠르게 확인' },
