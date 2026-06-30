@@ -34,6 +34,7 @@ langchain-openai
 langchain-anthropic
 langchain-community
 langgraph
+mcp
 
 # ── PDF 파싱 ──
 pdfplumber
