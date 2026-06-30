@@ -6,6 +6,7 @@ Supabase의 공개/공시실 기반 프리셋 보험 데이터로 조회와 간�
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 from functools import lru_cache
@@ -25,6 +26,8 @@ if os.getenv("DEBUG", "").lower() not in ["", "0", "1", "true", "false", "yes", 
 HOST = os.getenv("BOJANG_MCP_HOST", "0.0.0.0")
 PORT = int(os.getenv("BOJANG_MCP_PORT", "8101"))
 MCP_DEMO_USER_ID = os.getenv("BOJANG_MCP_DEMO_USER_ID", "00000000-0000-0000-0000-000000000000")
+MCP_DEMO_ELAPSED_DAYS = int(os.getenv("BOJANG_MCP_DEMO_ELAPSED_DAYS", "730"))
+logger = logging.getLogger(__name__)
 INJURY_PART_PATTERN = r"(손가락|발가락|손목|발목|무릎|어깨|허리|팔꿈치|팔|다리|손|발)"
 INJURY_KEYWORDS = [
     "다쳤",
@@ -251,168 +254,6 @@ def _fetch_public_policies(query: str | None = None, limit: int = 10) -> list[di
     ]
 
 
-def _analyze_public_policy_claim(
-    policy_id: str,
-    situation: str,
-    understood: dict[str, object],
-) -> dict[str, object]:
-    db = _get_public_db()
-    policy_res = (
-        db.table("policies")
-        .select("id,name,insurer,type,is_preset")
-        .eq("id", policy_id)
-        .eq("is_preset", True)
-        .maybe_single()
-        .execute()
-    )
-    if not policy_res.data:
-        return {
-            "error": "UNKNOWN_PUBLIC_POLICY",
-            "message": "해당 policy_id의 공개/프리셋 보험을 찾지 못했습니다.",
-        }
-
-    riders_res = (
-        db.table("riders")
-        .select(
-            "id,policy_id,name,trigger_type,trigger_detail,unit_amount,unit_type,unit_basis,page,article_no,raw_text,coverage_kind"
-        )
-        .eq("policy_id", policy_id)
-        .limit(240)
-        .execute()
-    )
-    riders = riders_res.data or []
-
-    scored = sorted(
-        (_score_rider(row, situation, understood) for row in riders),
-        key=lambda item: item["score"],
-        reverse=True,
-    )
-    candidates = [item for item in scored if item["score"] > 0][:5] or scored[:5]
-
-    enriched = []
-    for item in candidates:
-        rider = item["rider"]
-        source = _fetch_rider_source(db, str(rider.get("id")))
-        enriched.append(
-            {
-                "rider_id": rider.get("id"),
-                "coverage": rider.get("name"),
-                "trigger_type": rider.get("trigger_type"),
-                "coverage_kind": rider.get("coverage_kind"),
-                "matched_reason": item["reason"],
-                "estimated_amount": _estimate_from_rider(rider, understood),
-                "amount_note": _amount_note(rider),
-                "source": source
-                or {
-                    "page": rider.get("page"),
-                    "article_no": rider.get("article_no"),
-                    "text": _shorten(str(rider.get("raw_text") or "")),
-                },
-            }
-        )
-
-    return {
-        "policy": {
-            "policy_id": policy_res.data.get("id"),
-            "name": policy_res.data.get("name"),
-            "insurer": policy_res.data.get("insurer"),
-            "type": policy_res.data.get("type"),
-        },
-        "coverage_candidates": enriched,
-        "note": "공개/프리셋 약관 데이터 기반 후보입니다. 실제 지급 확정이 아니라 약관 확인용 분석입니다.",
-    }
-
-
-def _score_rider(rider: dict[str, object], situation: str, understood: dict[str, object]) -> dict[str, object]:
-    text = " ".join(
-        str(rider.get(key) or "")
-        for key in ["name", "trigger_type", "trigger_detail", "unit_type", "unit_basis", "raw_text", "coverage_kind"]
-    )
-    disease_name = str(understood.get("disease_name") or "")
-    admitted_days = understood.get("admitted_days")
-    has_surgery = bool(understood.get("has_surgery"))
-    is_injury = bool(understood.get("is_injury"))
-    care_type = str(understood.get("care_type") or "")
-
-    score = 0
-    reasons = []
-
-    if disease_name and disease_name in text:
-        score += 4
-        reasons.append(f"{disease_name} 단어가 담보/약관 문구에 포함됩니다.")
-    if "암" in situation and "암" in text:
-        score += 3
-        reasons.append("암 관련 상황과 암 담보 단서가 맞습니다.")
-    if is_injury and any(word in text for word in ["상해", "골절", "재해"]):
-        score += 3
-        reasons.append("상해/골절 관련 단서가 맞습니다.")
-    if admitted_days is not None and "입원" in text:
-        score += 3
-        reasons.append("입원 상황과 입원 담보가 맞습니다.")
-    if has_surgery and "수술" in text:
-        score += 3
-        reasons.append("수술 상황과 수술 담보가 맞습니다.")
-    if care_type == "통원" and any(word in text for word in ["통원", "외래", "의료비", "실손"]):
-        score += 2
-        reasons.append("통원/진료 상황과 의료비 담보 단서가 맞습니다.")
-    if any(word in situation for word in ["깁스", "기브스", "부목"]) and any(word in text for word in ["골절", "상해"]):
-        score += 2
-        reasons.append("깁스/부목 상황과 상해·골절 담보 단서가 맞습니다.")
-    if any(word in situation for word in ["깁스", "기브스"]) and any(word in text for word in ["깁스", "기브스"]):
-        score += 5
-        reasons.append("깁스 치료 상황과 깁스 담보명이 직접 일치합니다.")
-    if "부목" in situation and any(word in text for word in ["부목", "깁스", "기브스"]):
-        score += 4
-        reasons.append("부목/고정 치료 상황과 깁스·부목 담보 단서가 맞습니다.")
-    if any(word in situation for word in ["꼬맸", "꿰맸", "봉합", "찢어", "베였"]) and any(
-        word in text for word in ["상해", "창상", "봉합", "처치", "치료"]
-    ):
-        score += 4
-        reasons.append("상처 봉합/처치 상황과 상해 치료 담보 단서가 맞습니다.")
-    if any(word in situation for word in ["꼬맸", "꿰맸", "봉합"]) and any(word in text for word in ["봉합", "창상"]):
-        score += 5
-        reasons.append("봉합 상황과 창상봉합 담보명이 직접 일치합니다.")
-    if not has_surgery and "수술" in text:
-        score -= 2
-
-    return {
-        "rider": rider,
-        "score": score,
-        "reason": " ".join(reasons) if reasons else "직접 매칭 단서는 약하지만 같은 보험의 후보 담보입니다.",
-    }
-
-
-def _fetch_rider_source(db: Client, rider_id: str) -> dict[str, object] | None:
-    res = db.table("rider_chunks").select("content,meta").eq("rider_id", rider_id).limit(1).execute()
-    if not res.data:
-        return None
-    row = res.data[0]
-    meta = row.get("meta") or {}
-    return {
-        "page": meta.get("page"),
-        "article_no": meta.get("article_no"),
-        "text": _shorten(row.get("content") or ""),
-    }
-
-
-def _estimate_from_rider(rider: dict[str, object], understood: dict[str, object]) -> int | None:
-    unit_amount = rider.get("unit_amount")
-    if not isinstance(unit_amount, int):
-        return None
-
-    admitted_days = understood.get("admitted_days")
-    unit_type = str(rider.get("unit_type") or "")
-    if isinstance(admitted_days, int) and "일" in unit_type:
-        return unit_amount * admitted_days
-    return unit_amount
-
-
-def _amount_note(rider: dict[str, object]) -> str:
-    if rider.get("unit_amount") is None:
-        return "DB의 unit_amount가 비어 있어 가입금액/별표/보험증권 기준 확인이 필요합니다."
-    return f"{rider.get('unit_type') or '담보'} 기준 단순 계산입니다."
-
-
 def _understand_situation(situation: str) -> dict[str, object]:
     injury_part = _extract_injury_part(situation)
     return {
@@ -453,7 +294,7 @@ def _build_mcp_dashboard_patch(
 ) -> dict[str, object]:
     care_type = understood.get("care_type")
     patch: dict[str, object] = {
-        "policy_elapsed_days": 730,
+        "policy_elapsed_days": MCP_DEMO_ELAPSED_DAYS,
         "surgery": bool(understood.get("has_surgery")),
         "annual_visit_count": 1,
     }
@@ -585,88 +426,6 @@ def _infer_care_type(text: str) -> str | None:
     return None
 
 
-def _build_claim_dashboard(
-    situation: str,
-    understood: dict[str, object],
-    analyses: list[dict[str, object]],
-) -> dict[str, object]:
-    coverages = _collect_possible_coverages(analyses)
-    care_type = understood.get("care_type") or "확인 필요"
-
-    return {
-        "claim_summary": _claim_summary(situation, understood),
-        "suspected_claim_type": care_type,
-        "possible_coverages": coverages,
-        "likely_documents": claim_documents(
-            str(care_type) if care_type in ["입원", "수술", "통원", "진단"] else "통원"
-        )["documents"],
-        "missing_info": _missing_info(understood),
-        "next_questions": _next_questions(understood),
-        "caution": "공시실/프리셋 약관 기준 후보 분석입니다. 개인 가입 담보와 가입금액은 보험증권 또는 사용자 계약 데이터가 있어야 확정할 수 있습니다.",
-    }
-
-
-def _claim_summary(situation: str, understood: dict[str, object]) -> str:
-    if understood.get("is_injury"):
-        part = understood.get("injury_part") or "신체 부위"
-        care = understood.get("care_type") or "치료"
-        care_label = "통원 치료" if care == "통원" else str(care)
-        return f"{part} 상해로 {care_label}를 받은 상황으로 보입니다."
-    disease_name = understood.get("disease_name")
-    if disease_name:
-        return f"{disease_name} 관련 청구 상황으로 보입니다."
-    return f"입력 상황: {situation}"
-
-
-def _collect_possible_coverages(analyses: list[dict[str, object]]) -> list[dict[str, object]]:
-    coverages = []
-    seen = set()
-    for analysis in analyses:
-        policy = analysis.get("policy") or {}
-        for candidate in analysis.get("coverage_candidates") or []:
-            if not isinstance(candidate, dict):
-                continue
-            coverage_key = (policy.get("name"), candidate.get("coverage"))
-            if coverage_key in seen:
-                continue
-            seen.add(coverage_key)
-            source = candidate.get("source") or {}
-            coverages.append(
-                {
-                    "policy_name": policy.get("name"),
-                    "insurer": policy.get("insurer"),
-                    "coverage": candidate.get("coverage"),
-                    "matched_reason": candidate.get("matched_reason"),
-                    "estimated_amount": candidate.get("estimated_amount"),
-                    "amount_note": candidate.get("amount_note"),
-                    "evidence": {
-                        "page": source.get("page") if isinstance(source, dict) else None,
-                        "article_no": source.get("article_no") if isinstance(source, dict) else None,
-                        "excerpt": source.get("text") if isinstance(source, dict) else None,
-                    },
-                }
-            )
-    return coverages[:5]
-
-
-def _missing_info(understood: dict[str, object]) -> list[str]:
-    missing = ["실제 가입한 보험/담보", "가입금액 또는 보장한도"]
-    if understood.get("care_type") in [None, "통원"]:
-        missing.append("진단명 또는 의사 소견")
-    if understood.get("admitted_days") is None and understood.get("care_type") == "입원":
-        missing.append("입원 일수")
-    return missing
-
-
-def _next_questions(understood: dict[str, object]) -> list[str]:
-    questions = ["실제 가입한 보험 또는 분석할 policy_id가 있나요?"]
-    if understood.get("is_injury"):
-        questions.append("진단명이 염좌/골절/타박상 중 무엇으로 나왔나요?")
-    if understood.get("care_type") == "통원":
-        questions.append("통원 치료비 영수증과 진료비 세부내역서가 있나요?")
-    return questions
-
-
 def _shorten(text: str, limit: int = 260) -> str:
     normalized = " ".join(text.split())
     if len(normalized) <= limit:
@@ -675,10 +434,10 @@ def _shorten(text: str, limit: int = 260) -> str:
 
 
 def _supabase_error(code: str, exc: Exception) -> dict[str, object]:
+    logger.exception("Supabase 공개/프리셋 데이터 조회 실패: %s", code, exc_info=exc)
     return {
         "error": code,
         "message": "Supabase 공개/프리셋 데이터 조회 중 오류가 발생했습니다.",
-        "detail": str(exc),
     }
 
 
