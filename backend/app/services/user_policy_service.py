@@ -34,6 +34,9 @@ _PARSE_MODEL = "gpt-4.1-mini"
 # PDF 업로드 제한
 _MAX_PDF_BYTES = 50 * 1024 * 1024  # 50 MB
 
+# 사용자 직접 업로드 약관의 insurer 값 (preset 약관과 구분)
+_UPLOAD_INSURER = "직접업로드"
+
 # 온디맨드 파싱 입력 페이지 제한. 기본은 비용을 줄이고, 결과가 없을 때만 확장한다.
 _DEFAULT_PARSE_MAX_PAGES = 10
 _RETRY_PARSE_MAX_PAGES = 15
@@ -158,6 +161,15 @@ def _count_policy_pages(db, policy_id: str) -> int:
     return len(page_rows.data or [])
 
 
+def _derive_name_from_filename(file_name: str) -> str:
+    """업로드 파일명에서 policies.name 값을 도출한다.
+
+    name+insurer 기준 동명 행 조회(0-2)와 policies.insert() 가 서로 다른 방식으로
+    이름을 도출하면 조회가 silent miss 되어 409 가 재발하므로, 단일 헬퍼로 공유한다.
+    """
+    return file_name.removesuffix(".pdf").replace("_", " ")
+
+
 def upload_pdf(user_id: str, file_name: str, pdf_bytes: bytes) -> dict:
     """PDF 업로드 처리.
 
@@ -194,6 +206,34 @@ def upload_pdf(user_id: str, file_name: str, pdf_bytes: bytes) -> dict:
     # ── 0-1. 다른 사용자가 이미 올린 동일 PDF 탐지 (추출 결과만 복제, 소유권은 새로 분리) ──
     other_existing = db.table("policies").select("id").eq("pdf_hash", pdf_hash).limit(1).execute()
 
+    # ── 0-2. 동명 레거시 행 감지 (pdf_hash=NULL 인 과거 행만) — uq_policies_user_name_insurer 충돌 방지 ──
+    # own_existing 은 pdf_hash 기준이라 NULL 행을 잡지 못하므로, name+insurer 기준으로 추가 확인한다.
+    # pdf_hash IS NULL 조건 필수: 이미 해시가 채워진 행(내용이 다른 동명 PDF)까지 잘못 재사용하면
+    # 기존 행의 pdf_hash/페이지가 새 PDF 내용과 불일치하게 된다.
+    # 여기서 매칭되면 other_existing(0-1, cross-user clone) 처리보다 먼저 반환한다 —
+    # 이 사용자 자신의 레거시 행에 이미 사용 가능한 페이지가 있으므로 다른 사용자 데이터를
+    # 복제할 필요가 없기 때문이며, 의도된 우선순위다.
+    derived_name = _derive_name_from_filename(file_name)
+    name_conflict = (
+        db.table("policies")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("name", derived_name)
+        .eq("insurer", _UPLOAD_INSURER)
+        .is_("pdf_hash", "null")
+        .limit(1)
+        .execute()
+    )
+    if name_conflict.data:
+        conflict_id = name_conflict.data[0]["id"]
+        page_count = _count_policy_pages(db, conflict_id)
+        if page_count > 0:
+            # pdf_hash 역보완 후 기존 policy_id 재사용
+            db.table("policies").update({"pdf_hash": pdf_hash}).eq("id", conflict_id).execute()
+            return {"policy_id": conflict_id, "page_count": page_count}
+        # 페이지 없는 불완전한 행 → 삭제 후 새로 생성
+        db.table("policies").delete().eq("id", conflict_id).execute()
+
     policy_id = str(uuid.uuid4())
 
     # ── 1. policies 행 생성 ──
@@ -201,8 +241,8 @@ def upload_pdf(user_id: str, file_name: str, pdf_bytes: bytes) -> dict:
     db.table("policies").insert(
         {
             "id": policy_id,
-            "name": file_name.replace(".pdf", "").replace("_", " "),
-            "insurer": "직접업로드",
+            "name": _derive_name_from_filename(file_name),
+            "insurer": _UPLOAD_INSURER,
             "type": "질병",  # TODO: PDF 첫 페이지 분석 후 type 자동 감지
             "is_preset": False,
             "user_id": user_id,

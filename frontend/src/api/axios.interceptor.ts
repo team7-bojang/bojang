@@ -110,6 +110,14 @@ export function setupHttpInterceptors(apiClient: AxiosInstance) {
     const config = error.config as RetriableConfig | undefined;
 
     if (error.response?.status !== 401) {
+      // 서버가 보낸 error.message 추출 (success: false 봉투 구조)
+      const body = error.response?.data as Record<string, unknown> | undefined;
+      if (body && body['success'] === false) {
+        const msg = (body['error'] as { message?: string } | undefined)?.message;
+        if (msg) {
+          return Promise.reject(new Error(msg));
+        }
+      }
       return Promise.reject(error);
     }
 

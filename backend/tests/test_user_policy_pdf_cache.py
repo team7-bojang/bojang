@@ -385,6 +385,145 @@ def test_get_or_parse_riders_returns_existing_on_duplicate_lock_race(monkeypatch
     assert result[0]["id"] == winning_rider["id"]
 
 
+def test_upload_pdf_reuses_existing_policy_with_null_hash(monkeypatch):
+    """pdf_hash=NULL 인 기존 행(이 기능 도입 전 업로드)이 있을 때 uq_policies_user_name_insurer 충돌 없이 재사용한다."""
+    # 과거에 업로드된 행: pdf_hash 가 아직 NULL
+    old_policy_id = "00000001-0000-0000-0000-000000000001"
+    db_instance.policies.append(
+        {
+            "id": old_policy_id,
+            "name": "KB 3.N.암 심플러스(Simple us)",  # file_name 에서 derive 된 name
+            "insurer": "직접업로드",
+            "type": "질병",
+            "is_preset": False,
+            "user_id": OWNER_ID,
+            "pdf_hash": None,  # 기존 행: pdf_hash 없음
+        }
+    )
+    # 페이지도 저장돼 있음 (정상 완료 상태)
+    db_instance.policy_pages.extend(
+        {"policy_id": old_policy_id, "page_num": p["page_num"], "text": p["text"]} for p in _pages()
+    )
+
+    def fail_extract(pdf_bytes):
+        raise AssertionError("기존 행과 페이지가 있으면 pdfplumber 를 다시 돌리면 안 됩니다.")
+
+    monkeypatch.setattr(user_policy_service, "extract_pages", fail_extract)
+
+    result = user_policy_service.upload_pdf(OWNER_ID, "KB 3.N.암 심플러스(Simple us).pdf", PDF_BYTES)
+
+    assert result["policy_id"] == old_policy_id
+    assert result["page_count"] == 2
+    # pdf_hash 역보완 됐는지 확인
+    pdf_hash = user_policy_service.hashlib.sha256(PDF_BYTES).hexdigest()
+    updated_row = next(p for p in db_instance.policies if p["id"] == old_policy_id)
+    assert updated_row["pdf_hash"] == pdf_hash
+    # 중복 insert 없이 policies 행 1개만
+    assert len(db_instance.policies) == 1
+
+
+def test_upload_pdf_does_not_reuse_same_name_row_with_different_hash(monkeypatch):
+    """동일 파일명이지만 pdf_hash가 이미 채워진(내용이 다른) 기존 행은 재사용하면 안 된다."""
+    other_pdf_bytes = b"%PDF-1.4 completely different content"
+    other_pdf_hash = user_policy_service.hashlib.sha256(other_pdf_bytes).hexdigest()
+    existing_policy_id = "00000002-0000-0000-0000-000000000002"
+    db_instance.policies.append(
+        {
+            "id": existing_policy_id,
+            "name": "same name",  # "same name.pdf" 에서 derive 된 이름과 동일
+            "insurer": "직접업로드",
+            "type": "질병",
+            "is_preset": False,
+            "user_id": OWNER_ID,
+            "pdf_hash": other_pdf_hash,  # 이미 다른 PDF로 채워진 정상 행
+        }
+    )
+    db_instance.policy_pages.extend(
+        {"policy_id": existing_policy_id, "page_num": p["page_num"], "text": p["text"]} for p in _pages()
+    )
+
+    extract_calls = {"count": 0}
+
+    def fake_extract_pages(pdf_bytes):
+        extract_calls["count"] += 1
+        return [{"page_num": 1, "text": "[PAGE 1]\n전혀 다른 내용의 약관입니다. " * 3}]
+
+    monkeypatch.setattr(user_policy_service, "extract_pages", fake_extract_pages)
+
+    result = user_policy_service.upload_pdf(OWNER_ID, "same name.pdf", PDF_BYTES)
+
+    # 기존 행을 잘못 재사용하지 않고 새 PDF를 실제로 추출해야 한다.
+    assert extract_calls["count"] == 1
+    assert result["policy_id"] != existing_policy_id
+
+    # 기존 행의 pdf_hash/페이지는 그대로 보존돼야 한다 (덮어쓰기 금지).
+    untouched = next(p for p in db_instance.policies if p["id"] == existing_policy_id)
+    assert untouched["pdf_hash"] == other_pdf_hash
+    untouched_pages = [p for p in db_instance.policy_pages if p["policy_id"] == existing_policy_id]
+    assert {p["text"] for p in untouched_pages} == {p["text"] for p in _pages()}
+
+
+def test_upload_pdf_deletes_stale_name_conflict_row_without_pages(monkeypatch):
+    """동명+NULL pdf_hash 행이 있지만 페이지가 없으면(불완전 행) 삭제 후 새로 추출해야 한다."""
+    stale_policy_id = "00000003-0000-0000-0000-000000000003"
+    db_instance.policies.append(
+        {
+            "id": stale_policy_id,
+            "name": "same.pdf".removesuffix(".pdf").replace("_", " "),
+            "insurer": "직접업로드",
+            "type": "질병",
+            "is_preset": False,
+            "user_id": OWNER_ID,
+            "pdf_hash": None,  # 레거시 NULL 해시
+        }
+    )
+    # 페이지 없음 (page_count == 0) — 과거 실패/수동 수정으로 행만 남은 상태를 흉내냄
+    rider_id = "00000004-0000-0000-0000-000000000004"
+    db_instance.riders.append(
+        {
+            "id": rider_id,
+            "policy_id": stale_policy_id,
+            "parse_query_hash": "stale",
+            "name": "고아 특약",
+            "is_main": False,
+            "trigger_type": "기타",
+            "trigger_detail": "",
+            "unit_amount": None,
+            "unit_type": "기타",
+            "unit_basis": None,
+            "boundaries": [],
+            "exclusions": [],
+            "limits": [],
+            "waiting_period_days": None,
+            "reductions": [],
+            "deduct_days": 0,
+            "claim_rule": None,
+            "source_pages": [],
+            "article_no": "",
+            "page": None,
+            "raw_text": "",
+            "verified": False,
+            "coverage_kind": "정액",
+        }
+    )
+
+    extract_calls = {"count": 0}
+
+    def fake_extract_pages(pdf_bytes):
+        extract_calls["count"] += 1
+        return _pages()
+
+    monkeypatch.setattr(user_policy_service, "extract_pages", fake_extract_pages)
+
+    result = user_policy_service.upload_pdf(OWNER_ID, "same.pdf", PDF_BYTES)
+
+    assert extract_calls["count"] == 1
+    assert result["policy_id"] != stale_policy_id
+    assert result["page_count"] == 2
+    # 불완전한 기존 행은 삭제됐어야 한다 (FK CASCADE 이므로 연결된 riders도 함께 제거됨)
+    assert all(p["id"] != stale_policy_id for p in db_instance.policies)
+
+
 def test_clone_riders_recomputes_embedding_when_missing(monkeypatch):
     pdf_hash = user_policy_service.hashlib.sha256(PDF_BYTES).hexdigest()
     source_policy_id = "cccccccc-cccc-cccc-cccc-cccccccccccc"
