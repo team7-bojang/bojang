@@ -194,9 +194,9 @@ describe('QuestionPrompt', () => {
       'accept',
       'application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png'
     );
-    expect(screen.getByText('선택된 파일 없음')).toBeInTheDocument();
-    expect(screen.getByText('파일 선택')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '파일 업로드' })).toBeInTheDocument();
+    expect(screen.getByText('선택된 이미지 없음')).toBeInTheDocument();
+    expect(screen.getByText('이미지 선택')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '이미지 업로드' })).toBeInTheDocument();
 
     const file = new File(['image'], 'statement.png', { type: 'image/png' });
     await userEvent.upload(input as HTMLInputElement, file);

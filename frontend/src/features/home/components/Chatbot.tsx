@@ -172,7 +172,7 @@ export function Chatbot({
             transition={{ duration: 0.3 }}
           >
             <BotAvatar />
-            <p className="rounded-2xl rounded-tl-sm bg-canvas px-4 py-3 text-sm leading-6 text-ink">
+            <p className="whitespace-pre-line rounded-2xl rounded-tl-sm bg-canvas px-4 py-3 text-sm leading-6 text-ink">
               {GREETING}
             </p>
           </motion.div>
@@ -197,7 +197,7 @@ export function Chatbot({
                 ) : (
                   <div className="flex items-start gap-3">
                     <BotAvatar />
-                    <p className="rounded-2xl rounded-tl-sm bg-canvas px-4 py-3 text-sm leading-6 text-ink">
+                    <p className="whitespace-pre-line rounded-2xl rounded-tl-sm bg-canvas px-4 py-3 text-sm leading-6 text-ink">
                       {message.text}
                     </p>
                   </div>
