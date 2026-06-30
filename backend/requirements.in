@@ -34,6 +34,7 @@ langchain-openai
 langchain-anthropic
 langchain-community
 langgraph
+mcp  # NOTE: Windows에서 pip-compile 시 requirements.txt의 pywin32 줄에 `; sys_platform == "win32"` 마커가 누락됨 — 재컴파일 후 수동 복원 필요
 
 # ── PDF 파싱 ──
 pdfplumber
