@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
+import { AppHeader } from '@/components/common/AppHeader';
 import { Stepper } from '@/components/common/Stepper';
 import { Button } from '@/components/ui/button';
 import { useCaseStore, type UploadedPdf } from '@/features/case/store/caseStore';
 import { Chatbot } from '@/features/home/components/Chatbot';
-import { AppHeader } from '@/components/common/AppHeader';
 import { PdfUpload } from '@/features/home/components/PdfUpload';
 import { PolicySelector } from '@/features/insurance/components/PolicySelector';
 import type { PolicyOption } from '@/features/insurance/model';
@@ -106,6 +106,8 @@ export function HomePage() {
             selectedIds={selectedIds}
             onToggle={toggle}
             loading={loadingPolicies}
+            selectionMode={serviceType === 'CASE2' ? 'single' : 'multiple'}
+            flowLabel={serviceType === 'CASE2' ? '조건별 보장 확인하기' : '청구가능 보험 확인하기'}
             className="lg:min-h-0 lg:flex-1"
           />
           {uploadingPolicy && (

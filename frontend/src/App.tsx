@@ -7,10 +7,11 @@ import { supabase } from '@/lib/supabase';
 import { CaseReviewPage } from '@/pages/CaseReviewPage';
 import { HomePage } from '@/pages/HomePage';
 import { LandingPage } from '@/pages/LandingPage';
+import { LoadingPreviewPage } from '@/pages/LoadingPreviewPage';
 import { ResultPage } from '@/pages/ResultPage';
 import { MotionConfig } from 'framer-motion';
 
-const PROTECTED_PATH_PREFIXES = ['/home', '/cases'];
+const PROTECTED_PATH_PREFIXES = ['/analyze', '/cases'];
 const LOGIN_REQUIRED_MESSAGE = '로그인이 필요합니다. 다시 로그인해주세요.';
 
 function AuthStateModalController() {
@@ -71,7 +72,8 @@ function App() {
         <AuthStateModalController />
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/home" element={<HomePage />} />
+          <Route path="/loading-preview" element={<LoadingPreviewPage />} />
+          <Route path="/analyze" element={<HomePage />} />
           <Route path="/cases/:caseId/review" element={<CaseReviewPage />} />
           <Route path="/cases/:caseId/result" element={<ResultPage />} />
         </Routes>

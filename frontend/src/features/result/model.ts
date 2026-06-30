@@ -139,20 +139,3 @@ export interface MissingBenefit {
 }
 
 export type Benefit = PayableBenefit | MissingBenefit;
-
-export interface AdditionalCoverageCandidate {
-  id: string;
-  title: string;
-  insurerId: InsurerId;
-  insurerName: string;
-  policyName: string;
-  potentialAmount: number;
-  condition: string;
-}
-
-export interface AdditionalCoverageResultData {
-  currentAmount: number;
-  expectedAmount: number;
-  explanation: string;
-  candidates: AdditionalCoverageCandidate[];
-}

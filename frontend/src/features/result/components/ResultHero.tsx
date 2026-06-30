@@ -18,6 +18,10 @@ export function ResultHero({
   serviceType,
 }: ResultHeroProps) {
   const isCompare = serviceType === 'CASE2';
+  // CASE2(비교)는 보장 '탐색'이 아니라 입원 기간별 '비교'이므로 제목 문구를 따로 둔다.
+  const headingText = isCompare
+    ? '내 조건에 맞는 보장 비교가 끝났어요'
+    : '숨은 보장을 쏙쏙 찾아냈어요!';
   const summaryText = isCompare
     ? '입원 기간에 따라 받을 수 있는 보장이 달라져요'
     : hasPayableBenefits
@@ -39,7 +43,7 @@ export function ResultHero({
               <ResultConfetti side="right" />
             </>
           )}
-          분석이 완료되었습니다!
+          {headingText}
         </h1>
         <p className="mt-2 text-base font-bold text-muted sm:text-lg">{summaryText}</p>
 

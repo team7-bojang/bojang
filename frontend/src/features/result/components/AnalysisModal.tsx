@@ -45,7 +45,16 @@ function HighlightedQuote({ quote, highlight }: { quote: string; highlight: stri
   );
 }
 
-export function AnalysisModal({ benefit, onClose }: { benefit: Benefit; onClose: () => void }) {
+export function AnalysisModal({
+  benefit,
+  onClose,
+  hideCalculation = false,
+}: {
+  benefit: Benefit;
+  onClose: () => void;
+  // CASE2(입원 기간 비교)는 금액 계산이 없으므로 계산내역 섹션을 숨긴다.
+  hideCalculation?: boolean;
+}) {
   const { analysis } = benefit;
 
   // 모달이 열려 있는 동안 배경(body) 스크롤을 잠근다.
@@ -111,8 +120,8 @@ export function AnalysisModal({ benefit, onClose }: { benefit: Benefit; onClose:
             </p>
           </DetailSection>
 
-          {/* '확인 필요'(조건 확인 필요) 보장은 지급 여부가 미정이라 계산내역을 표시하지 않는다. */}
-          {analysis.decision !== '확인 필요' && (
+          {/* '확인 필요'(조건 확인 필요) 보장은 지급 여부가 미정이라, CASE2 는 금액 계산이 없어 계산내역을 표시하지 않는다. */}
+          {!hideCalculation && analysis.decision !== '확인 필요' && (
             <DetailSection title="계산내역">
               <dl className="mt-3 divide-y divide-line text-sm">
                 {analysis.paymentBasis && (

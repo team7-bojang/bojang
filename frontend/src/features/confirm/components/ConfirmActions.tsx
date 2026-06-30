@@ -20,7 +20,7 @@ export function ConfirmActions({ disabled, onSubmit, className }: ConfirmActions
     >
       <p className="flex items-center gap-2 text-sm text-muted">
         <Info className="size-4 shrink-0 text-primary" />
-        선택하신 보험 중 기청구 보험을 제외한 나머지 보험이 자동으로 분석 대상에 포함됩니다.
+        이미 청구한 보험을 제외하고 나머지 보험은 자동으로 확인해드려요
       </p>
       <Button type="button" size="lg" className="shrink-0" disabled={disabled} onClick={onSubmit}>
         입력 내용 확인 완료

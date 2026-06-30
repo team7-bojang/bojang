@@ -218,7 +218,7 @@ export function ClaimDocumentsSection({ policyNames, className }: ClaimDocuments
           <span className="min-w-0">
             <span className="flex items-center gap-2 text-lg font-extrabold text-ink">
               <FileCheck2 className="size-5 text-primary" aria-hidden="true" />
-              청구 준비
+              필요한 서류 확인하기
             </span>
             <span className="mt-1 block text-xs font-semibold text-muted">
               {checkedCount} / {COMMON_CLAIM_DOCUMENTS.length} 준비 · 보험사 바로가기{' '}

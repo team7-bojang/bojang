@@ -1,8 +1,8 @@
 import { INSURERS, type InsurerId } from '@/features/insurance/data/insurers';
 import type { ServiceType } from '@/types/case';
 
+import type { CoverageGroupRow } from '../components/CoverageAmountForm';
 import type {
-  AnalysisCompareItem,
   AnalysisCompareResponse,
   AnalysisSearchResponse,
   AnalysisSearchResult,
@@ -14,6 +14,9 @@ export type ResultLocationState = {
   analysis?: AnalysisSearchResponse | { data?: AnalysisSearchResponse };
   comparison?: AnalysisCompareResponse | { data?: AnalysisCompareResponse };
   serviceType?: ServiceType;
+  // CASE2 입원 기간 비교에 필요한 입원일수. 직전 화면(검토 폼)에서 이미 알고 있으므로 넘겨,
+  // CASE2 결과 페이지가 금액 전용 대시보드를 다시 호출하지 않게 한다.
+  scenarioDays?: { current: number; target: number } | null;
 };
 
 export function unwrapAnalysisFromState(state: unknown): AnalysisSearchResponse | null {
@@ -63,6 +66,11 @@ export function needsCoverageAmount(result: AnalysisSearchResult) {
 }
 
 // ── 입원 기간(일수) 시나리오 비교 (CASE2) ──
+// 입원일수 표시 라벨('첫날' / 'N일차'). 그래프·보장 목록에서 공용으로 쓴다.
+export function dayLabel(days: number) {
+  return days <= 1 ? '첫날' : `${days}일차`;
+}
+
 // 입원일수로 게이팅되는 입원일당(is_daily) 특약만 비교 대상이다.
 // 진단/수술/일시금(is_daily=false)은 입원일수와 무관해 시나리오 비교에서 제외한다.
 export function isDailyRider(result: AnalysisSearchResult) {
@@ -160,14 +168,66 @@ export function toPayableBenefit(result: AnalysisSearchResult): PayableBenefit {
   };
 }
 
-export function getExpectedAmount(results: AnalysisSearchResult[]) {
-  return results.reduce((sum, result) => sum + (result.estimated_amount ?? 0), 0);
+// 가입금액 입력 대상(needsCoverageAmount) 결과를 (보험상품 × 일당/정액) 단위로 묶는다.
+// 입원일당(1일당 단가)과 진단·정액(가입금액)은 단위가 달라 따로 입력받고, 실손은 병원비 폼에서 처리하므로 제외한다.
+// 반환:
+//  - coverageGroups: 폼에 그릴 그룹 행(입력 순서 유지)
+//  - groupRiderIds: 그룹 키 → 그 그룹에 속한 rider_id 목록(입력값을 모든 특약으로 펼쳐 재계산할 때 사용)
+export function buildCoverageGroups(coverageInputResults: AnalysisSearchResult[]): {
+  coverageGroups: CoverageGroupRow[];
+  groupRiderIds: Record<string, string[]>;
+} {
+  const order: string[] = [];
+  const byKey = new Map<
+    string,
+    {
+      policy: string;
+      insurerId: InsurerId;
+      kind: 'daily' | 'fixed';
+      riders: string[];
+      riderIds: string[];
+    }
+  >();
+  for (const result of coverageInputResults) {
+    if (!result.rider_id || result.coverage_kind === '실손') {
+      continue;
+    }
+    const kind: 'daily' | 'fixed' = result.is_daily ? 'daily' : 'fixed';
+    const key = `${result.policy}|${kind}`;
+    let entry = byKey.get(key);
+    if (!entry) {
+      entry = {
+        policy: result.policy,
+        insurerId: inferInsurerId(result.policy),
+        kind,
+        riders: [],
+        riderIds: [],
+      };
+      byKey.set(key, entry);
+      order.push(key);
+    }
+    if (!entry.riderIds.includes(result.rider_id)) {
+      entry.riderIds.push(result.rider_id);
+      entry.riders.push(result.rider);
+    }
+  }
+  const coverageGroups: CoverageGroupRow[] = order.map(key => {
+    const entry = byKey.get(key)!;
+    return {
+      key,
+      policy: entry.policy,
+      insurerId: entry.insurerId,
+      kind: entry.kind,
+      riders: entry.riders,
+    };
+  });
+  const groupRiderIds: Record<string, string[]> = {};
+  for (const key of order) {
+    groupRiderIds[key] = byKey.get(key)!.riderIds;
+  }
+  return { coverageGroups, groupRiderIds };
 }
 
-export function getAdditionalAmount(items: AnalysisCompareItem[]) {
-  return items.reduce((sum, item) => {
-    const current = item.scenarios.at(0)?.estimated_amount ?? 0;
-    const target = item.scenarios.at(-1)?.estimated_amount ?? 0;
-    return sum + Math.max(0, target - current);
-  }, 0);
+export function getExpectedAmount(results: AnalysisSearchResult[]) {
+  return results.reduce((sum, result) => sum + (result.estimated_amount ?? 0), 0);
 }

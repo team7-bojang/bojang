@@ -21,7 +21,7 @@ export function ClaimSection({
 }: ClaimSectionProps) {
   return (
     <div className="mt-6 grid gap-6 sm:grid-cols-2">
-      <Field label="기청구 보험 (복수 선택)">
+      <Field label="이미 청구한 보험(복수 선택)">
         {claimOptions.length === 0 ? (
           <p className="text-sm text-muted">이전 화면에서 선택하거나 업로드한 보험이 없습니다.</p>
         ) : (
@@ -39,15 +39,15 @@ export function ClaimSection({
         )}
       </Field>
 
-      <Field label="선택 보험 (분석 대상)" locked>
-        <div className="flex min-h-11 flex-wrap items-center gap-1.5 rounded-xl border border-line bg-canvas px-3 py-2">
+      <Field label="확인할 보험 " locked>
+        <div className="flex min-h-11 flex-wrap content-center items-center gap-1.5 rounded-xl border border-line bg-canvas px-3 py-2">
           {analysisTargets.length === 0 ? (
             <span className="text-sm text-muted">자동으로 선택됩니다</span>
           ) : (
             analysisTargets.map(option => (
               <span
                 key={option.id}
-                className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-medium text-ink ring-1 ring-line"
+                className="inline-flex items-center justify-center rounded-full bg-surface px-2.5 py-1 text-xs font-medium leading-none text-ink ring-1 ring-line"
               >
                 {option.label}
               </span>

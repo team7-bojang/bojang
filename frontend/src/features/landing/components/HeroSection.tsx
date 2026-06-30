@@ -27,14 +27,14 @@ export function HeroSection() {
 
           <div className="flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link to="/home?serviceType=CASE1">
+              <Link to="/analyze?serviceType=CASE1">
                 청구가능보험 확인하기
                 <ArrowRight />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link to="/home?serviceType=CASE2">
-                조건별 보장확인하기
+              <Link to="/analyze?serviceType=CASE2">
+                조건별 보장 확인하기
                 <ArrowRight />
               </Link>
             </Button>
@@ -43,7 +43,7 @@ export function HeroSection() {
           {/* 신뢰 지표 — 제품 사실 기반 (누적 통계 등 미보유 데이터는 사용하지 않음) */}
           <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-4 border-t border-line pt-6">
             {[
-              ['2가지', '분석 모드'],
+              ['상황별', '챗봇 기능'],
               ['AI', '자동 분석'],
               ['100%', '약관 원문 근거'],
             ].map(([value, label]) => (

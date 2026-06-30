@@ -7,7 +7,7 @@ export function ScenarioCard({ scenario }: { scenario: Scenario }) {
   return (
     <div className="mr-5 flex w-88 shrink-0 flex-col gap-4 rounded-2xl bg-surface p-6 shadow-[0_10px_30px_-12px_rgba(13,110,102,0.25)]">
       <div className="flex items-center gap-2.5">
-        <span className="font-tossface flex size-9 items-center justify-center rounded-full bg-primary-tint text-xl">
+        <span className="font-tossface flex size-9 items-center justify-center rounded-full bg-canvas text-xl">
           {scenario.emoji}
         </span>
         <span className="rounded-full bg-primary-tint px-2.5 py-1 text-xs font-bold text-primary">
