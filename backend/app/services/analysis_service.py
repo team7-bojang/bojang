@@ -705,6 +705,7 @@ def search_analysis(user_id: str, case_id: str) -> dict:
         req_groups, excl_groups = get_disease_rules_for_rider(
             db, rider_id, rider.get("name") or "", rider.get("trigger_type")
         )
+        treatment_codes = get_rider_treatment_codes(db, rider_id, rider.get("name"))
 
         # 판정 엔진 입력에 맞게 캐스팅
         judge_case = {
@@ -746,8 +747,8 @@ def search_analysis(user_id: str, case_id: str) -> dict:
             "source_pages": rider.get("source_pages", []),
             "require_groups": req_groups,
             "exclude_groups": excl_groups,
-            "require_treatments": get_rider_treatment_codes(db, rider_id, rider.get("name")),
-            "treatment_codes": get_rider_treatment_codes(db, rider_id, rider.get("name")),
+            "require_treatments": treatment_codes,
+            "treatment_codes": treatment_codes,
         }
 
         # 룰 엔진 판정 실행
@@ -963,6 +964,7 @@ def compare_scenarios(
                 req_groups, excl_groups = get_disease_rules_for_rider(
                     db, r.get("id"), r.get("name") or "", r.get("trigger_type")
                 )
+                treatment_codes = get_rider_treatment_codes(db, r.get("id"), r.get("name"))
 
                 # 입원 특약은 시나리오 일수(days)로 판정, 그 외는 case의 기본 일수로 판정
                 actual_days = days if trigger == "입원" else (case_data.get("admission_days_current") or 1)
@@ -1010,8 +1012,8 @@ def compare_scenarios(
                     "source_pages": r.get("source_pages", []),
                     "require_groups": req_groups,
                     "exclude_groups": excl_groups,
-                    "require_treatments": get_rider_treatment_codes(db, r.get("id"), r.get("name")),
-                    "treatment_codes": get_rider_treatment_codes(db, r.get("id"), r.get("name")),
+                    "require_treatments": treatment_codes,
+                    "treatment_codes": treatment_codes,
                 }
 
                 judgement = judge(temp_case, judge_rider)
@@ -1082,6 +1084,7 @@ def compare_scenarios(
             req_groups, excl_groups = get_disease_rules_for_rider(
                 db, r.get("id"), r.get("name") or "", r.get("trigger_type")
             )
+            treatment_codes = get_rider_treatment_codes(db, r.get("id"), r.get("name"))
             actual_days = days if days is not None else current_days
 
             # compare(CASE2 비교)는 가입금액 미입력 시 unit_amount(약관 명시 금액)로 채워 표시한다.
@@ -1120,8 +1123,8 @@ def compare_scenarios(
                 "source_pages": r.get("source_pages", []),
                 "require_groups": req_groups,
                 "exclude_groups": excl_groups,
-                "require_treatments": get_rider_treatment_codes(db, r.get("id"), r.get("name")),
-                "treatment_codes": get_rider_treatment_codes(db, r.get("id"), r.get("name")),
+                "require_treatments": treatment_codes,
+                "treatment_codes": treatment_codes,
             }
 
             judgement = judge(temp_case, judge_rider)
@@ -1319,6 +1322,7 @@ def judge_analysis(
         req_groups, excl_groups = get_disease_rules_for_rider(
             db, rider_id, rider.get("name") or "", rider.get("trigger_type")
         )
+        treatment_codes = get_rider_treatment_codes(db, rider_id, rider.get("name"))
 
         judge_case = {
             "disease_kcd": case_data.get("disease_kcd", ""),
@@ -1363,8 +1367,8 @@ def judge_analysis(
             "source_pages": rider.get("source_pages", []),
             "require_groups": req_groups,
             "exclude_groups": excl_groups,
-            "require_treatments": get_rider_treatment_codes(db, rider_id, rider.get("name")),
-            "treatment_codes": get_rider_treatment_codes(db, rider_id, rider.get("name")),
+            "require_treatments": treatment_codes,
+            "treatment_codes": treatment_codes,
         }
 
         judgement = judge(judge_case, judge_rider)
