@@ -194,8 +194,10 @@ def upload_pdf(user_id: str, file_name: str, pdf_bytes: bytes) -> dict:
     # ── 0-1. 다른 사용자가 이미 올린 동일 PDF 탐지 (추출 결과만 복제, 소유권은 새로 분리) ──
     other_existing = db.table("policies").select("id").eq("pdf_hash", pdf_hash).limit(1).execute()
 
-    # ── 0-2. 동명 기존 행 감지 (pdf_hash=NULL 등 과거 행) — uq_policies_user_name_insurer 충돌 방지 ──
+    # ── 0-2. 동명 레거시 행 감지 (pdf_hash=NULL 인 과거 행만) — uq_policies_user_name_insurer 충돌 방지 ──
     # own_existing 은 pdf_hash 기준이라 NULL 행을 잡지 못하므로, name+insurer 기준으로 추가 확인한다.
+    # pdf_hash IS NULL 조건 필수: 이미 해시가 채워진 행(내용이 다른 동명 PDF)까지 잘못 재사용하면
+    # 기존 행의 pdf_hash/페이지가 새 PDF 내용과 불일치하게 된다.
     derived_name = file_name.replace(".pdf", "").replace("_", " ")
     name_conflict = (
         db.table("policies")
@@ -203,6 +205,7 @@ def upload_pdf(user_id: str, file_name: str, pdf_bytes: bytes) -> dict:
         .eq("user_id", user_id)
         .eq("name", derived_name)
         .eq("insurer", "직접업로드")
+        .is_("pdf_hash", "null")
         .limit(1)
         .execute()
     )

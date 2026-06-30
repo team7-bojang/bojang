@@ -1255,6 +1255,10 @@ class MockQueryBuilder:
         self._filters.append(("eq", column, value))
         return self
 
+    def is_(self, column, value):
+        self._filters.append(("is", column, value))
+        return self
+
     def in_(self, column, value):
         self._filters.append(("in", column, value))
         return self
@@ -1335,6 +1339,8 @@ class MockQueryBuilder:
                         match = False
                     elif op == "in" and item_val not in (val or []):
                         match = False
+                    elif op == "is" and item_val is not None and (val == "null" or val is None):
+                        match = False
                 if match:
                     filtered_indices.append(idx)
 
@@ -1357,6 +1363,8 @@ class MockQueryBuilder:
                         match = False
                     elif op == "in" and item_val not in (val or []):
                         match = False
+                    elif op == "is" and item_val is not None and (val == "null" or val is None):
+                        match = False
                 if match:
                     deleted_rows.append(item)
                 else:
@@ -1374,6 +1382,8 @@ class MockQueryBuilder:
                 elif op == "neq" and item_val == val:
                     match = False
                 elif op == "in" and item_val not in (val or []):
+                    match = False
+                elif op == "is" and item_val is not None and (val == "null" or val is None):
                     match = False
                 elif op == "cs" and isinstance(item_val, list):
                     if val not in item_val:

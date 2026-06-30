@@ -422,6 +422,47 @@ def test_upload_pdf_reuses_existing_policy_with_null_hash(monkeypatch):
     assert len(db_instance.policies) == 1
 
 
+def test_upload_pdf_does_not_reuse_same_name_row_with_different_hash(monkeypatch):
+    """동일 파일명이지만 pdf_hash가 이미 채워진(내용이 다른) 기존 행은 재사용하면 안 된다."""
+    other_pdf_bytes = b"%PDF-1.4 completely different content"
+    other_pdf_hash = user_policy_service.hashlib.sha256(other_pdf_bytes).hexdigest()
+    existing_policy_id = "00000002-0000-0000-0000-000000000002"
+    db_instance.policies.append(
+        {
+            "id": existing_policy_id,
+            "name": "same name",  # "same name.pdf" 에서 derive 된 이름과 동일
+            "insurer": "직접업로드",
+            "type": "질병",
+            "is_preset": False,
+            "user_id": OWNER_ID,
+            "pdf_hash": other_pdf_hash,  # 이미 다른 PDF로 채워진 정상 행
+        }
+    )
+    db_instance.policy_pages.extend(
+        {"policy_id": existing_policy_id, "page_num": p["page_num"], "text": p["text"]} for p in _pages()
+    )
+
+    extract_calls = {"count": 0}
+
+    def fake_extract_pages(pdf_bytes):
+        extract_calls["count"] += 1
+        return [{"page_num": 1, "text": "[PAGE 1]\n전혀 다른 내용의 약관입니다. " * 3}]
+
+    monkeypatch.setattr(user_policy_service, "extract_pages", fake_extract_pages)
+
+    result = user_policy_service.upload_pdf(OWNER_ID, "same name.pdf", PDF_BYTES)
+
+    # 기존 행을 잘못 재사용하지 않고 새 PDF를 실제로 추출해야 한다.
+    assert extract_calls["count"] == 1
+    assert result["policy_id"] != existing_policy_id
+
+    # 기존 행의 pdf_hash/페이지는 그대로 보존돼야 한다 (덮어쓰기 금지).
+    untouched = next(p for p in db_instance.policies if p["id"] == existing_policy_id)
+    assert untouched["pdf_hash"] == other_pdf_hash
+    untouched_pages = [p for p in db_instance.policy_pages if p["policy_id"] == existing_policy_id]
+    assert {p["text"] for p in untouched_pages} == {p["text"] for p in _pages()}
+
+
 def test_clone_riders_recomputes_embedding_when_missing(monkeypatch):
     pdf_hash = user_policy_service.hashlib.sha256(PDF_BYTES).hexdigest()
     source_policy_id = "cccccccc-cccc-cccc-cccc-cccccccccccc"
