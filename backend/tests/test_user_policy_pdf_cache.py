@@ -463,6 +463,67 @@ def test_upload_pdf_does_not_reuse_same_name_row_with_different_hash(monkeypatch
     assert {p["text"] for p in untouched_pages} == {p["text"] for p in _pages()}
 
 
+def test_upload_pdf_deletes_stale_name_conflict_row_without_pages(monkeypatch):
+    """동명+NULL pdf_hash 행이 있지만 페이지가 없으면(불완전 행) 삭제 후 새로 추출해야 한다."""
+    stale_policy_id = "00000003-0000-0000-0000-000000000003"
+    db_instance.policies.append(
+        {
+            "id": stale_policy_id,
+            "name": "same.pdf".removesuffix(".pdf").replace("_", " "),
+            "insurer": "직접업로드",
+            "type": "질병",
+            "is_preset": False,
+            "user_id": OWNER_ID,
+            "pdf_hash": None,  # 레거시 NULL 해시
+        }
+    )
+    # 페이지 없음 (page_count == 0) — 과거 실패/수동 수정으로 행만 남은 상태를 흉내냄
+    rider_id = "00000004-0000-0000-0000-000000000004"
+    db_instance.riders.append(
+        {
+            "id": rider_id,
+            "policy_id": stale_policy_id,
+            "parse_query_hash": "stale",
+            "name": "고아 특약",
+            "is_main": False,
+            "trigger_type": "기타",
+            "trigger_detail": "",
+            "unit_amount": None,
+            "unit_type": "기타",
+            "unit_basis": None,
+            "boundaries": [],
+            "exclusions": [],
+            "limits": [],
+            "waiting_period_days": None,
+            "reductions": [],
+            "deduct_days": 0,
+            "claim_rule": None,
+            "source_pages": [],
+            "article_no": "",
+            "page": None,
+            "raw_text": "",
+            "verified": False,
+            "coverage_kind": "정액",
+        }
+    )
+
+    extract_calls = {"count": 0}
+
+    def fake_extract_pages(pdf_bytes):
+        extract_calls["count"] += 1
+        return _pages()
+
+    monkeypatch.setattr(user_policy_service, "extract_pages", fake_extract_pages)
+
+    result = user_policy_service.upload_pdf(OWNER_ID, "same.pdf", PDF_BYTES)
+
+    assert extract_calls["count"] == 1
+    assert result["policy_id"] != stale_policy_id
+    assert result["page_count"] == 2
+    # 불완전한 기존 행은 삭제됐어야 한다 (FK CASCADE 이므로 연결된 riders도 함께 제거됨)
+    assert all(p["id"] != stale_policy_id for p in db_instance.policies)
+
+
 def test_clone_riders_recomputes_embedding_when_missing(monkeypatch):
     pdf_hash = user_policy_service.hashlib.sha256(PDF_BYTES).hexdigest()
     source_policy_id = "cccccccc-cccc-cccc-cccc-cccccccccccc"
