@@ -1,0 +1,57 @@
+name: Production Health Check
+
+# 운영 백엔드가 살아있는지 외부(GitHub 러너)에서 주기적으로 확인하고,
+# 응답이 없으면 Discord 로 알림을 보낸다.
+# 감시자가 운영서버 바깥(GitHub)에 있으므로 서버가 통째로 죽어도 감지된다.
+
+on:
+  schedule:
+    # 5분마다. (GitHub Actions 스케줄 최소 주기. 부하 시 수 분 지연될 수 있음)
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {} # 수동 실행 버튼
+
+# 이전 실행이 길어져도 겹쳐 돌지 않게 한다.
+concurrency:
+  group: health-check
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health (3회 재시도)
+        id: ping
+        run: |
+          url="${{ secrets.PROD_HEALTH_URL }}"
+          if [ -z "$url" ]; then
+            echo "PROD_HEALTH_URL 시크릿이 설정되지 않았습니다." >&2
+            exit 1
+          fi
+
+          code=000
+          for attempt in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url" || echo 000)
+            echo "시도 $attempt: HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "status=200" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            [ "$attempt" -lt 3 ] && sleep 10
+          done
+
+          # 3회 모두 실패 → 다운으로 간주
+          echo "status=$code" >> "$GITHUB_OUTPUT"
+          exit 1
+
+      - name: Discord 알림 (다운 시에만)
+        if: failure()
+        run: |
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          payload=$(cat <<EOF
+          {
+            "content": "🔴 **운영 백엔드 응답 없음**\n상태: HTTP ${{ steps.ping.outputs.status }} (3회 연속 실패)\n레포: ${{ github.repository }}\n실행 로그: $run_url"
+          }
+          EOF
+          )
+          curl -s -H "Content-Type: application/json" -d "$payload" \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
