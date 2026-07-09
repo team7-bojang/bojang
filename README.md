@@ -261,7 +261,7 @@ PDF를 다운로드하지 않아도 README에서 발표자료를 한 페이지�
 
 시연 영상은 아래 링크에서 확인할 수 있습니다.
 
-[보장zip 시연 영상 보기](<docs/assets/demo/7조_놓친 보험금 찾기 AI.mp4>)
+[보장zip 시연 영상 보기](https://drive.google.com/file/d/1Vzg9gZDOhSJDwP7_D78Y4UzwGAuXb__V/view?usp=drive_link)
 
 ## 팀
 
