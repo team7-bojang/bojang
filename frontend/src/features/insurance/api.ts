@@ -6,6 +6,8 @@ import type { ApiResponse } from '@/api/types';
 import type {
   MyPolicy,
   MyPolicyWithNestedPolicy,
+  ParsePolicyRidersRequest,
+  ParsePolicyRidersResponse,
   PolicyPresetList,
   PolicySource,
   SelectPolicyPresetsRequest,
@@ -59,6 +61,14 @@ export const policiesApi = {
       {
         params: { page },
       }
+    );
+    return unwrapApiResponse(data);
+  },
+
+  async parsePolicyRiders(policyId: string, body: ParsePolicyRidersRequest) {
+    const { data } = await apiClient.post<ApiResponse<ParsePolicyRidersResponse>>(
+      endpoints.policies.parse(policyId),
+      body
     );
     return unwrapApiResponse(data);
   },

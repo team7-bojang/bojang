@@ -31,6 +31,50 @@ export interface PolicySource {
   text: string;
 }
 
+export type VisitType = 'INPATIENT' | 'OUTPATIENT';
+
+export interface ClaimRule {
+  formula?: string;
+  medical_category?: string;
+  coverage_kind?: string;
+  condition?: string;
+  [key: string]: unknown;
+}
+
+export interface ParsePolicyRidersRequest {
+  disease_kcd: string;
+  disease_name?: string;
+  treatment_items?: string[];
+  visit_type?: VisitType;
+  surgery?: boolean;
+}
+
+export interface Rider {
+  id: string;
+  name: string;
+  is_main: boolean;
+  trigger_type: string;
+  trigger_detail?: string | null;
+  unit_amount?: number | null;
+  unit_type?: string | null;
+  unit_basis?: string | null;
+  boundaries?: Array<Record<string, unknown>>;
+  exclusions?: string[];
+  limits?: Array<Record<string, unknown>>;
+  waiting_period_days?: number | null;
+  reductions?: Array<Record<string, unknown>>;
+  deduct_days?: number;
+  claim_rule?: ClaimRule | null;
+  source_pages?: number[];
+  article_no?: string | null;
+  page?: number | null;
+  verified?: boolean;
+}
+
+export interface ParsePolicyRidersResponse {
+  riders: Rider[];
+}
+
 export interface RiderSummary {
   id: string;
   name: string;

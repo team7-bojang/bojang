@@ -1,6 +1,12 @@
 import { INSURER_LIST, type InsurerId } from './data/insurers';
 import { policiesApi } from './api';
-import type { MyPolicy, MyPolicyWithNestedPolicy, PolicyOption, PolicyPreset } from './model';
+import type {
+  MyPolicy,
+  MyPolicyWithNestedPolicy,
+  ParsePolicyRidersRequest,
+  PolicyOption,
+  PolicyPreset,
+} from './model';
 
 const POLICY_OPTIONS_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -87,6 +93,12 @@ export async function registerSelectedPolicyPresets(policyIds: string[]) {
 
 export async function uploadUserPolicy(file: File, onProgress?: (percent: number) => void) {
   return policiesApi.uploadPolicy(file, onProgress);
+}
+
+// 온디맨드 파싱: 업로드된 약관에서 질병/처치 조건에 맞는 특약을 추출해 riders 테이블에 저장한다.
+// 캐시 우선(policy_id + query_hash)이라 같은 조건으로 재호출해도 LLM을 다시 부르지 않는다.
+export async function parsePolicyRiders(policyId: string, body: ParsePolicyRidersRequest) {
+  return policiesApi.parsePolicyRiders(policyId, body);
 }
 
 function toFlatMyPolicy(policy: MyPolicyWithNestedPolicy): MyPolicy {

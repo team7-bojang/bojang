@@ -17,6 +17,8 @@ import { TreatmentSection } from '@/features/confirm/components/TreatmentSection
 import { VisitSection } from '@/features/confirm/components/VisitSection';
 import { getPolicyElapsedLabel } from '@/features/confirm/policyElapsed';
 import { getTreatmentCode, getTreatmentDisplayName } from '@/features/confirm/treatmentTypes';
+import { parsePolicyRiders } from '@/features/insurance/queries';
+import { getParseRiderFailureMessage } from '@/features/insurance/utils';
 import { searchCaseAnalysis } from '@/features/result/queries';
 import { cn } from '@/lib/utils';
 import type { CaseDashboard, DashboardPolicy, ServiceType, TreatmentType } from '@/types/case';
@@ -108,6 +110,7 @@ export function CaseReviewPage() {
   const uploadedPdfs = useCaseStore(state => state.uploadedPdfs);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [parseWarning, setParseWarning] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [form, setForm] = useState<CaseDashboard | null>(null);
   const [serviceType, setServiceType] = useState<ServiceType>('CASE1');
@@ -208,13 +211,40 @@ export function CaseReviewPage() {
 
     setSaving(true);
     try {
+      const normalizedTreatmentItems = form.treatment_items.map(item =>
+        getTreatmentCode(item, treatmentTypes)
+      );
       const dashboardPayload = {
         ...form,
-        treatment_items: form.treatment_items.map(item => getTreatmentCode(item, treatmentTypes)),
+        treatment_items: normalizedTreatmentItems,
         policy_elapsed_days: form.policy_elapsed_days,
       };
 
       await saveCaseDashboard(caseId, dashboardPayload);
+
+      // 분석 전 온디맨드 파싱: 분석 대상 약관에서 이 질병/처치 조건에 맞는 특약을 미리 추출해둔다.
+      // (riders가 없으면 아래 searchCaseAnalysis 가 매칭할 특약이 없어 결과가 비게 된다.)
+      // 캐시 우선(policy_id+query_hash)이라 이미 파싱된 조합이면 즉시 반환되므로 매번 호출해도 된다.
+      if (form.disease_kcd) {
+        const visitType = form.is_inpatient
+          ? 'INPATIENT'
+          : form.is_outpatient
+            ? 'OUTPATIENT'
+            : undefined;
+        const parseResults = await Promise.allSettled(
+          analysisTargets.map(target =>
+            parsePolicyRiders(target.id, {
+              disease_kcd: form.disease_kcd ?? '',
+              disease_name: form.disease_name,
+              treatment_items: normalizedTreatmentItems,
+              visit_type: visitType,
+              surgery: form.surgery,
+            })
+          )
+        );
+        setParseWarning(getParseRiderFailureMessage(parseResults));
+      }
+
       // CASE1·CASE2 모두 judge 결과(analysis, case2_summary 포함)로 분석한다.
       const analysis = await searchCaseAnalysis(caseId);
       // CASE2 그래프에 필요한 입원일수는 여기서 이미 알고 있으므로 함께 넘긴다(결과 페이지의 대시보드 재호출 방지).
@@ -255,6 +285,12 @@ export function CaseReviewPage() {
             <p className="mt-2 text-sm text-muted">빠진 내용이나 다른 부분이 있다면 수정해주세요</p>
           </>
         )}
+
+        {parseWarning ? (
+          <div className="mt-4 rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {parseWarning}
+          </div>
+        ) : null}
 
         {saving ? (
           <AnalysisLoadingScreen serviceType={serviceType} />
