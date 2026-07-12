@@ -31,6 +31,18 @@ export interface PolicySource {
   text: string;
 }
 
+export interface ParsePolicyRidersRequest {
+  disease_kcd: string;
+  disease_name?: string;
+  treatment_items?: string[];
+  visit_type?: string;
+  surgery?: boolean;
+}
+
+export interface ParsePolicyRidersResponse {
+  riders: unknown[];
+}
+
 export interface RiderSummary {
   id: string;
   name: string;

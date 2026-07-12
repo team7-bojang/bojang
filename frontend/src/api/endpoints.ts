@@ -7,6 +7,7 @@ export const endpoints = {
     upload: `${API_PREFIX}/policies/upload`,
     my: `${API_PREFIX}/policies/my`,
     source: (policyId: string) => `${API_PREFIX}/policies/${policyId}/source`,
+    parse: (policyId: string) => `${API_PREFIX}/policies/${policyId}/parse`,
   },
   cases: {
     create: `${API_PREFIX}/cases`,
