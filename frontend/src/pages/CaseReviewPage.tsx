@@ -18,6 +18,7 @@ import { VisitSection } from '@/features/confirm/components/VisitSection';
 import { getPolicyElapsedLabel } from '@/features/confirm/policyElapsed';
 import { getTreatmentCode, getTreatmentDisplayName } from '@/features/confirm/treatmentTypes';
 import { parsePolicyRiders } from '@/features/insurance/queries';
+import { getParseRiderFailureMessage } from '@/features/insurance/utils';
 import { searchCaseAnalysis } from '@/features/result/queries';
 import { cn } from '@/lib/utils';
 import type { CaseDashboard, DashboardPolicy, ServiceType, TreatmentType } from '@/types/case';
@@ -109,6 +110,7 @@ export function CaseReviewPage() {
   const uploadedPdfs = useCaseStore(state => state.uploadedPdfs);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [parseWarning, setParseWarning] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [form, setForm] = useState<CaseDashboard | null>(null);
   const [serviceType, setServiceType] = useState<ServiceType>('CASE1');
@@ -229,10 +231,10 @@ export function CaseReviewPage() {
           : form.is_outpatient
             ? 'OUTPATIENT'
             : undefined;
-        await Promise.allSettled(
+        const parseResults = await Promise.allSettled(
           analysisTargets.map(target =>
             parsePolicyRiders(target.id, {
-              disease_kcd: form.disease_kcd as string,
+              disease_kcd: form.disease_kcd || '',
               disease_name: form.disease_name,
               treatment_items: normalizedTreatmentItems,
               visit_type: visitType,
@@ -240,6 +242,7 @@ export function CaseReviewPage() {
             })
           )
         );
+        setParseWarning(getParseRiderFailureMessage(parseResults));
       }
 
       // CASE1·CASE2 모두 judge 결과(analysis, case2_summary 포함)로 분석한다.
@@ -282,6 +285,12 @@ export function CaseReviewPage() {
             <p className="mt-2 text-sm text-muted">빠진 내용이나 다른 부분이 있다면 수정해주세요</p>
           </>
         )}
+
+        {parseWarning ? (
+          <div className="mt-4 rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {parseWarning}
+          </div>
+        ) : null}
 
         {saving ? (
           <AnalysisLoadingScreen serviceType={serviceType} />

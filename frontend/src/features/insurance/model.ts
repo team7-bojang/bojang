@@ -39,8 +39,30 @@ export interface ParsePolicyRidersRequest {
   surgery?: boolean;
 }
 
+export interface Rider {
+  id: string;
+  name: string;
+  is_main: boolean;
+  trigger_type: string;
+  trigger_detail?: string | null;
+  unit_amount?: number | null;
+  unit_type?: string | null;
+  unit_basis?: string | null;
+  boundaries?: Array<Record<string, unknown>>;
+  exclusions?: string[];
+  limits?: Array<Record<string, unknown>>;
+  waiting_period_days?: number | null;
+  reductions?: Array<Record<string, unknown>>;
+  deduct_days?: number;
+  claim_rule?: Record<string, unknown> | null;
+  source_pages?: number[];
+  article_no?: string | null;
+  page?: number | null;
+  verified?: boolean;
+}
+
 export interface ParsePolicyRidersResponse {
-  riders: unknown[];
+  riders: Rider[];
 }
 
 export interface RiderSummary {
