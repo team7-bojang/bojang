@@ -31,11 +31,21 @@ export interface PolicySource {
   text: string;
 }
 
+export type VisitType = 'INPATIENT' | 'OUTPATIENT';
+
+export interface ClaimRule {
+  formula?: string;
+  medical_category?: string;
+  coverage_kind?: string;
+  condition?: string;
+  [key: string]: unknown;
+}
+
 export interface ParsePolicyRidersRequest {
   disease_kcd: string;
   disease_name?: string;
   treatment_items?: string[];
-  visit_type?: string;
+  visit_type?: VisitType;
   surgery?: boolean;
 }
 
@@ -54,7 +64,7 @@ export interface Rider {
   waiting_period_days?: number | null;
   reductions?: Array<Record<string, unknown>>;
   deduct_days?: number;
-  claim_rule?: Record<string, unknown> | null;
+  claim_rule?: ClaimRule | null;
   source_pages?: number[];
   article_no?: string | null;
   page?: number | null;

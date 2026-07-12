@@ -234,7 +234,7 @@ export function CaseReviewPage() {
         const parseResults = await Promise.allSettled(
           analysisTargets.map(target =>
             parsePolicyRiders(target.id, {
-              disease_kcd: form.disease_kcd || '',
+              disease_kcd: form.disease_kcd ?? '',
               disease_name: form.disease_name,
               treatment_items: normalizedTreatmentItems,
               visit_type: visitType,
